@@ -115,10 +115,68 @@ export async function registerRoutes(app: Express): Promise<Server> {
         parseFloat(explainabilityThreshold) : 0.8;
       
       const result = simulateAINegotiation(initiator, responder, terms, threshold);
+      
+      // Store the negotiation in the database
+      try {
+        const now = new Date().toISOString();
+        await storage.createAINegotiation({
+          projectId: 1, // Default project for prototype
+          initiatorId: typeof initiator === 'string' ? initiator : initiator.id,
+          responderId: typeof responder === 'string' ? responder : responder.id,
+          terms,
+          negotiationLog: result.negotiations,
+          explainabilityScore: result.explainabilityScore.toString(),
+          successful: result.success,
+          createdAt: now
+        });
+      } catch (dbError) {
+        console.error("Failed to store AI negotiation:", dbError);
+        // Continue with the response even if storage fails
+      }
+      
       return res.json(result);
     } catch (error) {
       return res.status(500).json({ 
         message: "Failed to simulate AI negotiation",
+        error: error instanceof Error ? error.message : String(error)
+      });
+    }
+  });
+  
+  // Enhanced AI-to-AI negotiation with OpenAI
+  app.post("/api/ai/negotiate/enhanced", async (req: Request, res: Response) => {
+    try {
+      const { initiator, responder, terms, explainabilityThreshold } = req.body;
+      
+      if (!initiator || !responder || !terms) {
+        return res.status(400).json({ message: "Initiator, responder, and terms are required" });
+      }
+      
+      const threshold = explainabilityThreshold !== undefined ? 
+        parseFloat(explainabilityThreshold) : 0.8;
+      
+      // First run the simulation
+      const simulationResult = simulateAINegotiation(initiator, responder, terms, threshold);
+      
+      // Then enhance with OpenAI
+      const aiEnhancement = await enhanceAINegotiation(
+        typeof initiator === 'string' ? initiator : initiator.name,
+        typeof responder === 'string' ? responder : responder.name,
+        simulationResult.contract || terms,
+        simulationResult.negotiations
+      );
+      
+      const result = {
+        ...simulationResult,
+        enhancedTerms: aiEnhancement.enhancedTerms,
+        additionalInsights: aiEnhancement.additionalInsights,
+        humanOversightRecommendations: aiEnhancement.humanOversightRecommendations
+      };
+      
+      return res.json(result);
+    } catch (error) {
+      return res.status(500).json({ 
+        message: "Failed to enhance AI negotiation",
         error: error instanceof Error ? error.message : String(error)
       });
     }
@@ -252,6 +310,142 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       return res.status(500).json({ 
         message: "Failed to update file",
+        error: error instanceof Error ? error.message : String(error)
+      });
+    }
+  });
+
+  // OpenAI-powered endpoints
+  
+  // Code analysis
+  app.post("/api/analyze", async (req: Request, res: Response) => {
+    try {
+      const { code, detailLevel } = req.body;
+      
+      if (!code || typeof code !== "string") {
+        return res.status(400).json({ message: "Code is required" });
+      }
+      
+      const level = detailLevel === "basic" || detailLevel === "comprehensive" 
+        ? detailLevel 
+        : "moderate";
+        
+      const analysis = await analyzeCode(code, level);
+      return res.json({ analysis });
+    } catch (error) {
+      return res.status(500).json({ 
+        message: "Failed to analyze code",
+        error: error instanceof Error ? error.message : String(error)
+      });
+    }
+  });
+  
+  // Self-documentation
+  app.post("/api/documentation", async (req: Request, res: Response) => {
+    try {
+      const { code, detailLevel } = req.body;
+      
+      if (!code || typeof code !== "string") {
+        return res.status(400).json({ message: "Code is required" });
+      }
+      
+      const level = detailLevel === "basic" || detailLevel === "comprehensive" 
+        ? detailLevel 
+        : "moderate";
+        
+      const documentation = await generateDocumentation(code, level);
+      return res.json({ documentation });
+    } catch (error) {
+      return res.status(500).json({ 
+        message: "Failed to generate documentation",
+        error: error instanceof Error ? error.message : String(error)
+      });
+    }
+  });
+  
+  // Quantum explanation
+  app.post("/api/quantum/explain", async (req: Request, res: Response) => {
+    try {
+      const { operationType, parameters, results } = req.body;
+      
+      if (!operationType) {
+        return res.status(400).json({ message: "Operation type is required" });
+      }
+      
+      const explanation = await explainQuantumOperation(
+        operationType,
+        parameters || {},
+        results || {}
+      );
+      
+      return res.json({ explanation });
+    } catch (error) {
+      return res.status(500).json({ 
+        message: "Failed to explain quantum operation",
+        error: error instanceof Error ? error.message : String(error)
+      });
+    }
+  });
+  
+  // Paradox resolution suggestion
+  app.post("/api/quantum/paradox", async (req: Request, res: Response) => {
+    try {
+      const { paradoxDescription, currentApproach } = req.body;
+      
+      if (!paradoxDescription) {
+        return res.status(400).json({ message: "Paradox description is required" });
+      }
+      
+      const resolution = await suggestParadoxResolution(
+        paradoxDescription,
+        currentApproach || "No current approach specified"
+      );
+      
+      return res.json(resolution);
+    } catch (error) {
+      return res.status(500).json({ 
+        message: "Failed to suggest paradox resolution",
+        error: error instanceof Error ? error.message : String(error)
+      });
+    }
+  });
+  
+  // Explainability evaluation
+  app.post("/api/evaluate/explainability", async (req: Request, res: Response) => {
+    try {
+      const { code, threshold } = req.body;
+      
+      if (!code || typeof code !== "string") {
+        return res.status(400).json({ message: "Code is required" });
+      }
+      
+      const explainabilityThreshold = threshold !== undefined ? 
+        parseFloat(threshold) : 0.8;
+        
+      const evaluation = await evaluateExplainability(code, explainabilityThreshold);
+      return res.json(evaluation);
+    } catch (error) {
+      return res.status(500).json({ 
+        message: "Failed to evaluate explainability",
+        error: error instanceof Error ? error.message : String(error)
+      });
+    }
+  });
+  
+  // Code suggestions
+  app.post("/api/suggest", async (req: Request, res: Response) => {
+    try {
+      const { description, existingCode } = req.body;
+      
+      if (!description) {
+        return res.status(400).json({ message: "Description is required" });
+      }
+      
+      const suggestion = await suggestCode(description, existingCode || "");
+      return res.json({ suggestion });
+    } catch (error) {
+      return res.status(500).json({ 
+        message: "Failed to generate code suggestion",
         error: error instanceof Error ? error.message : String(error)
       });
     }

@@ -6,6 +6,13 @@ import Console from "@/components/Console";
 import Documentation from "@/components/Documentation";
 import StatusBar from "@/components/StatusBar";
 import { exampleMainCode } from "@/data/exampleCode";
+import { apiRequest } from "@/lib/queryClient";
+import {
+  analyzeCode,
+  generateDocumentation,
+  evaluateExplainability
+} from "@/lib/openai";
+import { useToast } from "@/hooks/use-toast";
 
 const Home = () => {
   const [activeTab, setActiveTab] = useState("main.singularis");
@@ -13,22 +20,62 @@ const Home = () => {
   const [consoleOutput, setConsoleOutput] = useState<string[]>([]);
   const [activePanel, setActivePanel] = useState<"documentation" | "visualizer">("documentation");
   const [selectedElement, setSelectedElement] = useState<string | null>("quantumKey");
+  const [isExecuting, setIsExecuting] = useState(false);
+  const { toast } = useToast();
 
-  const handleRun = () => {
-    setConsoleOutput([
-      "$ singularis run main.singularis",
-      "Initializing Quantum Runtime v2.3.0...",
-      "Loading quantum libraries...",
-      "Establishing quantum entanglement channel... Done",
-      "Verifying human-auditable threshold... 0.87 (PASS)",
-      "Deploying AI model to marsColony node...",
-      "Latency compensation: 187ms...",
-      "[INFO] Executing AI_Autonomous_Trade contract",
-      "[WARNING] Potential quantum decoherence detected in sector 7.",
-      "[SUCCESS] Contract deployed. Transaction hash: 0xf7ad23...",
-      "[INFO] AI Model initialized with 99.7% verification score",
-      "Program completed in 3.42s"
-    ]);
+  const handleRun = async () => {
+    setIsExecuting(true);
+    setConsoleOutput(["$ singularis run main.singularis", "Executing..."]);
+    
+    try {
+      // First attempt to actually execute the code with our backend
+      const executeResult = await apiRequest<{ output: string[] }>("POST", "/api/execute", { code });
+      
+      if (executeResult && executeResult.output) {
+        setConsoleOutput(executeResult.output);
+      } else {
+        throw new Error("Failed to execute code");
+      }
+      
+      // As a bonus, evaluate the explainability score
+      try {
+        const explainabilityResult = await evaluateExplainability(code);
+        if (explainabilityResult.score) {
+          setConsoleOutput(prevOutput => [
+            ...prevOutput,
+            `Explainability Score: ${(explainabilityResult.score * 100).toFixed(1)}%`,
+            `Analysis: ${explainabilityResult.analysis.substring(0, 100)}...`,
+            "Program completed successfully"
+          ]);
+        }
+      } catch (explainError) {
+        console.error("Failed to evaluate explainability:", explainError);
+      }
+    } catch (error) {
+      console.error("Execution error:", error);
+      setConsoleOutput([
+        "$ singularis run main.singularis",
+        "Initializing Quantum Runtime v2.3.0...",
+        "Loading quantum libraries...",
+        "Establishing quantum entanglement channel... Done",
+        "Verifying human-auditable threshold... 0.87 (PASS)",
+        "Deploying AI model to marsColony node...",
+        "Latency compensation: 187ms...",
+        "[INFO] Executing AI_Autonomous_Trade contract",
+        "[WARNING] Potential quantum decoherence detected in sector 7.",
+        "[SUCCESS] Contract deployed. Transaction hash: 0xf7ad23...",
+        "[INFO] AI Model initialized with 99.7% verification score",
+        "Program completed in 3.42s"
+      ]);
+      
+      toast({
+        title: "Execution Note",
+        description: "Using fallback execution due to API error. Connect your OpenAI API key for full functionality.",
+        variant: "default"
+      });
+    } finally {
+      setIsExecuting(false);
+    }
   };
 
   const handleCodeChange = (newCode: string) => {
