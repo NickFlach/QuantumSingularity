@@ -7,6 +7,23 @@
 
 import { apiRequest } from "./queryClient";
 
+// Response interfaces
+interface AnalysisResponse {
+  analysis: string;
+}
+
+interface DocumentationResponse {
+  documentation: string;
+}
+
+interface ExplanationResponse {
+  explanation: string;
+}
+
+interface SuggestionResponse {
+  suggestion: string;
+}
+
 /**
  * Analyzes SINGULARIS PRIME code with OpenAI
  */
@@ -15,7 +32,7 @@ export async function analyzeCode(
   detailLevel: 'basic' | 'moderate' | 'comprehensive' = 'moderate'
 ): Promise<string> {
   try {
-    const response = await apiRequest<{ analysis: string }>("POST", "/api/analyze", {
+    const response = await apiRequest<AnalysisResponse>("POST", "/api/analyze", {
       code,
       detailLevel
     });
@@ -35,7 +52,7 @@ export async function generateDocumentation(
   detailLevel: 'basic' | 'moderate' | 'comprehensive' = 'moderate'
 ): Promise<string> {
   try {
-    const response = await apiRequest<{ documentation: string }>("POST", "/api/documentation", {
+    const response = await apiRequest<DocumentationResponse>("POST", "/api/documentation", {
       code,
       detailLevel
     });
@@ -56,7 +73,7 @@ export async function explainQuantumOperation(
   results: any
 ): Promise<string> {
   try {
-    const response = await apiRequest<{ explanation: string }>("POST", "/api/quantum/explain", {
+    const response = await apiRequest<ExplanationResponse>("POST", "/api/quantum/explain", {
       operationType,
       parameters,
       results
@@ -148,7 +165,7 @@ export async function getSuggestedCode(
   existingCode: string = ""
 ): Promise<string> {
   try {
-    const response = await apiRequest<{ suggestion: string }>("POST", "/api/suggest", {
+    const response = await apiRequest<SuggestionResponse>("POST", "/api/suggest", {
       description,
       existingCode
     });
@@ -163,14 +180,22 @@ export async function getSuggestedCode(
 /**
  * Performs enhanced AI-to-AI negotiation
  */
+export interface EnhancedNegotiationResponse {
+  success: boolean;
+  explanation: string;
+  enhancedTerms: any;
+  additionalInsights: string;
+  humanOversightRecommendations: string[];
+}
+
 export async function performEnhancedNegotiation(
   initiator: string,
   responder: string,
   terms: any,
   explainabilityThreshold: number = 0.8
-): Promise<any> {
+): Promise<EnhancedNegotiationResponse> {
   try {
-    return await apiRequest("POST", "/api/ai/negotiate/enhanced", {
+    return await apiRequest<EnhancedNegotiationResponse>("POST", "/api/ai/negotiate/enhanced", {
       initiator,
       responder,
       terms,

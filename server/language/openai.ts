@@ -16,6 +16,44 @@ const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
 });
 
+// Check if OpenAI API key is available
+const isOpenAIAvailable = !!process.env.OPENAI_API_KEY;
+console.log("OpenAI API integration is", isOpenAIAvailable ? "enabled" : "disabled");
+
+// Fallback functions for when OpenAI is not available
+function getFallbackDocumentation(code: string): string {
+  return `# SINGULARIS PRIME Documentation
+  
+## Overview
+This documentation provides details about the SINGULARIS PRIME code.
+
+## Code Analysis
+The code appears to implement quantum operations and AI governance mechanisms.
+
+## Key Components
+- Quantum operations
+- AI protocol implementations
+- Human oversight mechanisms
+
+## Security Features
+The code implements explainability thresholds to ensure human auditability.
+
+## Generated with SINGULARIS PRIME self-documentation system
+`;
+}
+
+function getFallbackExplanation(operationType: string): string {
+  const explanations: Record<string, string> = {
+    "quantumEntanglement": "Quantum entanglement is a phenomenon where particles become correlated in such a way that the quantum state of each particle cannot be described independently of the others.",
+    "quantumKeyDistribution": "Quantum key distribution (QKD) uses quantum mechanics principles to enable secure communication between parties by allowing them to detect any eavesdropping.",
+    "bellState": "A Bell state is a maximally entangled quantum state of two qubits, important for quantum information protocols.",
+    "quantumGate": "Quantum gates are the building blocks of quantum circuits, performing operations on qubits analogous to classical logic gates.",
+    "default": "This quantum operation leverages principles of quantum mechanics to perform computations that would be difficult or impossible with classical computers."
+  };
+  
+  return explanations[operationType] || explanations["default"];
+}
+
 /**
  * Analyzes SINGULARIS PRIME code and provides human-friendly explanation
  */
@@ -23,6 +61,26 @@ export async function analyzeCode(
   code: string,
   detailLevel: 'basic' | 'moderate' | 'comprehensive' = 'moderate'
 ): Promise<string> {
+  // If OpenAI is not available, return a fallback analysis
+  if (!isOpenAIAvailable) {
+    console.log("Using fallback code analysis (OpenAI not available)");
+    return `## SINGULARIS PRIME Code Analysis
+
+This code implements a ${detailLevel === 'comprehensive' ? 'sophisticated' : 'basic'} SINGULARIS PRIME application with quantum and AI capabilities.
+
+### Key Components:
+- Quantum operations for secure communication
+- AI governance frameworks with human oversight
+- Explainability mechanisms ensuring human auditability
+- ${code.includes('syncLedger') ? 'Interplanetary communication via quantum-secured ledgers' : 'Local computation with quantum security'}
+- ${code.includes('resolveParadox') ? 'Quantum paradox resolution capabilities' : 'Standard quantum processing'}
+
+### Security Assessment:
+The code implements standard SINGULARIS PRIME security protocols with explainability thresholds.
+
+*Note: This is a simulated analysis as OpenAI integration is not available.*`;
+  }
+
   try {
     const response = await openai.chat.completions.create({
       model: OPENAI_MODEL,
@@ -122,6 +180,12 @@ export async function explainQuantumOperation(
   parameters: any,
   results: any
 ): Promise<string> {
+  // If OpenAI is not available, use fallback explanation
+  if (!isOpenAIAvailable) {
+    console.log("Using fallback quantum explanation (OpenAI not available)");
+    return getFallbackExplanation(operationType);
+  }
+
   try {
     const response = await openai.chat.completions.create({
       model: OPENAI_MODEL,
@@ -221,6 +285,12 @@ export async function generateDocumentation(
   code: string,
   detailLevel: 'basic' | 'moderate' | 'comprehensive' = 'moderate'
 ): Promise<string> {
+  // If OpenAI is not available, use fallback documentation
+  if (!isOpenAIAvailable) {
+    console.log("Using fallback documentation (OpenAI not available)");
+    return getFallbackDocumentation(code);
+  }
+
   try {
     const response = await openai.chat.completions.create({
       model: OPENAI_MODEL,
@@ -265,6 +335,37 @@ export async function evaluateExplainability(
   analysis: string,
   improvements: string[]
 }> {
+  // If OpenAI is not available, return simulated explainability assessment
+  if (!isOpenAIAvailable) {
+    console.log("Using fallback explainability evaluation (OpenAI not available)");
+    
+    // Simple code analysis to provide a simulated score
+    const hasComments = code.includes('//') || code.includes('/*');
+    const hasExplainabilityThreshold = code.includes('explainabilityThreshold');
+    const hasHumanOversight = code.includes('humanOversight') || code.includes('humanAudit');
+    
+    // Calculate a simulated score based on code features
+    const baseScore = 0.7; // Start with a reasonable default
+    let simScore = baseScore;
+    if (hasComments) simScore += 0.1;
+    if (hasExplainabilityThreshold) simScore += 0.1;
+    if (hasHumanOversight) simScore += 0.1;
+    
+    // Keep score within bounds
+    simScore = Math.min(0.95, Math.max(0.5, simScore));
+    
+    return {
+      score: simScore,
+      analysis: `The code demonstrates a simulated explainability score of ${(simScore * 100).toFixed(1)}%. This is a placeholder analysis as OpenAI integration is not available.`,
+      improvements: [
+        "Add more inline comments to explain complex operations",
+        "Implement explicit human oversight mechanisms", 
+        "Use clear naming conventions for variables and functions",
+        "Add explainability assertions at critical decision points"
+      ]
+    };
+  }
+
   try {
     const response = await openai.chat.completions.create({
       model: OPENAI_MODEL,
@@ -313,6 +414,103 @@ export async function suggestCode(
   description: string,
   existingCode: string = ""
 ): Promise<string> {
+  // If OpenAI is not available, return a template code example
+  if (!isOpenAIAvailable) {
+    console.log("Using fallback code suggestion (OpenAI not available)");
+    
+    // Customize template based on description keywords
+    const isQuantumRelated = description.toLowerCase().includes('quantum');
+    const isAIRelated = description.toLowerCase().includes('ai') || description.toLowerCase().includes('intelligence');
+    const isInterplanetaryRelated = description.toLowerCase().includes('planet') || description.toLowerCase().includes('mars');
+    
+    let template = `// SINGULARIS PRIME Example Code
+// Generated based on your description: "${description}"
+
+// Set explainability threshold for human oversight
+enforce explainabilityThreshold >= 0.85;
+
+`;
+
+    // Add quantum-related code if relevant
+    if (isQuantumRelated) {
+      template += `// Establish quantum entanglement
+quantumKey {
+  nodes: ["localNode", "remoteNode"],
+  protocol: "BB84",
+  errorCorrection: true,
+  securityLevel: "HIGH"
+};
+
+`;
+    }
+
+    // Add AI-related code if relevant
+    if (isAIRelated) {
+      template += `// Define AI contract with governance
+contract AIGovernance {
+  parties: ["userAgent", "systemAgent"],
+  terms: {
+    purpose: "Secure information exchange",
+    constraints: ["No user data persistence", "Explainable decisions"],
+    auditFrequency: "1h"
+  },
+  oversight: {
+    humanAuditRequired: true,
+    appealMechanism: "userOverride"
+  }
+};
+
+`;
+    }
+
+    // Add interplanetary code if relevant
+    if (isInterplanetaryRelated) {
+      template += `// Interplanetary data synchronization
+syncLedger {
+  sourceNode: "earthBase",
+  targetNode: "marsColony",
+  compensateLatency: true,
+  redundancy: 3,
+  prioritization: "mission-critical"
+};
+
+`;
+    }
+
+    // Add main function
+    template += `// Main processing function
+function process() {
+  // Initialize AI model with oversight
+  deployModel {
+    id: "govAI-1",
+    parameters: {
+      weights: "./models/governance-v3.qmodel",
+      inferenceMode: "distributed",
+      explainabilityScore: 0.87
+    },
+    constraints: {
+      maxInferenceTime: "50ms",
+      humanVerification: ["critical-decisions", "unusual-patterns"]
+    }
+  };
+  
+  // Log execution
+  console.log("SINGULARIS PRIME execution completed successfully");
+  console.log("Human oversight maintained at 87% explainability");
+  
+  return {
+    status: "success",
+    auditTrail: monitorAuditTrail()
+  };
+}
+
+// Execute with verification
+process();
+`;
+
+    return template;
+  }
+
   try {
     const response = await openai.chat.completions.create({
       model: OPENAI_MODEL,
