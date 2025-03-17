@@ -13,8 +13,11 @@ import {
   suggestParadoxResolution,
   generateDocumentation,
   evaluateExplainability,
-  suggestCode
-} from "./language/openai";
+  suggestCode,
+  getAIProviders,
+  configureAIProvider,
+  setActiveAIProvider
+} from "./language/ai-service";
 import { insertFileSchema, insertProjectSchema } from "@shared/schema";
 
 export async function registerRoutes(app: Express): Promise<Server> {
@@ -446,6 +449,70 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       return res.status(500).json({ 
         message: "Failed to generate code suggestion",
+        error: error instanceof Error ? error.message : String(error)
+      });
+    }
+  });
+
+  // AI Provider management
+  
+  // Get available AI providers
+  app.get("/api/ai/providers", async (req: Request, res: Response) => {
+    try {
+      const providers = await getAIProviders();
+      return res.json(providers);
+    } catch (error) {
+      return res.status(500).json({ 
+        message: "Failed to get AI providers",
+        error: error instanceof Error ? error.message : String(error)
+      });
+    }
+  });
+  
+  // Configure an AI provider
+  app.post("/api/ai/providers/:id/configure", async (req: Request, res: Response) => {
+    try {
+      const { id } = req.params;
+      const config = req.body;
+      
+      if (!id) {
+        return res.status(400).json({ message: "Provider ID is required" });
+      }
+      
+      const success = configureAIProvider(id, config);
+      
+      if (success) {
+        return res.json({ success, message: `Provider ${id} configured successfully` });
+      } else {
+        return res.status(500).json({ success, message: `Failed to configure provider ${id}` });
+      }
+    } catch (error) {
+      return res.status(500).json({ 
+        message: "Failed to configure AI provider",
+        error: error instanceof Error ? error.message : String(error)
+      });
+    }
+  });
+  
+  // Set active AI provider
+  app.post("/api/ai/providers/active", async (req: Request, res: Response) => {
+    try {
+      const { id } = req.body;
+      
+      if (!id) {
+        return res.status(400).json({ message: "Provider ID is required" });
+      }
+      
+      const success = setActiveAIProvider(id);
+      
+      if (success) {
+        return res.json({ success, message: `Provider ${id} set as active` });
+      } else {
+        return res.status(500).json({ success, message: `Failed to set provider ${id} as active` });
+      }
+    } catch (error) {
+      return res.status(500).json({ 
+        message: "Failed to set active AI provider",
         error: error instanceof Error ? error.message : String(error)
       });
     }
