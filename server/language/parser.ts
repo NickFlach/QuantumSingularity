@@ -1,15 +1,34 @@
 /**
  * SINGULARIS PRIME Language Parser
  * 
- * This module provides a basic parser for the SINGULARIS PRIME programming
- * language syntax. It converts code text into an abstract syntax tree (AST).
+ * This module provides a comprehensive parser for the SINGULARIS PRIME programming
+ * language syntax. It converts code text into an abstract syntax tree (AST)
+ * and supports the full range of language features including quantum operations,
+ * AI contracts, model deployment, and paradox resolution.
+ * 
+ * The parser works in conjunction with the SingularisPrimeCompiler to provide
+ * a complete language processing system.
  */
+
+import { SingularisPrimeCompiler } from './compiler';
 
 export class SingularisParser {
   private code: string = '';
   private position: number = 0;
   private line: number = 1;
   private column: number = 1;
+  private compiler: SingularisPrimeCompiler;
+  
+  constructor() {
+    this.compiler = new SingularisPrimeCompiler();
+  }
+  
+  /**
+   * Compiles source code directly using the integrated compiler
+   */
+  compile(sourceCode: string): string[] {
+    return this.compiler.compile(sourceCode);
+  }
   
   // Parse SINGULARIS PRIME code into an AST
   parse(code: string): any[] {

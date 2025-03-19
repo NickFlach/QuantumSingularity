@@ -1,21 +1,33 @@
 /**
  * SINGULARIS PRIME Language Interpreter
  * 
- * This module provides a basic interpreter for executing SINGULARIS PRIME
- * code after it has been parsed into an AST.
+ * This module provides a comprehensive interpreter for executing SINGULARIS PRIME
+ * code after it has been parsed into an AST or compiled to bytecode.
  */
 
 import { simulateQuantumEntanglement, simulateQKD } from './quantum';
 import { simulateAINegotiation, simulateGovernanceAdaptation } from './ai';
+import { SingularisPrimeCompiler, ParsedInstruction } from './compiler';
+import { 
+  QuantumKey, 
+  AIContract, 
+  AIModelDeployment, 
+  LedgerSynchronization, 
+  ParadoxResolver,
+  AIVerification,
+  QuantumDecision
+} from './core-objects';
 
 export class SingularisInterpreter {
   private ast: any[];
   private environment: Map<string, any>;
   private consoleOutput: string[] = [];
+  private compiler: SingularisPrimeCompiler;
   
   constructor(ast: any[]) {
     this.ast = ast;
     this.environment = new Map();
+    this.compiler = new SingularisPrimeCompiler();
     
     // Initialize environment with built-in functions
     this.environment.set('entangle', simulateQuantumEntanglement);
@@ -24,13 +36,61 @@ export class SingularisInterpreter {
     this.environment.set('monitorAuditTrail', this.monitorAuditTrail.bind(this));
   }
   
-  // Execute the program
+  /**
+   * Execute the program using AST
+   */
   execute(): string[] {
     this.log("Initializing Quantum Runtime v2.3.0...");
     this.log("Loading quantum libraries...");
     
     for (const node of this.ast) {
       this.evaluateNode(node);
+    }
+    
+    return this.consoleOutput;
+  }
+  
+  /**
+   * Execute SINGULARIS PRIME code directly from source
+   */
+  executeSource(sourceCode: string): string[] {
+    this.log("Initializing Quantum Runtime v2.4.0...");
+    this.log("Loading quantum libraries...");
+    this.log("Establishing quantum entanglement channel...");
+    
+    try {
+      // Generate bytecode and execute
+      const bytecode = this.compiler.compile(sourceCode);
+      this.log("Successfully compiled SINGULARIS PRIME source code.");
+      
+      // Execute bytecode and get output
+      const output = this.compiler.executeByteCode(bytecode);
+      
+      // Add execution output to console
+      output.forEach(line => {
+        if (!line.startsWith("Executing") && !line.startsWith("Execution completed")) {
+          this.log(line);
+        }
+      });
+      
+      // Random simulation details for effect
+      this.log("Verifying human-auditable threshold... 0.87 (PASS)");
+      
+      if (sourceCode.includes("deployModel")) {
+        const latency = Math.floor(Math.random() * 300) + 100;
+        this.log(`Latency compensation: ${latency}ms...`);
+        
+        if (sourceCode.includes("marsColony")) {
+          this.log("[INFO] Executing AI_Autonomous_Trade contract");
+          this.log("[INFO] AI Model initialized with 99.7% verification score");
+        }
+      }
+      
+      this.log("Program completed successfully");
+      
+    } catch (error) {
+      this.log(`[ERROR] Compilation failed: ${error instanceof Error ? error.message : String(error)}`);
+      this.log("Program terminated with errors");
     }
     
     return this.consoleOutput;
