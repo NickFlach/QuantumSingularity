@@ -5,6 +5,7 @@ import Editor from "@/components/Editor";
 import Console from "@/components/Console";
 import Documentation from "@/components/Documentation";
 import StatusBar from "@/components/StatusBar";
+import { CompilerConsole } from "@/components/CompilerConsole";
 import { exampleMainCode } from "@/data/exampleCode";
 import { apiRequest } from "@/lib/queryClient";
 import {
@@ -13,6 +14,7 @@ import {
   evaluateExplainability
 } from "@/lib/openai";
 import { useToast } from "@/hooks/use-toast";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 const Home = () => {
   const [activeTab, setActiveTab] = useState("main.singularis");
@@ -21,6 +23,7 @@ const Home = () => {
   const [activePanel, setActivePanel] = useState<"documentation" | "visualizer">("documentation");
   const [selectedElement, setSelectedElement] = useState<string | null>("quantumKey");
   const [isExecuting, setIsExecuting] = useState(false);
+  const [consoleMode, setConsoleMode] = useState<"standard" | "compiler">("standard");
   const { toast } = useToast();
 
   const handleRun = async () => {

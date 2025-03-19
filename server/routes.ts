@@ -45,7 +45,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
   
-  // Execute SINGULARIS PRIME code
+  // Execute SINGULARIS PRIME code - AST based execution
   app.post("/api/execute", async (req: Request, res: Response) => {
     try {
       const { code } = req.body;
@@ -65,6 +65,50 @@ export async function registerRoutes(app: Express): Promise<Server> {
       console.error("Execution error:", error);
       return res.status(500).json({ 
         message: "Failed to execute code",
+        error: error instanceof Error ? error.message : String(error)
+      });
+    }
+  });
+  
+  // Execute SINGULARIS PRIME code directly with the compiler-based execution
+  app.post("/api/execute/direct", async (req: Request, res: Response) => {
+    try {
+      const { code } = req.body;
+      
+      if (!code || typeof code !== "string") {
+        return res.status(400).json({ message: "Code is required" });
+      }
+      
+      const interpreter = new SingularisInterpreter([]);
+      const result = interpreter.executeSource(code);
+      
+      return res.json({ output: result });
+    } catch (error) {
+      console.error("Direct execution error:", error);
+      return res.status(500).json({ 
+        message: "Failed to execute code directly",
+        error: error instanceof Error ? error.message : String(error)
+      });
+    }
+  });
+  
+  // Compile SINGULARIS PRIME code to bytecode
+  app.post("/api/compile", async (req: Request, res: Response) => {
+    try {
+      const { code } = req.body;
+      
+      if (!code || typeof code !== "string") {
+        return res.status(400).json({ message: "Code is required" });
+      }
+      
+      const parser = new SingularisParser();
+      const bytecode = parser.compile(code);
+      
+      return res.json({ bytecode });
+    } catch (error) {
+      console.error("Compilation error:", error);
+      return res.status(500).json({ 
+        message: "Failed to compile code",
         error: error instanceof Error ? error.message : String(error)
       });
     }
