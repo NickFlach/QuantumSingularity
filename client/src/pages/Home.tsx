@@ -131,7 +131,23 @@ const Home = () => {
                 onChange={handleCodeChange} 
                 onElementSelect={setSelectedElement}
               />
-              <Console output={consoleOutput} onRun={handleRun} />
+              
+              <div className="border-t border-[#6a0dad]/30">
+                <Tabs value={consoleMode} onValueChange={(value) => setConsoleMode(value as "standard" | "compiler")} className="w-full">
+                  <TabsList className="grid grid-cols-2 mb-2">
+                    <TabsTrigger value="standard">Standard Console</TabsTrigger>
+                    <TabsTrigger value="compiler">Compiler Console</TabsTrigger>
+                  </TabsList>
+                  
+                  <TabsContent value="standard" className="mt-0">
+                    <Console output={consoleOutput} onRun={handleRun} />
+                  </TabsContent>
+                  
+                  <TabsContent value="compiler" className="mt-0">
+                    <CompilerConsole code={code} onCodeChange={handleCodeChange} />
+                  </TabsContent>
+                </Tabs>
+              </div>
             </div>
             
             <Documentation 
