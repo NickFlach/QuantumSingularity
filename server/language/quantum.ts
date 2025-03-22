@@ -7,7 +7,18 @@
  * For this prototype, we simulate quantum behaviors mathematically,
  * but in a production system, these would interface with real quantum
  * hardware or quantum simulation libraries.
+ * 
+ * This module now includes quantum geometry operations that model quantum
+ * states and operations in geometric spaces, enabling topological quantum
+ * computing paradigms.
  */
+
+import { 
+  QuantumGeometry, 
+  GeometricElement, 
+  TopologicalProperty, 
+  QuantumMetric 
+} from './core-objects';
 
 // Simulated Quantum Key Distribution via entanglement
 export function simulateQuantumEntanglement(nodeA: string, nodeB: string) {
@@ -543,5 +554,187 @@ export function simulateZKProof(proofType: 'bulletproofs' | 'groth16' | 'plonk' 
     setupRequired: systemInfo.setupRequired,
     postQuantumSecure: systemInfo.postQuantum,
     timestamp: new Date().toISOString()
+  };
+}
+
+// Create a quantum geometric space for computation
+export function createQuantumGeometricSpace(
+  spaceId: string, 
+  dimension: number, 
+  elements: GeometricElement[]
+): QuantumGeometry {
+  return new QuantumGeometry(spaceId, dimension, elements);
+}
+
+// Simulate embedding quantum states into geometric space
+export function simulateQuantumGeometricEmbedding(
+  space: QuantumGeometry,
+  stateIds: string[],
+  coordinateSets: number[][]
+): { embeddings: { stateId: string; coordinates: number[]; result: string }[] } {
+  if (stateIds.length !== coordinateSets.length) {
+    throw new Error("Number of state IDs must match number of coordinate sets");
+  }
+
+  const embeddings = [];
+  
+  for (let i = 0; i < stateIds.length; i++) {
+    try {
+      const result = space.embedQuantumState(stateIds[i], coordinateSets[i]);
+      embeddings.push({
+        stateId: stateIds[i],
+        coordinates: coordinateSets[i],
+        result
+      });
+    } catch (error) {
+      embeddings.push({
+        stateId: stateIds[i],
+        coordinates: coordinateSets[i],
+        result: error.message
+      });
+    }
+  }
+  
+  return { embeddings };
+}
+
+// Simulate quantum geometric transformations
+export function simulateQuantumGeometricTransformation(
+  space: QuantumGeometry,
+  transformationType: 'rotation' | 'translation' | 'scaling' | 'entanglement',
+  parameters: Record<string, number>
+): { 
+  transformationType: string; 
+  parameters: Record<string, number>; 
+  result: string;
+  energyDelta: number;
+} {
+  const result = space.transform(transformationType, parameters);
+  
+  // Calculate energy change from transformation (simplified model)
+  let energyDelta = 0;
+  switch (transformationType) {
+    case 'rotation':
+      // Rotations generally preserve energy
+      energyDelta = 0.01 * Math.random();
+      break;
+    case 'translation':
+      // Translations in curved space may require/release energy
+      energyDelta = space.metric === 'euclidean' ? 0 : 0.1 * Math.random();
+      break;
+    case 'scaling':
+      // Scaling usually changes energy
+      const scaleFactor = parameters.factor || 1.0;
+      energyDelta = space.energyDensity * (scaleFactor - 1.0);
+      break;
+    case 'entanglement':
+      // Entanglement can release or consume energy
+      energyDelta = 0.5 - Math.random(); // -0.5 to 0.5
+      break;
+  }
+  
+  return {
+    transformationType,
+    parameters,
+    result,
+    energyDelta
+  };
+}
+
+// Simulate quantum geometric entanglement
+export function simulateQuantumGeometricEntanglement(
+  space: QuantumGeometry,
+  stateA: string,
+  stateB: string,
+  distance: number
+): { 
+  entanglementResult: { success: boolean; entanglementStrength: number; description: string };
+  spaceProperties: { spaceId: string; dimension: number; metric: string };
+  quantumEffects: { 
+    informationPreservation: number;
+    decoherenceResistance: number;
+    nonLocalityMeasure: number;
+  }
+} {
+  const entanglementResult = space.entangleByProximity(stateA, stateB, distance);
+  
+  // Calculate additional quantum effects based on space properties
+  const informationPreservation = entanglementResult.success ? 
+    0.7 + (0.3 * entanglementResult.entanglementStrength) : 
+    0.2 + (0.3 * Math.random());
+  
+  const decoherenceResistance = 
+    (space.topologicalProperties.includes('compact') ? 0.3 : 0) +
+    (space.energyDensity < 1.0 ? 0.2 : 0) +
+    (entanglementResult.entanglementStrength * 0.5);
+    
+  const nonLocalityMeasure = 
+    space.dimension * 0.1 + 
+    entanglementResult.entanglementStrength * 0.7 +
+    (space.metric === 'minkowski' ? 0.2 : 0);
+  
+  return {
+    entanglementResult,
+    spaceProperties: {
+      spaceId: space.spaceId,
+      dimension: space.dimension,
+      metric: space.metric
+    },
+    quantumEffects: {
+      informationPreservation,
+      decoherenceResistance,
+      nonLocalityMeasure
+    }
+  };
+}
+
+// Compute topological invariants of quantum spaces
+export function computeQuantumTopologicalInvariants(
+  space: QuantumGeometry
+): {
+  invariants: { name: string; value: number }[];
+  interpretation: { property: string; implication: string }[];
+} {
+  const invariants = space.computeInvariants();
+  
+  // Generate interpretations of the invariant values
+  const interpretation = [];
+  
+  for (const invariant of invariants) {
+    switch (invariant.name) {
+      case 'euler-characteristic':
+        interpretation.push({
+          property: 'Topological structure',
+          implication: invariant.value === 0 
+            ? 'Torus-like quantum structure, supports non-commutative operations'
+            : invariant.value > 0
+              ? 'Sphere-like quantum structure, favors stable qubit storage'
+              : 'Complex saddle-like structure, enables multi-directional quantum routing'
+        });
+        break;
+      case 'quantum-curvature':
+        interpretation.push({
+          property: 'Information density',
+          implication: invariant.value < 0
+            ? 'Negative curvature enhances quantum state separation'
+            : invariant.value > 1
+              ? 'High positive curvature may cause quantum state congestion'
+              : 'Moderate curvature provides optimal balance for quantum operations'
+        });
+        break;
+      case 'topological-entropy':
+        interpretation.push({
+          property: 'Computational complexity',
+          implication: invariant.value > 2
+            ? 'High entropy space supports robust error correction schemes'
+            : 'Low entropy space optimized for quantum state preservation'
+        });
+        break;
+    }
+  }
+  
+  return {
+    invariants,
+    interpretation
   };
 }

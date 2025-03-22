@@ -3,8 +3,13 @@
  * 
  * This module provides the core language classes for the SINGULARIS PRIME programming language.
  * These classes represent the foundational constructs of the language, including quantum operations,
- * AI contracts, model deployment, ledger synchronization, and paradox resolution.
+ * quantum geometry, AI contracts, model deployment, ledger synchronization, and paradox resolution.
  */
+
+// Quantum geometry types
+export type GeometricElement = 'point' | 'line' | 'plane' | 'manifold';
+export type TopologicalProperty = 'connected' | 'compact' | 'orientable' | 'simply-connected';
+export type QuantumMetric = 'euclidean' | 'hyperbolic' | 'elliptic' | 'minkowski';
 
 export class QuantumKey {
   keyId: string;
@@ -182,6 +187,118 @@ export class QuantumDecision {
       decision: options[selected],
       confidence: Math.random() * 0.3 + 0.7, // Random confidence between 0.7 and 1.0
       alternatives: options.filter((_, i) => i !== selected)
+    };
+  }
+}
+
+/**
+ * QuantumGeometry - Adds geometric structures to quantum operations
+ * 
+ * This class implements geometric primitives for quantum computing,
+ * allowing for topological quantum computation and representation of
+ * quantum states in geometric spaces.
+ */
+export class QuantumGeometry {
+  spaceId: string;
+  dimension: number;
+  elements: GeometricElement[];
+  metric: QuantumMetric;
+  topologicalProperties: TopologicalProperty[];
+  energyDensity: number;
+  
+  constructor(
+    spaceId: string, 
+    dimension: number, 
+    elements: GeometricElement[], 
+    metric: QuantumMetric = 'minkowski',
+    topologicalProperties: TopologicalProperty[] = ['connected'],
+    energyDensity: number = 1.0
+  ) {
+    this.spaceId = spaceId;
+    this.dimension = dimension;
+    this.elements = elements;
+    this.metric = metric;
+    this.topologicalProperties = topologicalProperties;
+    this.energyDensity = energyDensity;
+    
+    // Validate dimension
+    if (dimension < 1) {
+      throw new Error("Dimension must be at least 1");
+    }
+    
+    // Validate elements based on dimension
+    if (dimension > 3 && !elements.includes('manifold')) {
+      throw new Error("Higher-dimensional spaces require manifold elements");
+    }
+  }
+  
+  /**
+   * Creates a quantum geometric space for computation
+   */
+  createSpace(): string {
+    return `Created ${this.dimension}D quantum geometric space '${this.spaceId}' with ${this.metric} metric`;
+  }
+  
+  /**
+   * Embeds quantum states into the geometric space
+   */
+  embedQuantumState(stateId: string, coordinates: number[]): string {
+    if (coordinates.length !== this.dimension) {
+      throw new Error(`Expected ${this.dimension} coordinates for this space`);
+    }
+    
+    return `Embedded quantum state '${stateId}' at coordinates [${coordinates.join(', ')}] in space '${this.spaceId}'`;
+  }
+  
+  /**
+   * Performs geometric transformation on quantum states
+   */
+  transform(
+    transformationType: 'rotation' | 'translation' | 'scaling' | 'entanglement',
+    parameters: Record<string, number>
+  ): string {
+    const paramString = Object.entries(parameters)
+      .map(([key, value]) => `${key}: ${value}`)
+      .join(', ');
+      
+    return `Applied ${transformationType} transformation (${paramString}) in space '${this.spaceId}'`;
+  }
+  
+  /**
+   * Computes topological invariants of the quantum space
+   */
+  computeInvariants(): { name: string; value: number }[] {
+    const invariants = [];
+    
+    // Basic Euler characteristic (simplified)
+    const eulerChar = this.elements.length - this.dimension;
+    invariants.push({ name: 'euler-characteristic', value: eulerChar });
+    
+    // Quantum curvature (simplified representation)
+    const curvature = this.energyDensity * (this.dimension - 2);
+    invariants.push({ name: 'quantum-curvature', value: curvature });
+    
+    // Topological entropy (simplified representation)
+    const entropy = Math.log(this.dimension * this.elements.length);
+    invariants.push({ name: 'topological-entropy', value: entropy });
+    
+    return invariants;
+  }
+  
+  /**
+   * Establishes quantum entanglement using geometric proximity
+   */
+  entangleByProximity(
+    stateA: string, 
+    stateB: string, 
+    distance: number
+  ): { success: boolean; entanglementStrength: number; description: string } {
+    const entanglementStrength = 1.0 / (distance + 0.1);
+    
+    return {
+      success: distance < this.dimension * 2,
+      entanglementStrength: Math.min(entanglementStrength, 1.0),
+      description: `Entangled states '${stateA}' and '${stateB}' with geometric proximity ${distance} units`
     };
   }
 }
