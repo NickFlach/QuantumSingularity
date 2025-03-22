@@ -207,7 +207,7 @@ export function QuantumVisualizer({ space }: QuantumVisualizerProps) {
               <Separator className="my-3" />
               <h4 className="font-medium mb-2">Topological Invariants</h4>
               <div className="grid grid-cols-2 gap-2">
-                {space.invariants.map((inv, i) => (
+                {space.invariants.map((inv: QuantumInvariant, i: number) => (
                   <div key={i} className="flex justify-between">
                     <span>{inv.name}:</span>
                     <span>{inv.value.toFixed(2)}</span>
