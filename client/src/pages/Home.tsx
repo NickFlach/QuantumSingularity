@@ -6,6 +6,8 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Separator } from "@/components/ui/separator";
+import { QuantumOperationsPanel } from "@/components/QuantumOperationsPanel";
+import { QuantumVisualizer } from "@/components/QuantumVisualizer";
 import { 
   FileCode, 
   Play, 
@@ -24,6 +26,7 @@ import {
   Boxes,
   ChevronRight
 } from "lucide-react";
+import type { QuantumSpace, QuantumState, QuantumInvariant } from "../types/quantum";
 
 import Editor, { OnMount } from "@monaco-editor/react";
 import {
@@ -83,50 +86,7 @@ interface ExecutionHistoryItem {
   fileId: string;
 }
 
-interface QuantumState {
-  id: string;
-  coordinates: number[];
-}
-
-interface QuantumInvariant {
-  name: string;
-  value: number;
-}
-
-interface QuantumTransformation {
-  transformationType: string;
-  parameters: Record<string, number>;
-  result: string;
-  energyDelta: number;
-}
-
-interface QuantumEntanglement {
-  entanglementResult: { 
-    success: boolean; 
-    entanglementStrength: number; 
-    description: string 
-  };
-  spaceProperties: { 
-    spaceId: string; 
-    dimension: number; 
-    metric: string 
-  };
-  quantumEffects: {
-    informationPreservation: number;
-    decoherenceResistance: number;
-    nonLocalityMeasure: number;
-  }
-}
-
-interface QuantumSpace {
-  id: string;
-  dimension: number;
-  elements: string[];
-  states: QuantumState[];
-  transformations: QuantumTransformation[];
-  entanglements: QuantumEntanglement[];
-  invariants: QuantumInvariant[];
-}
+// Using types from the quantum.ts file
 
 // Main component for SINGULARIS PRIME IDE
 const Home = () => {
