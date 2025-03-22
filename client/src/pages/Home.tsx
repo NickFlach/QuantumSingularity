@@ -1137,7 +1137,7 @@ const Home = () => {
                           {/* This would be replaced with a real visualization component */}
                           <div className="absolute top-0 left-0 w-full h-full bg-gradient-to-br from-[#89B4FA]/20 to-[#F5C2E7]/20"></div>
                           
-                          {quantumSpaces.find(s => s.id === selectedSpace)?.states.map((state, i) => (
+                          {quantumSpaces.find(s => s.id === selectedSpace)?.states.map((state: QuantumState, i: number) => (
                             <div 
                               key={i}
                               className="absolute w-3 h-3 rounded-full bg-[#F5C2E7]"
@@ -1150,7 +1150,7 @@ const Home = () => {
                           ))}
                           
                           {/* Connection line for entanglement */}
-                          {quantumSpaces.find(s => s.id === selectedSpace)?.states.length >= 2 && (
+                          {(quantumSpaces.find(s => s.id === selectedSpace)?.states?.length || 0) >= 2 && (
                             <div 
                               className="absolute bg-gradient-to-r from-[#89B4FA] to-[#F5C2E7] h-0.5" 
                               style={{
@@ -1179,7 +1179,7 @@ const Home = () => {
                           
                           <h4 className="font-medium mb-1">Invariants</h4>
                           <div className="space-y-1">
-                            {quantumSpaces.find(s => s.id === selectedSpace)?.invariants.map((inv, i) => (
+                            {quantumSpaces.find(s => s.id === selectedSpace)?.invariants.map((inv: QuantumInvariant, i: number) => (
                               <div key={i} className="flex justify-between">
                                 <span>{inv.name}:</span>
                                 <span>{inv.value}</span>
