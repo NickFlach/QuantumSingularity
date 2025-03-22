@@ -4,7 +4,15 @@ import { storage } from "./storage";
 import { z } from "zod";
 import { SingularisParser } from "./language/parser";
 import { SingularisInterpreter } from "./language/interpreter";
-import { simulateQuantumEntanglement, simulateQKD } from "./language/quantum";
+import { 
+  simulateQuantumEntanglement, 
+  simulateQKD,
+  createQuantumGeometricSpace,
+  simulateQuantumGeometricEmbedding,
+  simulateQuantumGeometricTransformation,
+  simulateQuantumGeometricEntanglement,
+  computeQuantumTopologicalInvariants
+} from "./language/quantum";
 import { simulateAINegotiation } from "./language/ai";
 import { 
   analyzeCode, 
@@ -557,6 +565,140 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       return res.status(500).json({ 
         message: "Failed to set active AI provider",
+        error: error instanceof Error ? error.message : String(error)
+      });
+    }
+  });
+
+  // Quantum Geometry operations
+  
+  // Create a quantum geometric space
+  app.post("/api/quantum/geometry/create-space", async (req: Request, res: Response) => {
+    try {
+      const { spaceId, dimension, elements } = req.body;
+      
+      if (!spaceId || !dimension || !elements || !Array.isArray(elements)) {
+        return res.status(400).json({ 
+          message: "Invalid request, required parameters: spaceId (string), dimension (number), elements (array)" 
+        });
+      }
+      
+      const space = createQuantumGeometricSpace(spaceId, dimension, elements);
+      const spaceCreationResult = space.createSpace();
+      
+      return res.json({
+        space: {
+          id: space.spaceId,
+          dimension: space.dimension,
+          elements: space.elements,
+          metric: space.metric,
+          topologicalProperties: space.topologicalProperties,
+          energyDensity: space.energyDensity
+        },
+        creationResult: spaceCreationResult
+      });
+    } catch (error) {
+      return res.status(500).json({ 
+        message: "Failed to create quantum geometric space",
+        error: error instanceof Error ? error.message : String(error)
+      });
+    }
+  });
+  
+  // Embed quantum states in a geometric space
+  app.post("/api/quantum/geometry/embed-states", async (req: Request, res: Response) => {
+    try {
+      const { spaceId, dimension, elements, stateIds, coordinateSets } = req.body;
+      
+      if (!spaceId || !dimension || !elements || !Array.isArray(elements) || 
+          !stateIds || !coordinateSets || !Array.isArray(stateIds) || !Array.isArray(coordinateSets)) {
+        return res.status(400).json({ 
+          message: "Invalid request, required parameters: spaceId, dimension, elements, stateIds (array), coordinateSets (array of arrays)" 
+        });
+      }
+      
+      const space = createQuantumGeometricSpace(spaceId, dimension, elements);
+      const result = simulateQuantumGeometricEmbedding(space, stateIds, coordinateSets);
+      
+      return res.json(result);
+    } catch (error) {
+      return res.status(500).json({ 
+        message: "Failed to embed quantum states in geometric space",
+        error: error instanceof Error ? error.message : String(error)
+      });
+    }
+  });
+  
+  // Perform geometric transformations on quantum states
+  app.post("/api/quantum/geometry/transform", async (req: Request, res: Response) => {
+    try {
+      const { spaceId, dimension, elements, transformationType, parameters } = req.body;
+      
+      if (!spaceId || !dimension || !elements || !transformationType || !parameters) {
+        return res.status(400).json({ 
+          message: "Invalid request, required parameters: spaceId, dimension, elements, transformationType, parameters" 
+        });
+      }
+      
+      const space = createQuantumGeometricSpace(spaceId, dimension, elements);
+      const result = simulateQuantumGeometricTransformation(space, transformationType, parameters);
+      
+      return res.json(result);
+    } catch (error) {
+      return res.status(500).json({ 
+        message: "Failed to perform quantum geometric transformation",
+        error: error instanceof Error ? error.message : String(error)
+      });
+    }
+  });
+  
+  // Simulate entanglement in geometric space
+  app.post("/api/quantum/geometry/entangle", async (req: Request, res: Response) => {
+    try {
+      const { spaceId, dimension, elements, stateA, stateB, distance } = req.body;
+      
+      if (!spaceId || !dimension || !elements || !stateA || !stateB || distance === undefined) {
+        return res.status(400).json({ 
+          message: "Invalid request, required parameters: spaceId, dimension, elements, stateA, stateB, distance" 
+        });
+      }
+      
+      const space = createQuantumGeometricSpace(spaceId, dimension, elements);
+      const result = simulateQuantumGeometricEntanglement(space, stateA, stateB, distance);
+      
+      return res.json(result);
+    } catch (error) {
+      return res.status(500).json({ 
+        message: "Failed to simulate geometric entanglement",
+        error: error instanceof Error ? error.message : String(error)
+      });
+    }
+  });
+  
+  // Compute topological invariants
+  app.post("/api/quantum/geometry/invariants", async (req: Request, res: Response) => {
+    try {
+      const { spaceId, dimension, elements, metric, topologicalProperties, energyDensity } = req.body;
+      
+      if (!spaceId || !dimension || !elements) {
+        return res.status(400).json({ 
+          message: "Invalid request, required parameters: spaceId, dimension, elements" 
+        });
+      }
+      
+      const space = createQuantumGeometricSpace(spaceId, dimension, elements);
+      
+      // Optionally update space properties if provided
+      if (metric) space.metric = metric;
+      if (topologicalProperties) space.topologicalProperties = topologicalProperties;
+      if (energyDensity !== undefined) space.energyDensity = energyDensity;
+      
+      const result = computeQuantumTopologicalInvariants(space);
+      
+      return res.json(result);
+    } catch (error) {
+      return res.status(500).json({ 
+        message: "Failed to compute topological invariants",
         error: error instanceof Error ? error.message : String(error)
       });
     }

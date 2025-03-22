@@ -2,7 +2,7 @@
  * SINGULARIS PRIME Compiler Integration - Client
  * 
  * This module provides client-side functions for interacting with the SINGULARIS PRIME
- * compiler and execution environment.
+ * compiler and execution environment, including quantum geometry operations.
  */
 
 import { apiRequest } from './queryClient';
@@ -13,6 +13,70 @@ interface ExecutionResponse {
 
 interface CompilationResponse {
   bytecode: string[];
+}
+
+// Quantum Geometry Types
+export type GeometricElement = 'point' | 'line' | 'plane' | 'manifold';
+export type TopologicalProperty = 'connected' | 'compact' | 'orientable' | 'simply-connected';
+export type QuantumMetric = 'euclidean' | 'hyperbolic' | 'elliptic' | 'minkowski';
+
+// Interface for a quantum geometric space
+export interface QuantumGeometricSpace {
+  id: string;
+  dimension: number;
+  elements: GeometricElement[];
+  metric: QuantumMetric;
+  topologicalProperties: TopologicalProperty[];
+  energyDensity: number;
+}
+
+interface CreateSpaceResponse {
+  space: QuantumGeometricSpace;
+  creationResult: string;
+}
+
+interface EmbedStatesResponse {
+  embeddings: { 
+    stateId: string; 
+    coordinates: number[]; 
+    result: string 
+  }[];
+}
+
+interface TransformResponse {
+  transformationType: string;
+  parameters: Record<string, number>;
+  result: string;
+  energyDelta: number;
+}
+
+interface EntanglementResponse {
+  entanglementResult: { 
+    success: boolean; 
+    entanglementStrength: number; 
+    description: string 
+  };
+  spaceProperties: { 
+    spaceId: string; 
+    dimension: number; 
+    metric: string 
+  };
+  quantumEffects: {
+    informationPreservation: number;
+    decoherenceResistance: number;
+    nonLocalityMeasure: number;
+  }
+}
+
+interface InvariantsResponse {
+  invariants: { 
+    name: string; 
+    value: number 
+  }[];
+  interpretation: { 
+    property: string; 
+    implication: string 
+  }[];
 }
 
 /**
@@ -129,3 +193,154 @@ negotiateAI OrbitalController with LifeSupportSystem about resourceAllocation;
 
 // Make quantum-informed decisions
 quantumDecision marsRover using superpositionAnalysis about pathPlanning;`;
+
+/**
+ * Sample SINGULARIS PRIME code for quantum geometry operations
+ */
+export const sampleQuantumGeometryCode = `// SINGULARIS PRIME - Quantum Geometry Operations
+import "quantum/geometry";
+
+// Create 4D quantum geometric space for computation
+quantumSpace hilbertSpace = createGeometricSpace(
+  dimension=4,
+  elements=["point", "manifold"],
+  metric="minkowski"
+);
+
+// Embed quantum states into the geometric space
+embedState qubit1 in hilbertSpace at [0.5, 0.0, 0.0, 0.0];
+embedState qubit2 in hilbertSpace at [0.0, 0.5, 0.0, 0.0];
+
+// Apply rotation transformation in quantum space
+transform hilbertSpace using rotation(
+  axis=[0, 0, 1],
+  angle=0.25pi
+);
+
+// Entangle states through geometric proximity
+entangle qubit1 with qubit2 in hilbertSpace with distance=0.7;
+
+// Compute topological invariants to analyze space properties
+invariants = computeInvariants(hilbertSpace);
+
+// Use topological structure for error correction
+applyErrorCorrection using invariants.eulerCharacteristic;`;
+
+// Quantum Geometry Functions
+
+/**
+ * Creates a quantum geometric space
+ */
+export async function createQuantumGeometricSpace(
+  spaceId: string,
+  dimension: number,
+  elements: GeometricElement[],
+  metric: QuantumMetric = 'minkowski',
+  topologicalProperties: TopologicalProperty[] = ['connected'],
+  energyDensity: number = 1.0
+): Promise<{ space: QuantumGeometricSpace; creationResult: string }> {
+  return apiRequest<CreateSpaceResponse>("POST", "/api/quantum/geometry/create-space", {
+    spaceId,
+    dimension,
+    elements,
+    metric,
+    topologicalProperties,
+    energyDensity
+  });
+}
+
+/**
+ * Embeds quantum states into a geometric space
+ */
+export async function embedQuantumStates(
+  spaceId: string,
+  dimension: number,
+  elements: GeometricElement[],
+  stateIds: string[],
+  coordinateSets: number[][]
+): Promise<{ embeddings: { stateId: string; coordinates: number[]; result: string }[] }> {
+  return apiRequest<EmbedStatesResponse>("POST", "/api/quantum/geometry/embed-states", {
+    spaceId,
+    dimension,
+    elements,
+    stateIds,
+    coordinateSets
+  });
+}
+
+/**
+ * Performs geometric transformations on quantum states
+ */
+export async function transformQuantumGeometry(
+  spaceId: string,
+  dimension: number,
+  elements: GeometricElement[],
+  transformationType: 'rotation' | 'translation' | 'scaling' | 'entanglement',
+  parameters: Record<string, number>
+): Promise<{ 
+  transformationType: string;
+  parameters: Record<string, number>;
+  result: string;
+  energyDelta: number;
+}> {
+  return apiRequest<TransformResponse>("POST", "/api/quantum/geometry/transform", {
+    spaceId,
+    dimension,
+    elements,
+    transformationType,
+    parameters
+  });
+}
+
+/**
+ * Simulates entanglement between quantum states in geometric space
+ */
+export async function entangleQuantumGeometricStates(
+  spaceId: string,
+  dimension: number,
+  elements: GeometricElement[],
+  stateA: string,
+  stateB: string,
+  distance: number
+): Promise<{ 
+  entanglementResult: { success: boolean; entanglementStrength: number; description: string };
+  spaceProperties: { spaceId: string; dimension: number; metric: string };
+  quantumEffects: { 
+    informationPreservation: number;
+    decoherenceResistance: number;
+    nonLocalityMeasure: number;
+  }
+}> {
+  return apiRequest<EntanglementResponse>("POST", "/api/quantum/geometry/entangle", {
+    spaceId,
+    dimension,
+    elements,
+    stateA,
+    stateB,
+    distance
+  });
+}
+
+/**
+ * Computes topological invariants of quantum space
+ */
+export async function computeQuantumTopologicalInvariants(
+  spaceId: string,
+  dimension: number,
+  elements: GeometricElement[],
+  metric?: QuantumMetric,
+  topologicalProperties?: TopologicalProperty[],
+  energyDensity?: number
+): Promise<{
+  invariants: { name: string; value: number }[];
+  interpretation: { property: string; implication: string }[];
+}> {
+  return apiRequest<InvariantsResponse>("POST", "/api/quantum/geometry/invariants", {
+    spaceId,
+    dimension,
+    elements,
+    metric,
+    topologicalProperties,
+    energyDensity
+  });
+}
