@@ -28,7 +28,7 @@ import {
 } from "./language/ai-service";
 import {
   processAssistantChat,
-  analyzeCode as assistantAnalyzeCode,
+  analyzeCode,
   generateCodeSuggestions,
   naturalLanguageToCode,
   explainCode,
@@ -393,7 +393,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         ? detailLevel 
         : "moderate";
         
-      const analysis = await analyzeCode(code, level);
+      const analysis = await aiServiceAnalyzeCode(code, level);
       return res.json({ analysis });
     } catch (error) {
       return res.status(500).json({ 

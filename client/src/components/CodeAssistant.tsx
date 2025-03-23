@@ -1,15 +1,13 @@
-import { useState, useRef, useEffect } from "react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
-import { Separator } from "@/components/ui/separator";
-import { Badge } from "@/components/ui/badge";
-import { ScrollArea } from "@/components/ui/scroll-area";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Lightbulb, Code, Wand2, Bug, Zap, ArrowRight, CornerDownLeft } from "lucide-react";
-import { cn } from "@/lib/utils";
-import { useToast } from "@/hooks/use-toast";
+import React, { useState } from 'react';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
+import { Input } from '@/components/ui/input';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Textarea } from '@/components/ui/textarea';
+import { useToast } from '@/hooks/use-toast';
+import { apiRequest } from '@/lib/queryClient';
+import { Sparkles, Code, MessageSquare, Send, Wand, Zap, Lightbulb, Eye, Scissors } from 'lucide-react';
+import { Badge } from '@/components/ui/badge';
 
 interface CodeAssistantProps {
   currentCode: string;
@@ -34,358 +32,487 @@ interface CodeAnalysisResponse {
 export function CodeAssistant({ currentCode, onInsertCode }: CodeAssistantProps) {
   const [activeTab, setActiveTab] = useState("chat");
   const [prompt, setPrompt] = useState("");
-  const [isGenerating, setIsGenerating] = useState(false);
-  const [chatHistory, setChatHistory] = useState<{ role: 'user' | 'assistant'; content: string }[]>([
-    { 
-      role: 'assistant', 
-      content: 'Hello! I\'m your SINGULARIS PRIME coding assistant. I can help you write, debug, and optimize code for quantum computing and AI governance. What would you like to work on today?' 
-    }
-  ]);
-  const [suggestions, setSuggestions] = useState<SuggestionResponse[]>([]);
+  const [chatHistory, setChatHistory] = useState<{ role: 'user' | 'assistant', content: string }[]>([]);
+  const [isLoading, setIsLoading] = useState(false);
+  const [codeDescription, setCodeDescription] = useState("");
+  const [generatedCode, setGeneratedCode] = useState("");
+  const [optimization, setOptimization] = useState<'performance' | 'security' | 'explainability'>('performance');
+  const [explanation, setExplanation] = useState("");
   const [codeAnalysis, setCodeAnalysis] = useState<CodeAnalysisResponse | null>(null);
-  const chatEndRef = useRef<HTMLDivElement | null>(null);
+  const [suggestions, setSuggestions] = useState<SuggestionResponse[]>([]);
+  
   const { toast } = useToast();
 
-  // Auto-scroll chat to bottom
-  useEffect(() => {
-    if (chatEndRef.current) {
-      chatEndRef.current.scrollIntoView({ behavior: 'smooth' });
-    }
-  }, [chatHistory]);
-
-  const handlePromptSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!prompt.trim() || isGenerating) return;
-
-    // Add user message to chat
-    setChatHistory([...chatHistory, { role: 'user', content: prompt }]);
-    setIsGenerating(true);
+  // Chat with the assistant
+  const handleChat = async () => {
+    if (!prompt.trim()) return;
     
     try {
-      const response = await fetch('/api/ai/assistant/chat', {
+      setIsLoading(true);
+      const newHistory = [...chatHistory, { role: 'user', content: prompt }];
+      setChatHistory(newHistory);
+      
+      const response = await apiRequest<{ response: string }>('/api/ai/assistant/chat', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ 
+        data: {
           prompt,
-          context: currentCode, 
-          history: chatHistory.slice(-6) // Last 6 messages for context
-        })
+          context: currentCode,
+          history: chatHistory
+        }
       });
-
-      if (!response.ok) {
-        throw new Error('Failed to get response from assistant');
-      }
-
-      const data = await response.json();
-      setChatHistory(prev => [...prev, { role: 'assistant', content: data.response }]);
+      
+      setChatHistory([...newHistory, { role: 'assistant', content: response.response }]);
       setPrompt("");
     } catch (error) {
-      console.error('Error with code assistant:', error);
+      console.error('Chat error:', error);
       toast({
-        title: "Assistant Error",
-        description: error instanceof Error ? error.message : "Something went wrong with the code assistant",
+        title: "Chat Error",
+        description: "Failed to get a response from the assistant.",
         variant: "destructive"
       });
-      setChatHistory(prev => [
-        ...prev, 
-        { 
-          role: 'assistant', 
-          content: "I'm sorry, I encountered an error processing your request. Please try again." 
-        }
-      ]);
     } finally {
-      setIsGenerating(false);
+      setIsLoading(false);
     }
   };
 
-  const generateCodeSuggestions = async () => {
-    if (isGenerating) return;
-    setIsGenerating(true);
+  // Generate code from description
+  const handleGenerateCode = async () => {
+    if (!codeDescription.trim()) return;
     
     try {
-      const response = await fetch('/api/ai/assistant/suggest', {
+      setIsLoading(true);
+      const response = await apiRequest<{ code: string }>('/api/ai/assistant/generate', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ context: currentCode })
+        data: {
+          description: codeDescription
+        }
       });
-
-      if (!response.ok) {
-        throw new Error('Failed to generate code suggestions');
-      }
-
-      const data = await response.json();
-      setSuggestions(data.suggestions || []);
+      
+      setGeneratedCode(response.code);
     } catch (error) {
-      console.error('Error generating suggestions:', error);
+      console.error('Code generation error:', error);
       toast({
         title: "Generation Error",
-        description: error instanceof Error ? error.message : "Failed to generate code suggestions",
+        description: "Failed to generate code from description.",
         variant: "destructive"
       });
     } finally {
-      setIsGenerating(false);
+      setIsLoading(false);
     }
   };
 
-  const analyzeCode = async () => {
-    if (isGenerating || !currentCode.trim()) return;
-    setIsGenerating(true);
+  // Explain code
+  const handleExplainCode = async () => {
+    if (!currentCode.trim()) {
+      toast({
+        title: "No Code",
+        description: "There is no code to explain.",
+        variant: "destructive"
+      });
+      return;
+    }
     
     try {
-      const response = await fetch('/api/ai/assistant/analyze', {
+      setIsLoading(true);
+      const response = await apiRequest<{ explanation: string }>('/api/ai/assistant/explain', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ code: currentCode })
+        data: {
+          code: currentCode
+        }
       });
-
-      if (!response.ok) {
-        throw new Error('Failed to analyze code');
-      }
-
-      const data = await response.json();
-      setCodeAnalysis(data.analysis);
+      
+      setExplanation(response.explanation);
     } catch (error) {
-      console.error('Error analyzing code:', error);
+      console.error('Explain error:', error);
       toast({
-        title: "Analysis Error",
-        description: error instanceof Error ? error.message : "Failed to analyze code",
+        title: "Explanation Error",
+        description: "Failed to explain the code.",
         variant: "destructive"
       });
     } finally {
-      setIsGenerating(false);
+      setIsLoading(false);
+    }
+  };
+
+  // Analyze code
+  const handleAnalyzeCode = async () => {
+    if (!currentCode.trim()) {
+      toast({
+        title: "No Code",
+        description: "There is no code to analyze.",
+        variant: "destructive"
+      });
+      return;
+    }
+    
+    try {
+      setIsLoading(true);
+      const response = await apiRequest<{ analysis: CodeAnalysisResponse }>('/api/ai/assistant/analyze', {
+        method: 'POST',
+        data: {
+          code: currentCode
+        }
+      });
+      
+      setCodeAnalysis(response.analysis);
+    } catch (error) {
+      console.error('Analysis error:', error);
+      toast({
+        title: "Analysis Error",
+        description: "Failed to analyze the code.",
+        variant: "destructive"
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  // Get code suggestions
+  const handleGetSuggestions = async () => {
+    try {
+      setIsLoading(true);
+      const response = await apiRequest<{ suggestions: SuggestionResponse[] }>('/api/ai/assistant/suggest', {
+        method: 'POST',
+        data: {
+          context: currentCode
+        }
+      });
+      
+      setSuggestions(response.suggestions);
+    } catch (error) {
+      console.error('Suggestions error:', error);
+      toast({
+        title: "Suggestions Error",
+        description: "Failed to get code suggestions.",
+        variant: "destructive"
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  // Optimize code
+  const handleOptimizeCode = async () => {
+    if (!currentCode.trim()) {
+      toast({
+        title: "No Code",
+        description: "There is no code to optimize.",
+        variant: "destructive"
+      });
+      return;
+    }
+    
+    try {
+      setIsLoading(true);
+      const response = await apiRequest<{ optimizedCode: string }>('/api/ai/assistant/optimize', {
+        method: 'POST',
+        data: {
+          code: currentCode,
+          focus: optimization
+        }
+      });
+      
+      setGeneratedCode(response.optimizedCode);
+      setActiveTab("generate"); // Switch to generate tab to show the optimized code
+    } catch (error) {
+      console.error('Optimization error:', error);
+      toast({
+        title: "Optimization Error",
+        description: "Failed to optimize the code.",
+        variant: "destructive"
+      });
+    } finally {
+      setIsLoading(false);
     }
   };
 
   return (
-    <Card className="flex flex-col h-full bg-[#181825] border-[#313244]">
-      <CardHeader className="pb-2">
-        <CardTitle className="text-sm font-medium flex items-center justify-between">
-          <div className="flex items-center">
-            <Lightbulb className="h-4 w-4 mr-2 text-[#CBA6F7]" />
-            <span className="text-[#CDD6F4]">SINGULARIS PRIME Assistant</span>
-          </div>
-          <Badge variant="outline" className="text-xs bg-[#313244]">
-            AI-Powered
-          </Badge>
+    <Card className="w-full">
+      <CardHeader>
+        <CardTitle className="flex items-center gap-2">
+          <Sparkles className="h-5 w-5" />
+          <span>SINGULARIS PRIME Code Assistant</span>
         </CardTitle>
+        <CardDescription>
+          AI-powered assistance for writing and understanding SINGULARIS PRIME code
+        </CardDescription>
       </CardHeader>
-      <Tabs defaultValue="chat" value={activeTab} onValueChange={setActiveTab} className="flex-1 flex flex-col">
-        <TabsList className="grid grid-cols-3 mb-2 mx-2">
-          <TabsTrigger value="chat" className="text-xs">
-            <Code className="h-3.5 w-3.5 mr-1.5" />
-            Chat
-          </TabsTrigger>
-          <TabsTrigger value="suggest" className="text-xs">
-            <Wand2 className="h-3.5 w-3.5 mr-1.5" />
-            Suggest
-          </TabsTrigger>
-          <TabsTrigger value="analyze" className="text-xs">
-            <Bug className="h-3.5 w-3.5 mr-1.5" />
-            Analyze
-          </TabsTrigger>
-        </TabsList>
-        
-        {/* Chat Tab */}
-        <TabsContent value="chat" className="flex-1 flex flex-col mt-0">
-          <ScrollArea className="flex-1 pr-4">
-            <div className="flex flex-col gap-3 pb-3">
-              {chatHistory.map((msg, index) => (
-                <div 
-                  key={index} 
-                  className={cn(
-                    "px-3 py-2 rounded-lg max-w-[85%]",
-                    msg.role === 'user' 
-                      ? "bg-[#313244] ml-auto" 
-                      : "bg-[#45475A] mr-auto"
-                  )}
-                >
-                  <div className="text-sm whitespace-pre-wrap">{msg.content}</div>
-                </div>
-              ))}
-              <div ref={chatEndRef} />
-            </div>
-          </ScrollArea>
-          
-          <Separator className="my-2" />
-          
-          <form onSubmit={handlePromptSubmit} className="flex items-center gap-2 px-2 pb-2">
-            <Input
-              placeholder="Ask about SINGULARIS PRIME code..."
-              value={prompt}
-              onChange={(e) => setPrompt(e.target.value)}
-              className="flex-1 bg-[#11111B] border-[#313244]"
-              disabled={isGenerating}
-            />
-            <Button 
-              type="submit" 
-              size="sm"
-              disabled={isGenerating || !prompt.trim()}
-              className="bg-[#CBA6F7] text-[#11111B] hover:bg-[#CBA6F7]/90"
-            >
-              {isGenerating ? (
-                <div className="h-4 w-4 border-2 border-[#11111B] border-t-transparent rounded-full animate-spin" />
-              ) : (
-                <CornerDownLeft className="h-4 w-4" />
-              )}
-            </Button>
-          </form>
-        </TabsContent>
-        
-        {/* Suggest Tab */}
-        <TabsContent value="suggest" className="flex-1 flex flex-col space-y-3 mt-0">
-          <div className="flex justify-between items-center px-2">
-            <span className="text-xs text-[#A6ADC8]">AI-generated code suggestions</span>
-            <Button 
-              size="sm" 
-              variant="outline" 
-              onClick={generateCodeSuggestions}
-              disabled={isGenerating}
-              className="text-xs h-7"
-            >
-              {isGenerating ? (
-                <div className="h-3 w-3 border-2 border-current border-t-transparent rounded-full animate-spin mr-1" />
-              ) : (
-                <Wand2 className="h-3 w-3 mr-1" />
-              )}
+      <CardContent>
+        <Tabs value={activeTab} onValueChange={setActiveTab}>
+          <TabsList className="grid grid-cols-5 mb-4">
+            <TabsTrigger value="chat">
+              <MessageSquare className="h-4 w-4 mr-2" />
+              Chat
+            </TabsTrigger>
+            <TabsTrigger value="generate">
+              <Wand className="h-4 w-4 mr-2" />
               Generate
-            </Button>
-          </div>
+            </TabsTrigger>
+            <TabsTrigger value="analyze">
+              <Eye className="h-4 w-4 mr-2" />
+              Analyze
+            </TabsTrigger>
+            <TabsTrigger value="explain">
+              <Lightbulb className="h-4 w-4 mr-2" />
+              Explain
+            </TabsTrigger>
+            <TabsTrigger value="optimize">
+              <Scissors className="h-4 w-4 mr-2" />
+              Optimize
+            </TabsTrigger>
+          </TabsList>
           
-          <ScrollArea className="flex-1 pr-4">
-            {suggestions.length === 0 ? (
-              <div className="flex flex-col items-center justify-center h-full p-6 text-center">
-                <Lightbulb className="h-8 w-8 text-[#A6ADC8] opacity-20 mb-2" />
-                <p className="text-sm text-[#A6ADC8]">
-                  Click "Generate" to get AI suggestions for your code.
-                </p>
+          {/* Chat Tab */}
+          <TabsContent value="chat" className="space-y-4">
+            <div className="max-h-[300px] overflow-y-auto border rounded-md p-4 mb-4">
+              {chatHistory.length === 0 ? (
+                <div className="text-center text-muted-foreground py-8">
+                  <MessageSquare className="h-8 w-8 mx-auto mb-2 opacity-50" />
+                  <p>Chat with the SINGULARIS PRIME assistant about quantum computing, AI governance, or code help.</p>
+                </div>
+              ) : (
+                <div className="space-y-4">
+                  {chatHistory.map((msg, i) => (
+                    <div key={i} className={`flex ${msg.role === 'assistant' ? 'justify-start' : 'justify-end'}`}>
+                      <div className={`max-w-[80%] px-4 py-2 rounded-lg ${
+                        msg.role === 'assistant' 
+                          ? 'bg-secondary text-secondary-foreground' 
+                          : 'bg-primary text-primary-foreground'
+                      }`}>
+                        <p className="whitespace-pre-wrap">{msg.content}</p>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+            <div className="flex items-center space-x-2">
+              <Input
+                placeholder="Ask about quantum concepts, AI governance, or code help..."
+                value={prompt}
+                onChange={(e) => setPrompt(e.target.value)}
+                disabled={isLoading}
+                onKeyDown={(e) => e.key === 'Enter' && handleChat()}
+              />
+              <Button onClick={handleChat} disabled={isLoading || !prompt.trim()}>
+                <Send className="h-4 w-4 mr-2" />
+                Send
+              </Button>
+            </div>
+          </TabsContent>
+          
+          {/* Generate Tab */}
+          <TabsContent value="generate" className="space-y-4">
+            <div className="space-y-4">
+              <div>
+                <Textarea
+                  placeholder="Describe the code you want to generate in natural language..."
+                  value={codeDescription}
+                  onChange={(e) => setCodeDescription(e.target.value)}
+                  disabled={isLoading}
+                  rows={3}
+                />
               </div>
-            ) : (
-              <div className="flex flex-col gap-4 pb-3">
-                {suggestions.map((suggestion, index) => (
-                  <Card key={index} className="bg-[#11111B] border-[#313244]">
-                    <CardHeader className="py-2 px-3">
-                      <CardTitle className="text-xs font-medium flex justify-between items-center">
-                        <span>Suggestion {index + 1}</span>
-                        <Button 
-                          size="sm" 
-                          variant="ghost" 
-                          className="h-7 text-xs"
-                          onClick={() => onInsertCode(suggestion.code)}
-                        >
-                          Insert <ArrowRight className="h-3 w-3 ml-1" />
-                        </Button>
-                      </CardTitle>
-                    </CardHeader>
-                    <CardContent className="px-3 py-2 text-xs">
-                      <pre className="bg-[#181825] p-2 rounded-md overflow-x-auto mb-2">
+              <Button 
+                onClick={handleGenerateCode} 
+                disabled={isLoading || !codeDescription.trim()}
+                className="w-full"
+              >
+                <Wand className="h-4 w-4 mr-2" />
+                Generate Code
+              </Button>
+              {generatedCode && (
+                <div className="mt-4 space-y-2">
+                  <h4 className="text-sm font-medium">Generated Code:</h4>
+                  <pre className="bg-muted p-2 rounded-md overflow-x-auto whitespace-pre-wrap">
+                    <code>{generatedCode}</code>
+                  </pre>
+                  <Button 
+                    variant="outline" 
+                    onClick={() => onInsertCode(generatedCode)}
+                    className="w-full mt-2"
+                  >
+                    <Code className="h-4 w-4 mr-2" />
+                    Insert Into Editor
+                  </Button>
+                </div>
+              )}
+            </div>
+          </TabsContent>
+          
+          {/* Analyze Tab */}
+          <TabsContent value="analyze" className="space-y-4">
+            <Button 
+              onClick={handleAnalyzeCode} 
+              disabled={isLoading || !currentCode.trim()}
+              className="w-full"
+            >
+              <Eye className="h-4 w-4 mr-2" />
+              Analyze Current Code
+            </Button>
+            
+            {codeAnalysis && (
+              <div className="space-y-4 mt-4">
+                <div className="flex items-center justify-between">
+                  <h4 className="text-sm font-medium">Code Quality Score:</h4>
+                  <Badge variant={
+                    codeAnalysis.score >= 80 ? "default" : 
+                    codeAnalysis.score >= 60 ? "outline" : "destructive"
+                  }>
+                    {codeAnalysis.score}/100
+                  </Badge>
+                </div>
+                
+                <div>
+                  <h4 className="text-sm font-medium mb-2">Issues:</h4>
+                  {codeAnalysis.issues.length === 0 ? (
+                    <p className="text-sm text-muted-foreground">No issues found.</p>
+                  ) : (
+                    <ul className="space-y-2">
+                      {codeAnalysis.issues.map((issue, i) => (
+                        <li key={i} className="flex items-start space-x-2">
+                          <Badge variant={
+                            issue.type === 'error' ? "destructive" : 
+                            issue.type === 'warning' ? "outline" : "secondary"
+                          } className="mt-0.5">
+                            {issue.type}
+                          </Badge>
+                          <span className="text-sm">
+                            {issue.message}
+                            {issue.line !== undefined && ` (Line ${issue.line})`}
+                          </span>
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+                </div>
+                
+                <div>
+                  <h4 className="text-sm font-medium mb-2">Suggestions:</h4>
+                  {codeAnalysis.suggestions.length === 0 ? (
+                    <p className="text-sm text-muted-foreground">No suggestions available.</p>
+                  ) : (
+                    <ul className="space-y-1">
+                      {codeAnalysis.suggestions.map((suggestion, i) => (
+                        <li key={i} className="text-sm flex items-start">
+                          <span className="mr-2">•</span>
+                          <span>{suggestion}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+                </div>
+              </div>
+            )}
+            
+            <div className="border-t pt-4 mt-4">
+              <Button 
+                onClick={handleGetSuggestions} 
+                disabled={isLoading}
+                variant="outline"
+                className="w-full"
+              >
+                <Lightbulb className="h-4 w-4 mr-2" />
+                Get Code Suggestions
+              </Button>
+              
+              {suggestions.length > 0 && (
+                <div className="space-y-4 mt-4">
+                  <h4 className="text-sm font-medium">Suggested Code Snippets:</h4>
+                  {suggestions.map((suggestion, i) => (
+                    <div key={i} className="border rounded-md p-3 space-y-2">
+                      <pre className="bg-muted p-2 rounded-md overflow-x-auto text-xs">
                         <code>{suggestion.code}</code>
                       </pre>
-                      <Separator className="my-2" />
-                      <div className="text-[#A6ADC8]">{suggestion.explanation}</div>
-                    </CardContent>
-                  </Card>
-                ))}
-              </div>
-            )}
-          </ScrollArea>
-        </TabsContent>
-        
-        {/* Analyze Tab */}
-        <TabsContent value="analyze" className="flex-1 flex flex-col space-y-3 mt-0">
-          <div className="flex justify-between items-center px-2">
-            <span className="text-xs text-[#A6ADC8]">Code quality analysis</span>
-            <Button 
-              size="sm" 
-              variant="outline" 
-              onClick={analyzeCode}
-              disabled={isGenerating || !currentCode.trim()}
-              className="text-xs h-7"
-            >
-              {isGenerating ? (
-                <div className="h-3 w-3 border-2 border-current border-t-transparent rounded-full animate-spin mr-1" />
-              ) : (
-                <Zap className="h-3 w-3 mr-1" />
-              )}
-              Analyze
-            </Button>
-          </div>
-          
-          <ScrollArea className="flex-1 pr-4">
-            {!codeAnalysis ? (
-              <div className="flex flex-col items-center justify-center h-full p-6 text-center">
-                <Bug className="h-8 w-8 text-[#A6ADC8] opacity-20 mb-2" />
-                <p className="text-sm text-[#A6ADC8]">
-                  Click "Analyze" to check your code for issues and get improvement suggestions.
-                </p>
-              </div>
-            ) : (
-              <div className="flex flex-col gap-4 pb-3">
-                <div className="px-2">
-                  <div className="flex items-center mb-3">
-                    <span className="font-medium mr-2 text-sm">Quality Score:</span>
-                    <div className="w-full bg-[#313244] rounded-full h-2.5 mr-2">
-                      <div 
-                        className={cn(
-                          "h-2.5 rounded-full",
-                          codeAnalysis.score > 0.7 
-                            ? "bg-[#A6E3A1]" 
-                            : codeAnalysis.score > 0.4 
-                              ? "bg-[#F9E2AF]" 
-                              : "bg-[#F38BA8]"
-                        )}
-                        style={{ width: `${codeAnalysis.score * 100}%` }}
-                      />
+                      <p className="text-sm text-muted-foreground">{suggestion.explanation}</p>
+                      <Button 
+                        variant="outline" 
+                        size="sm"
+                        onClick={() => onInsertCode(suggestion.code)}
+                        className="w-full mt-1"
+                      >
+                        <Code className="h-3 w-3 mr-2" />
+                        Insert Snippet
+                      </Button>
                     </div>
-                    <span className="text-sm">{Math.round(codeAnalysis.score * 100)}%</span>
-                  </div>
-                  
-                  {codeAnalysis.issues.length > 0 && (
-                    <>
-                      <h4 className="text-sm font-medium mb-2">Issues</h4>
-                      <div className="space-y-2">
-                        {codeAnalysis.issues.map((issue, i) => (
-                          <div key={i} className="flex p-2 rounded-md bg-[#11111B]">
-                            <div 
-                              className={cn(
-                                "w-1 rounded-full mr-2",
-                                issue.type === 'error' 
-                                  ? "bg-[#F38BA8]" 
-                                  : issue.type === 'warning' 
-                                    ? "bg-[#F9E2AF]" 
-                                    : "bg-[#89B4FA]"
-                              )}
-                            />
-                            <div className="flex-1 text-xs">
-                              <div className="flex justify-between">
-                                <span className="font-medium">{issue.type.toUpperCase()}</span>
-                                {issue.line && <span className="text-[#A6ADC8]">Line {issue.line}</span>}
-                              </div>
-                              <p className="mt-1">{issue.message}</p>
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-                    </>
-                  )}
-                  
-                  {codeAnalysis.suggestions.length > 0 && (
-                    <>
-                      <h4 className="text-sm font-medium mt-4 mb-2">Suggestions</h4>
-                      <div className="space-y-2">
-                        {codeAnalysis.suggestions.map((suggestion, i) => (
-                          <div key={i} className="p-2 rounded-md bg-[#11111B] text-xs">
-                            {suggestion}
-                          </div>
-                        ))}
-                      </div>
-                    </>
-                  )}
+                  ))}
+                </div>
+              )}
+            </div>
+          </TabsContent>
+          
+          {/* Explain Tab */}
+          <TabsContent value="explain" className="space-y-4">
+            <Button 
+              onClick={handleExplainCode} 
+              disabled={isLoading || !currentCode.trim()}
+              className="w-full"
+            >
+              <Lightbulb className="h-4 w-4 mr-2" />
+              Explain Current Code
+            </Button>
+            
+            {explanation && (
+              <div className="mt-4 space-y-2">
+                <h4 className="text-sm font-medium">Explanation:</h4>
+                <div className="bg-muted p-3 rounded-md">
+                  <p className="whitespace-pre-wrap text-sm">{explanation}</p>
                 </div>
               </div>
             )}
-          </ScrollArea>
-        </TabsContent>
-      </Tabs>
+          </TabsContent>
+          
+          {/* Optimize Tab */}
+          <TabsContent value="optimize" className="space-y-4">
+            <div className="space-y-2">
+              <h4 className="text-sm font-medium">Optimization Focus:</h4>
+              <div className="flex flex-wrap gap-2">
+                <Button 
+                  variant={optimization === 'performance' ? 'default' : 'outline'}
+                  size="sm"
+                  onClick={() => setOptimization('performance')}
+                >
+                  <Zap className="h-4 w-4 mr-2" />
+                  Performance
+                </Button>
+                <Button 
+                  variant={optimization === 'security' ? 'default' : 'outline'}
+                  size="sm"
+                  onClick={() => setOptimization('security')}
+                >
+                  <Zap className="h-4 w-4 mr-2" />
+                  Security
+                </Button>
+                <Button 
+                  variant={optimization === 'explainability' ? 'default' : 'outline'}
+                  size="sm"
+                  onClick={() => setOptimization('explainability')}
+                >
+                  <Zap className="h-4 w-4 mr-2" />
+                  Explainability
+                </Button>
+              </div>
+            </div>
+            
+            <Button 
+              onClick={handleOptimizeCode} 
+              disabled={isLoading || !currentCode.trim()}
+              className="w-full mt-2"
+            >
+              <Scissors className="h-4 w-4 mr-2" />
+              Optimize for {optimization}
+            </Button>
+            
+            <p className="text-xs text-muted-foreground mt-2">
+              Optimized code will appear in the Generate tab where you can review and insert it.
+            </p>
+          </TabsContent>
+        </Tabs>
+      </CardContent>
+      <CardFooter className="flex justify-between text-xs text-muted-foreground">
+        <div>Powered by AI</div>
+        <div>SINGULARIS PRIME v1.0</div>
+      </CardFooter>
     </Card>
   );
 }
