@@ -8,6 +8,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Separator } from "@/components/ui/separator";
 import { QuantumOperationsPanel } from "@/components/QuantumOperationsPanel";
 import { QuantumVisualizer } from "@/components/QuantumVisualizer";
+import { CodeAssistant } from "@/components/CodeAssistant";
 import { 
   FileCode, 
   Play, 
@@ -24,7 +25,8 @@ import {
   Atom,
   Settings,
   Boxes,
-  ChevronRight
+  ChevronRight,
+  Sparkles
 } from "lucide-react";
 import type { QuantumSpace, QuantumState, QuantumInvariant } from "../types/quantum";
 
