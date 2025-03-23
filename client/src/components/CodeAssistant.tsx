@@ -52,8 +52,9 @@ export function CodeAssistant({ currentCode, onInsertCode }: CodeAssistantProps)
       const newHistory = [...chatHistory, { role: 'user' as const, content: prompt }];
       setChatHistory(newHistory);
       
-      const response = await apiRequest<{ response: string }>('/api/ai/assistant/chat', 
+      const response = await apiRequest<{ response: string }>(
         'POST',
+        '/api/ai/assistant/chat',
         {
           prompt,
           context: currentCode,
@@ -81,8 +82,9 @@ export function CodeAssistant({ currentCode, onInsertCode }: CodeAssistantProps)
     
     try {
       setIsLoading(true);
-      const response = await apiRequest<{ code: string }>('/api/ai/assistant/generate', 
+      const response = await apiRequest<{ code: string }>(
         'POST',
+        '/api/ai/assistant/generate',
         {
           description: codeDescription
         }
@@ -114,8 +116,9 @@ export function CodeAssistant({ currentCode, onInsertCode }: CodeAssistantProps)
     
     try {
       setIsLoading(true);
-      const response = await apiRequest<{ explanation: string }>('/api/ai/assistant/explain', 
+      const response = await apiRequest<{ explanation: string }>(
         'POST',
+        '/api/ai/assistant/explain',
         {
           code: currentCode
         }
@@ -147,8 +150,9 @@ export function CodeAssistant({ currentCode, onInsertCode }: CodeAssistantProps)
     
     try {
       setIsLoading(true);
-      const response = await apiRequest<{ analysis: CodeAnalysisResponse }>('/api/ai/assistant/analyze', 
+      const response = await apiRequest<{ analysis: CodeAnalysisResponse }>(
         'POST',
+        '/api/ai/assistant/analyze',
         {
           code: currentCode
         }
@@ -171,8 +175,9 @@ export function CodeAssistant({ currentCode, onInsertCode }: CodeAssistantProps)
   const handleGetSuggestions = async () => {
     try {
       setIsLoading(true);
-      const response = await apiRequest<{ suggestions: SuggestionResponse[] }>('/api/ai/assistant/suggest', 
+      const response = await apiRequest<{ suggestions: SuggestionResponse[] }>(
         'POST',
+        '/api/ai/assistant/suggest',
         {
           context: currentCode
         }
@@ -204,8 +209,9 @@ export function CodeAssistant({ currentCode, onInsertCode }: CodeAssistantProps)
     
     try {
       setIsLoading(true);
-      const response = await apiRequest<{ optimizedCode: string }>('/api/ai/assistant/optimize', 
+      const response = await apiRequest<{ optimizedCode: string }>(
         'POST',
+        '/api/ai/assistant/optimize',
         {
           code: currentCode,
           focus: optimization
