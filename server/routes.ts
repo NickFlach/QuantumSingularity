@@ -15,7 +15,7 @@ import {
 } from "./language/quantum";
 import { simulateAINegotiation } from "./language/ai";
 import { 
-  analyzeCode, 
+  analyzeCode as aiServiceAnalyzeCode, 
   enhanceAINegotiation, 
   explainQuantumOperation, 
   suggestParadoxResolution,
@@ -26,7 +26,6 @@ import {
   configureAIProvider,
   setActiveAIProvider
 } from "./language/ai-service";
-
 import {
   processAssistantChat,
   analyzeCode as assistantAnalyzeCode,
@@ -708,6 +707,127 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       return res.status(500).json({ 
         message: "Failed to compute topological invariants",
+        error: error instanceof Error ? error.message : String(error)
+      });
+    }
+  });
+
+  // SINGULARIS PRIME Code Assistant API routes
+  
+  // Chat with the code assistant
+  app.post("/api/ai/assistant/chat", async (req: Request, res: Response) => {
+    try {
+      const { prompt, context, history } = req.body;
+      
+      if (!prompt) {
+        return res.status(400).json({ message: "Prompt is required" });
+      }
+      
+      const response = await processAssistantChat(
+        prompt,
+        context || "",
+        history || []
+      );
+      
+      return res.json({ response });
+    } catch (error) {
+      return res.status(500).json({ 
+        message: "Failed to process assistant chat",
+        error: error instanceof Error ? error.message : String(error)
+      });
+    }
+  });
+  
+  // Analyze code with assistant
+  app.post("/api/ai/assistant/analyze", async (req: Request, res: Response) => {
+    try {
+      const { code } = req.body;
+      
+      if (!code || typeof code !== "string") {
+        return res.status(400).json({ message: "Code is required" });
+      }
+      
+      const analysis = await analyzeCode(code);
+      return res.json({ analysis });
+    } catch (error) {
+      return res.status(500).json({ 
+        message: "Failed to analyze code with assistant",
+        error: error instanceof Error ? error.message : String(error)
+      });
+    }
+  });
+  
+  // Generate code suggestions
+  app.post("/api/ai/assistant/suggest", async (req: Request, res: Response) => {
+    try {
+      const { context } = req.body;
+      
+      const suggestions = await generateCodeSuggestions(context || "");
+      return res.json({ suggestions });
+    } catch (error) {
+      return res.status(500).json({ 
+        message: "Failed to generate code suggestions",
+        error: error instanceof Error ? error.message : String(error)
+      });
+    }
+  });
+  
+  // Generate code from natural language
+  app.post("/api/ai/assistant/generate", async (req: Request, res: Response) => {
+    try {
+      const { description } = req.body;
+      
+      if (!description) {
+        return res.status(400).json({ message: "Description is required" });
+      }
+      
+      const code = await naturalLanguageToCode(description);
+      return res.json({ code });
+    } catch (error) {
+      return res.status(500).json({ 
+        message: "Failed to generate code from description",
+        error: error instanceof Error ? error.message : String(error)
+      });
+    }
+  });
+  
+  // Explain code
+  app.post("/api/ai/assistant/explain", async (req: Request, res: Response) => {
+    try {
+      const { code } = req.body;
+      
+      if (!code || typeof code !== "string") {
+        return res.status(400).json({ message: "Code is required" });
+      }
+      
+      const explanation = await explainCode(code);
+      return res.json({ explanation });
+    } catch (error) {
+      return res.status(500).json({ 
+        message: "Failed to explain code",
+        error: error instanceof Error ? error.message : String(error)
+      });
+    }
+  });
+  
+  // Optimize code
+  app.post("/api/ai/assistant/optimize", async (req: Request, res: Response) => {
+    try {
+      const { code, focus } = req.body;
+      
+      if (!code || typeof code !== "string") {
+        return res.status(400).json({ message: "Code is required" });
+      }
+      
+      const optimizedCode = await optimizeCode(
+        code, 
+        focus === 'security' || focus === 'explainability' ? focus : 'performance'
+      );
+      
+      return res.json({ optimizedCode });
+    } catch (error) {
+      return res.status(500).json({ 
+        message: "Failed to optimize code",
         error: error instanceof Error ? error.message : String(error)
       });
     }
