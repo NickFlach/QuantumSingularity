@@ -49,19 +49,19 @@ export function CodeAssistant({ currentCode, onInsertCode }: CodeAssistantProps)
     
     try {
       setIsLoading(true);
-      const newHistory = [...chatHistory, { role: 'user', content: prompt }];
+      const newHistory = [...chatHistory, { role: 'user' as const, content: prompt }];
       setChatHistory(newHistory);
       
-      const response = await apiRequest<{ response: string }>('/api/ai/assistant/chat', {
-        method: 'POST',
-        data: {
+      const response = await apiRequest<{ response: string }>('/api/ai/assistant/chat', 
+        'POST',
+        {
           prompt,
           context: currentCode,
           history: chatHistory
         }
-      });
+      );
       
-      setChatHistory([...newHistory, { role: 'assistant', content: response.response }]);
+      setChatHistory([...newHistory, { role: 'assistant' as const, content: response.response }]);
       setPrompt("");
     } catch (error) {
       console.error('Chat error:', error);
@@ -81,12 +81,12 @@ export function CodeAssistant({ currentCode, onInsertCode }: CodeAssistantProps)
     
     try {
       setIsLoading(true);
-      const response = await apiRequest<{ code: string }>('/api/ai/assistant/generate', {
-        method: 'POST',
-        data: {
+      const response = await apiRequest<{ code: string }>('/api/ai/assistant/generate', 
+        'POST',
+        {
           description: codeDescription
         }
-      });
+      );
       
       setGeneratedCode(response.code);
     } catch (error) {
@@ -114,12 +114,12 @@ export function CodeAssistant({ currentCode, onInsertCode }: CodeAssistantProps)
     
     try {
       setIsLoading(true);
-      const response = await apiRequest<{ explanation: string }>('/api/ai/assistant/explain', {
-        method: 'POST',
-        data: {
+      const response = await apiRequest<{ explanation: string }>('/api/ai/assistant/explain', 
+        'POST',
+        {
           code: currentCode
         }
-      });
+      );
       
       setExplanation(response.explanation);
     } catch (error) {
@@ -147,12 +147,12 @@ export function CodeAssistant({ currentCode, onInsertCode }: CodeAssistantProps)
     
     try {
       setIsLoading(true);
-      const response = await apiRequest<{ analysis: CodeAnalysisResponse }>('/api/ai/assistant/analyze', {
-        method: 'POST',
-        data: {
+      const response = await apiRequest<{ analysis: CodeAnalysisResponse }>('/api/ai/assistant/analyze', 
+        'POST',
+        {
           code: currentCode
         }
-      });
+      );
       
       setCodeAnalysis(response.analysis);
     } catch (error) {
@@ -171,12 +171,12 @@ export function CodeAssistant({ currentCode, onInsertCode }: CodeAssistantProps)
   const handleGetSuggestions = async () => {
     try {
       setIsLoading(true);
-      const response = await apiRequest<{ suggestions: SuggestionResponse[] }>('/api/ai/assistant/suggest', {
-        method: 'POST',
-        data: {
+      const response = await apiRequest<{ suggestions: SuggestionResponse[] }>('/api/ai/assistant/suggest', 
+        'POST',
+        {
           context: currentCode
         }
-      });
+      );
       
       setSuggestions(response.suggestions);
     } catch (error) {
@@ -204,13 +204,13 @@ export function CodeAssistant({ currentCode, onInsertCode }: CodeAssistantProps)
     
     try {
       setIsLoading(true);
-      const response = await apiRequest<{ optimizedCode: string }>('/api/ai/assistant/optimize', {
-        method: 'POST',
-        data: {
+      const response = await apiRequest<{ optimizedCode: string }>('/api/ai/assistant/optimize', 
+        'POST',
+        {
           code: currentCode,
           focus: optimization
         }
-      });
+      );
       
       setGeneratedCode(response.optimizedCode);
       setActiveTab("generate"); // Switch to generate tab to show the optimized code
