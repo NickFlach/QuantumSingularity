@@ -748,7 +748,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: "Code is required" });
       }
       
-      const analysis = await analyzeCode(code);
+      const analysis = await assistantAnalyzeCode(code);
       return res.json({ analysis });
     } catch (error) {
       return res.status(500).json({ 
