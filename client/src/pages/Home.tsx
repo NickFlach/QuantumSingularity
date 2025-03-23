@@ -1035,6 +1035,10 @@ const Home = () => {
                       <LayoutGrid className="h-3 w-3 mr-1" />
                       Visualization
                     </TabsTrigger>
+                    <TabsTrigger value="assistant" className="flex-1 text-xs h-9 data-[state=active]:bg-[#181825]">
+                      <Sparkles className="h-3 w-3 mr-1" />
+                      Assistant
+                    </TabsTrigger>
                   </TabsList>
                   
                   <TabsContent value="documentation" className="flex-grow mt-0 p-4">
@@ -1179,6 +1183,34 @@ const Home = () => {
                         </Button>
                       </div>
                     )}
+                  </TabsContent>
+                  
+                  <TabsContent value="assistant" className="flex-grow mt-0 p-3">
+                    <CodeAssistant 
+                      currentCode={files.find(file => file.name === activeFileId)?.content || ""}
+                      onInsertCode={(code) => {
+                        if (activeFileId) {
+                          const currentFile = files.find(file => file.name === activeFileId);
+                          if (currentFile) {
+                            // Replace the current file content with the generated code
+                            const updatedFiles = files.map(file => 
+                              file.name === activeFileId 
+                                ? { ...file, content: code, isModified: true } 
+                                : file
+                            );
+                            setFiles(updatedFiles);
+                            
+                            // Switch to editor tab to show the inserted code
+                            setActiveTab("editor");
+                            
+                            toast({
+                              title: "Code Inserted",
+                              description: "The generated code has been inserted into the editor.",
+                            });
+                          }
+                        }
+                      }}
+                    />
                   </TabsContent>
                 </Tabs>
               </div>

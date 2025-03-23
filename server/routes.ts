@@ -14,6 +14,14 @@ import {
   computeQuantumTopologicalInvariants
 } from "./language/quantum";
 import { simulateAINegotiation } from "./language/ai";
+import {
+  processAssistantChat,
+  analyzeCode as assistantAnalyzeCode,
+  generateCodeSuggestions,
+  naturalLanguageToCode,
+  explainCode,
+  optimizeCode
+} from "./language/singularis-assistant";
 import { 
   analyzeCode as aiServiceAnalyzeCode, 
   enhanceAINegotiation, 
@@ -26,14 +34,7 @@ import {
   configureAIProvider,
   setActiveAIProvider
 } from "./language/ai-service";
-import {
-  processAssistantChat,
-  analyzeCode,
-  generateCodeSuggestions,
-  naturalLanguageToCode,
-  explainCode,
-  optimizeCode
-} from "./language/singularis-assistant";
+
 import { insertFileSchema, insertProjectSchema } from "@shared/schema";
 
 export async function registerRoutes(app: Express): Promise<Server> {
