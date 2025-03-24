@@ -35,6 +35,7 @@ import {
   configureAIProvider,
   setActiveAIProvider
 } from "./language/ai-service";
+import { sendTemplateEmail, sendCustomEmail, EmailTemplate } from "./email-service";
 
 import { insertFileSchema, insertProjectSchema, User } from "@shared/schema";
 
@@ -1131,6 +1132,206 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       return res.status(500).json({ 
         message: "Failed to optimize code",
+        error: error instanceof Error ? error.message : String(error)
+      });
+    }
+  });
+
+  // Email notification routes
+  app.post("/api/email/send-template", async (req: Request, res: Response) => {
+    if (!req.isAuthenticated() || !req.user) {
+      return res.status(401).json({ message: "Not authenticated" });
+    }
+    
+    try {
+      const { template, userId } = req.body;
+      
+      if (!template || typeof template !== "string") {
+        return res.status(400).json({ message: "Template name is required" });
+      }
+      
+      // Check if template is valid
+      const validTemplates: EmailTemplate[] = ["welcome", "project_created", "quantum_simulation_completed", "ai_negotiation_completed", "system_update"];
+      if (!validTemplates.includes(template as EmailTemplate)) {
+        return res.status(400).json({ message: "Invalid template name" });
+      }
+      
+      // Determine target user (current user or specified user if admin)
+      let targetUser: User | undefined;
+      
+      if (userId && userId !== (req.user as User).id) {
+        // Only admins can send to other users
+        // (admin check would be added here in a real app)
+        targetUser = await storage.getUser(userId);
+        if (!targetUser) {
+          return res.status(404).json({ message: "Target user not found" });
+        }
+      } else {
+        targetUser = req.user as User;
+      }
+      
+      // Send the email
+      const result = await sendTemplateEmail(
+        targetUser,
+        template as EmailTemplate
+      );
+      
+      return res.status(result.success ? 200 : 500).json(result);
+    } catch (error) {
+      console.error("Error sending template email:", error);
+      return res.status(500).json({ 
+        success: false,
+        message: "Failed to send template email",
+        error: error instanceof Error ? error.message : String(error)
+      });
+    }
+  });
+  
+  app.post("/api/email/send-custom", async (req: Request, res: Response) => {
+    if (!req.isAuthenticated() || !req.user) {
+      return res.status(401).json({ message: "Not authenticated" });
+    }
+    
+    try {
+      const { email, name, subject, textContent, htmlContent } = req.body;
+      
+      if (!email || !subject || !textContent) {
+        return res.status(400).json({ message: "Email, subject, and text content are required" });
+      }
+      
+      // Send the email
+      const result = await sendCustomEmail(
+        email,
+        name || email,
+        subject,
+        textContent,
+        htmlContent || textContent,
+        (req.user as User).id
+      );
+      
+      return res.status(result.success ? 200 : 500).json(result);
+    } catch (error) {
+      console.error("Error sending custom email:", error);
+      return res.status(500).json({ 
+        success: false,
+        message: "Failed to send custom email",
+        error: error instanceof Error ? error.message : String(error)
+      });
+    }
+  });
+  
+  app.get("/api/email/notification-logs", async (req: Request, res: Response) => {
+    if (!req.isAuthenticated() || !req.user) {
+      return res.status(401).json({ message: "Not authenticated" });
+    }
+    
+    try {
+      const logs = await storage.getNotificationLogs((req.user as User).id);
+      return res.json({ logs });
+    } catch (error) {
+      console.error("Error fetching notification logs:", error);
+      return res.status(500).json({ 
+        message: "Failed to fetch notification logs",
+        error: error instanceof Error ? error.message : String(error)
+      });
+    }
+  });
+  
+  app.put("/api/user/email-preferences", async (req: Request, res: Response) => {
+    if (!req.isAuthenticated() || !req.user) {
+      return res.status(401).json({ message: "Not authenticated" });
+    }
+    
+    try {
+      const { email, emailNotifications } = req.body;
+      
+      // Validate email if provided
+      if (email && typeof email === "string") {
+        if (!email.match(/^[^\s@]+@[^\s@]+\.[^\s@]+$/)) {
+          return res.status(400).json({ message: "Invalid email format" });
+        }
+      }
+      
+      const updates: Partial<User> = {};
+      
+      if (email !== undefined) {
+        updates.email = email;
+        updates.emailVerified = false; // Would need verification in a real system
+      }
+      
+      if (emailNotifications !== undefined) {
+        updates.emailNotifications = Boolean(emailNotifications);
+      }
+      
+      // Update the user profile
+      const updatedUser = await storage.updateUserProfile((req.user as User).id, updates);
+      
+      if (!updatedUser) {
+        return res.status(404).json({ message: "User not found" });
+      }
+      
+      // Remove password from response
+      const { password: _, ...userWithoutPassword } = updatedUser;
+      
+      // Update the session user
+      req.login(updatedUser, (err) => {
+        if (err) {
+          return res.status(500).json({ message: "Session update failed" });
+        }
+        res.status(200).json({ user: userWithoutPassword });
+      });
+    } catch (error) {
+      console.error("Error updating email preferences:", error);
+      return res.status(500).json({ 
+        message: "Failed to update email preferences",
+        error: error instanceof Error ? error.message : String(error)
+      });
+    }
+  });
+
+  // Update registration to send welcome email
+  app.post("/api/auth/register", async (req: Request, res: Response) => {
+    try {
+      const { username, password, email } = req.body;
+      
+      if (!username || !password) {
+        return res.status(400).json({ message: "Username and password are required" });
+      }
+      
+      // Check if user already exists
+      const existingUser = await storage.getUserByUsername(username);
+      if (existingUser) {
+        return res.status(400).json({ message: "Username already taken" });
+      }
+      
+      // Create new user
+      const user = await storage.createUser({ username, password, email });
+      
+      // Send welcome email if email is provided
+      if (email && typeof email === "string") {
+        try {
+          await sendTemplateEmail(user, "welcome");
+        } catch (emailError) {
+          console.error("Failed to send welcome email:", emailError);
+          // Continue with user creation even if email fails
+        }
+      }
+      
+      // Log in the newly created user
+      req.login(user, (loginErr) => {
+        if (loginErr) {
+          console.error("Auto-login failed:", loginErr);
+          // Continue even if auto-login fails
+        }
+      });
+      
+      // Remove password from response
+      const { password: _, ...userWithoutPassword } = user;
+      
+      return res.status(201).json({ user: userWithoutPassword });
+    } catch (error) {
+      return res.status(500).json({ 
+        message: "Failed to register user",
         error: error instanceof Error ? error.message : String(error)
       });
     }
