@@ -118,6 +118,7 @@ const Home = () => {
   // UI state
   const [sidebarCollapsed, setSidebarCollapsed] = useState<boolean>(false);
   const [outputPanelExpanded, setOutputPanelExpanded] = useState<boolean>(false);
+  const [showOptimizationPanel, setShowOptimizationPanel] = useState<boolean>(false);
   const { toast } = useToast();
 
   // Add a new file tab
@@ -1040,6 +1041,10 @@ const Home = () => {
                       <Sparkles className="h-3 w-3 mr-1" />
                       Assistant
                     </TabsTrigger>
+                    <TabsTrigger value="optimization" className="flex-1 text-xs h-9 data-[state=active]:bg-[#181825]">
+                      <Activity className="h-3 w-3 mr-1" />
+                      Optimize
+                    </TabsTrigger>
                   </TabsList>
                   
                   <TabsContent value="documentation" className="flex-grow mt-0 p-4">
@@ -1207,6 +1212,41 @@ const Home = () => {
                             toast({
                               title: "Code Inserted",
                               description: "The generated code has been inserted into the editor.",
+                            });
+                          }
+                        }
+                      }}
+                    />
+                  </TabsContent>
+                  
+                  <TabsContent value="optimization" className="flex-grow mt-0 p-3">
+                    <OptimizationDirectivesPanel 
+                      code={files.find(file => file.name === activeFileId)?.content || ""}
+                      onApplyDirectives={(directives) => {
+                        if (activeFileId) {
+                          const currentFile = files.find(file => file.name === activeFileId);
+                          if (currentFile) {
+                            // Get the current content
+                            const currentContent = currentFile.content;
+                            
+                            // Apply directives as comments at the top of the file
+                            const directivesCode = directives.map(d => `// ${d}\n`).join('');
+                            const updatedContent = directivesCode + currentContent;
+                            
+                            // Update the file content
+                            const updatedFiles = files.map(file => 
+                              file.name === activeFileId 
+                                ? { ...file, content: updatedContent, isModified: true } 
+                                : file
+                            );
+                            setFiles(updatedFiles);
+                            
+                            // Switch to editor tab to show the inserted directives
+                            setActiveTab("editor");
+                            
+                            toast({
+                              title: "Optimization Directives Applied",
+                              description: "The optimization directives have been added to your code.",
                             });
                           }
                         }
