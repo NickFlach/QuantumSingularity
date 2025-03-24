@@ -403,6 +403,111 @@ const Home = () => {
     setShowOptimizationPanel(true);
   };
   
+  // Handle applying optimization directives to code
+  const handleApplyOptimizationDirectives = async (directives: string[]) => {
+    const currentFile = files.find(file => file.name === activeFileId);
+    if (!currentFile) return;
+    
+    setIsExecuting(true);
+    setConsoleOutput([
+      "$ singularis optimize " + activeFileId, 
+      "Initializing AI Optimization Engine...", 
+      "Applying directives:", 
+      ...directives.map(d => `  ${d}`),
+      "Optimizing quantum circuit..."
+    ]);
+    
+    try {
+      // Apply the directives as comments to the code for processing
+      const codeWithDirectives = directives.map(d => `// ${d}`).join('\n') + '\n\n' + currentFile.content;
+      
+      // Optimize code using the directives
+      const result = await optimizeCodeWithDirectives(codeWithDirectives);
+      
+      // Update the console output with optimization results
+      setConsoleOutput([
+        "$ singularis optimize " + activeFileId, 
+        "Initializing AI Optimization Engine...", 
+        "Applying directives:", 
+        ...directives.map(d => `  ${d}`),
+        "────────────────────────────────────────────",
+        "✓ Original circuit:",
+        `  Gates: ${result.original.gates}`,
+        `  Depth: ${result.original.depth}`,
+        "────────────────────────────────────────────",
+        "✓ Optimized circuit:",
+        `  Gates: ${result.optimized.gates}`,
+        `  Depth: ${result.optimized.depth}`,
+        "────────────────────────────────────────────",
+        "✓ Improvements:",
+        `  Gate count reduction: ${result.improvement.gateCount}%`,
+        `  Circuit depth change: ${result.improvement.depthChange}%`,
+        "────────────────────────────────────────────",
+        "✓ Explanation:",
+        result.optimized.explanation,
+        "────────────────────────────────────────────",
+        "✓ Explainability score: " + (result.explainability * 100).toFixed(1) + "%",
+        "────────────────────────────────────────────",
+        "✓ Resource estimates:",
+        `  Computational complexity: ${result.resourceEstimates.computationalComplexity}`,
+        `  Estimated runtime: ${result.resourceEstimates.estimatedRuntime.toFixed(2)}ms`,
+        `  Memory requirements: ${result.resourceEstimates.memoryRequirements}MB`,
+        "────────────────────────────────────────────",
+        "Optimization completed successfully at " + new Date(result.timestamp).toLocaleTimeString()
+      ]);
+      
+      setActiveTab("output");
+      
+      // Ask user if they want to apply the optimized code
+      toast({
+        title: "Optimization Complete",
+        description: `Reduced gate count by ${result.improvement.gateCount}%. Apply optimized code?`,
+        action: (
+          <Button 
+            onClick={() => applyOptimizedCode(result.optimized.circuit)} 
+            className="bg-primary text-white"
+          >
+            Apply
+          </Button>
+        ),
+      });
+      
+    } catch (error) {
+      console.error("Optimization error:", error);
+      
+      const errorOutput = [
+        "$ singularis optimize " + activeFileId, 
+        "Initializing AI Optimization Engine...",
+        "ERROR: Optimization failed.",
+        error instanceof Error ? `${error.message}` : "An unknown error occurred.",
+        "Process terminated with errors."
+      ];
+      
+      setConsoleOutput(errorOutput);
+      
+      toast({
+        title: "Optimization Error",
+        description: error instanceof Error ? error.message : "Failed to optimize the code",
+        variant: "destructive"
+      });
+    } finally {
+      setIsExecuting(false);
+    }
+  };
+  
+  // Apply optimized code to the editor
+  const applyOptimizedCode = (optimizedCode: string) => {
+    const updatedFiles = files.map(file => 
+      file.name === activeFileId ? { ...file, content: optimizedCode, isModified: true } : file
+    );
+    setFiles(updatedFiles);
+    
+    toast({
+      title: "Optimized Code Applied",
+      description: "The AI-optimized code has been applied to the editor."
+    });
+  };
+  
   // Simulate quantum geometry operations
   const handleRunQuantumGeometry = async () => {
     const currentFile = files.find(file => file.name === activeFileId);
@@ -1239,35 +1344,7 @@ const Home = () => {
                   <TabsContent value="optimization" className="flex-grow mt-0 p-3">
                     <OptimizationDirectivesPanel 
                       code={files.find(file => file.name === activeFileId)?.content || ""}
-                      onApplyDirectives={(directives) => {
-                        if (activeFileId) {
-                          const currentFile = files.find(file => file.name === activeFileId);
-                          if (currentFile) {
-                            // Get the current content
-                            const currentContent = currentFile.content;
-                            
-                            // Apply directives as comments at the top of the file
-                            const directivesCode = directives.map(d => `// ${d}\n`).join('');
-                            const updatedContent = directivesCode + currentContent;
-                            
-                            // Update the file content
-                            const updatedFiles = files.map(file => 
-                              file.name === activeFileId 
-                                ? { ...file, content: updatedContent, isModified: true } 
-                                : file
-                            );
-                            setFiles(updatedFiles);
-                            
-                            // Switch to editor tab to show the inserted directives
-                            setActiveTab("editor");
-                            
-                            toast({
-                              title: "Optimization Directives Applied",
-                              description: "The optimization directives have been added to your code.",
-                            });
-                          }
-                        }
-                      }}
+                      onApplyDirectives={handleApplyOptimizationDirectives}
                     />
                   </TabsContent>
                 </Tabs>
