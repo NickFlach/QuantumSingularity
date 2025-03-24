@@ -1,6 +1,6 @@
 import { MailerSend, EmailParams, Recipient, Sender } from "mailersend";
 import { storage } from "./storage";
-import { NotificationLog, type User } from "@shared/schema";
+import { NotificationLog, type User, type InsertNotificationLog } from "@shared/schema";
 import { z } from "zod";
 
 // Check if MailerSend API key is available
@@ -138,6 +138,28 @@ const emailTemplates: Record<EmailTemplate, EmailTemplateContent> = {
 };
 
 /**
+ * Creates a notification log entry in the database
+ */
+async function createNotificationLog(data: {
+  userId: number | null,
+  template: string | null,
+  subject: string,
+  content: string,
+  status: "sent" | "failed",
+  errorMessage?: string
+}): Promise<NotificationLog> {
+  return await storage.createNotificationLog({
+    userId: data.userId,
+    template: data.template,
+    subject: data.subject,
+    content: data.content,
+    status: data.status,
+    errorMessage: data.errorMessage || null,
+    sentAt: new Date()
+  });
+}
+
+/**
  * Send an email to a user using a predefined template
  */
 export async function sendTemplateEmail(
@@ -164,12 +186,13 @@ export async function sendTemplateEmail(
   // Check if MailerSend is configured
   if (!mailersend) {
     // Log the attempt even if we can't send
-    const log = await storage.createNotificationLog({
+    const log = await createNotificationLog({
       userId: user.id,
-      template,
+      template: template,
+      subject: `Failed to send ${template} email`,
+      content: "MailerSend API key not configured",
       status: "failed",
-      errorMessage: "MailerSend API key not configured",
-      sentAt: new Date()
+      errorMessage: "MailerSend API key not configured"
     });
 
     return {
@@ -182,27 +205,38 @@ export async function sendTemplateEmail(
   const templateContent = emailTemplates[template];
   
   try {
-    const recipients = [
-      new Recipient(user.email, user.displayName || user.username)
-    ];
-
-    const emailParams = new EmailParams()
-      .setFrom(DEFAULT_FROM_EMAIL)
-      .setFromName(DEFAULT_FROM_NAME)
-      .setRecipients(recipients)
-      .setSubject(templateContent.subject)
-      .setText(templateContent.plainTextContent(user))
-      .setHtml(templateContent.htmlContent(user));
+    const recipientName = user.displayName || user.username;
+    const emailParams = new EmailParams();
+    
+    // Set sender
+    emailParams.setFrom({
+      email: DEFAULT_FROM_EMAIL,
+      name: DEFAULT_FROM_NAME
+    });
+    
+    // Set recipients
+    emailParams.setRecipients([
+      {
+        email: user.email,
+        name: recipientName
+      }
+    ]);
+    
+    // Set content
+    emailParams.setSubject(templateContent.subject);
+    emailParams.setText(templateContent.plainTextContent(user));
+    emailParams.setHtml(templateContent.htmlContent(user));
 
     // Send the email
     await mailersend.email.send(emailParams);
 
     // Log the successful email
-    const log = await storage.createNotificationLog({
+    const log = await createNotificationLog({
       userId: user.id,
-      template,
-      status: "sent",
-      sentAt: new Date()
+      template: template,
+      subject: templateContent.subject,
+      content: templateContent.plainTextContent(user),
+      status: "sent"
     });
 
     // Update the user's last notification timestamp
@@ -219,12 +253,13 @@ export async function sendTemplateEmail(
     console.error("Error sending email:", error);
     
     // Log the failed attempt
-    const log = await storage.createNotificationLog({
+    const log = await createNotificationLog({
       userId: user.id,
-      template,
+      template: template,
+      subject: templateContent.subject,
+      content: templateContent.plainTextContent(user),
       status: "failed",
-      errorMessage: error instanceof Error ? error.message : String(error),
-      sentAt: new Date()
+      errorMessage: error instanceof Error ? error.message : String(error)
     });
 
     return {
@@ -249,12 +284,13 @@ export async function sendCustomEmail(
   // Check if MailerSend is configured
   if (!mailersend) {
     // Log the attempt even if we can't send
-    const log = await storage.createNotificationLog({
+    const log = await createNotificationLog({
       userId: userId || null,
       template: "custom",
+      subject: "Failed to send custom email",
+      content: textContent,
       status: "failed",
-      errorMessage: "MailerSend API key not configured",
-      sentAt: new Date()
+      errorMessage: "MailerSend API key not configured"
     });
 
     return {
@@ -265,27 +301,37 @@ export async function sendCustomEmail(
   }
 
   try {
-    const recipients = [
-      new Recipient(email, name)
-    ];
-
-    const emailParams = new EmailParams()
-      .setFrom(DEFAULT_FROM_EMAIL)
-      .setFromName(DEFAULT_FROM_NAME)
-      .setRecipients(recipients)
-      .setSubject(subject)
-      .setText(textContent)
-      .setHtml(htmlContent);
+    const emailParams = new EmailParams();
+    
+    // Set sender
+    emailParams.setFrom({
+      email: DEFAULT_FROM_EMAIL,
+      name: DEFAULT_FROM_NAME
+    });
+    
+    // Set recipients
+    emailParams.setRecipients([
+      {
+        email: email,
+        name: name
+      }
+    ]);
+    
+    // Set content
+    emailParams.setSubject(subject);
+    emailParams.setText(textContent);
+    emailParams.setHtml(htmlContent);
 
     // Send the email
     await mailersend.email.send(emailParams);
 
     // Log the successful email
-    const log = await storage.createNotificationLog({
+    const log = await createNotificationLog({
       userId: userId || null,
       template: "custom",
-      status: "sent",
-      sentAt: new Date()
+      subject: subject,
+      content: textContent,
+      status: "sent"
     });
 
     return {
@@ -297,12 +343,13 @@ export async function sendCustomEmail(
     console.error("Error sending custom email:", error);
     
     // Log the failed attempt
-    const log = await storage.createNotificationLog({
+    const log = await createNotificationLog({
       userId: userId || null,
       template: "custom",
+      subject: subject,
+      content: textContent,
       status: "failed",
-      errorMessage: error instanceof Error ? error.message : String(error),
-      sentAt: new Date()
+      errorMessage: error instanceof Error ? error.message : String(error)
     });
 
     return {

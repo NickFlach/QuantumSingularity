@@ -66,11 +66,13 @@ export const aiNegotiations = pgTable("ai_negotiations", {
 export const notificationLogs = pgTable("notification_logs", {
   id: serial("id").primaryKey(),
   userId: integer("user_id").references(() => users.id),
-  type: text("type").notNull(), // 'welcome', 'digest', 'achievement', etc.
+  type: text("type").notNull(), // 'email', 'in-app', etc.
+  template: text("template"), // 'welcome', 'project_created', 'custom', etc.
   subject: text("subject").notNull(),
   content: text("content").notNull(),
   sentAt: timestamp("sent_at").notNull().defaultNow(),
   status: text("status").notNull(), // 'sent', 'failed', etc.
+  errorMessage: text("error_message"), // Error message if status is 'failed'
 });
 
 // Insert schemas
@@ -96,9 +98,11 @@ export const updateUserProfileSchema = createInsertSchema(users).pick({
 export const insertNotificationLogSchema = createInsertSchema(notificationLogs).pick({
   userId: true,
   type: true,
+  template: true,
   subject: true,
   content: true,
   status: true,
+  errorMessage: true,
 });
 
 export const insertProjectSchema = createInsertSchema(singularisProjects).pick({
