@@ -8,6 +8,7 @@ import Settings from "@/pages/Settings";
 import AIQuantumDemo from "@/pages/AIQuantumDemo";
 import DocumentationPage from "@/pages/documentation-page";
 import QuantumGeometryDemo from "@/pages/QuantumGeometryDemo";
+import QuantumCircuitDesignerPage from "@/pages/QuantumCircuitDesignerPage";
 import ProjectsPage from "@/pages/projects-page";
 import ProjectDetail from "@/pages/project-detail";
 import AuthPage from "@/pages/auth-page";
@@ -23,6 +24,7 @@ function Router() {
       <ProtectedRoute path="/demo" component={AIQuantumDemo} />
       <ProtectedRoute path="/docs" component={DocumentationPage} />
       <ProtectedRoute path="/quantum-geometry" component={QuantumGeometryDemo} />
+      <ProtectedRoute path="/quantum-circuit" component={QuantumCircuitDesignerPage} />
       <ProtectedRoute path="/projects" component={ProjectsPage} />
       <ProtectedRoute path="/projects/:id" component={ProjectDetail} />
       <Route path="/auth" component={AuthPage} />

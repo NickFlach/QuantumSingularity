@@ -306,6 +306,98 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
   
   // Simulate AI-optimized quantum circuit
+  app.post("/api/quantum/circuit/simulate", async (req: Request, res: Response) => {
+    const { gates, options } = req.body;
+    
+    try {
+      // The circuit simulation would typically be handled by an actual quantum simulator
+      // For now, let's create a realistic mock response based on the circuit structure
+      
+      // Analyze the circuit to determine basic properties
+      const numQubits = Math.max(...gates.map((gate: any) => Math.max(
+        ...(gate.targets || []),
+        ...(gate.controls || [])
+      ))) + 1;
+      
+      const hasHadamard = gates.some((g: any) => g.gate === 'H');
+      const hasCNOT = gates.some((g: any) => g.gate === 'CNOT' || g.gate === 'CZ');
+      const hasEntanglement = hasHadamard && hasCNOT;
+      
+      let probabilities: Record<string, number> = {};
+      
+      // Generate realistic probability distributions based on circuit characteristics
+      if (hasEntanglement && numQubits >= 2) {
+        // Bell-like state probabilities
+        if (numQubits === 2) {
+          probabilities = { '00': 0.5, '11': 0.5 };
+        } else if (numQubits === 3) {
+          // GHZ-like state
+          probabilities = { '000': 0.5, '111': 0.5 };
+        } else {
+          // Randomly distributed states but with quantum correlation patterns
+          const states = Math.min(8, 2 ** numQubits); // Limit to reasonable number of states
+          const baseProb = 1 / states;
+          
+          // Generate correlated state pairs
+          for (let i = 0; i < states / 2; i++) {
+            const bin = i.toString(2).padStart(numQubits, '0');
+            const flipped = bin.split('').map(b => b === '0' ? '1' : '0').join('');
+            
+            // Add some quantum noise
+            const noise = Math.random() * 0.1 - 0.05;
+            probabilities[bin] = baseProb + noise;
+            probabilities[flipped] = baseProb - noise;
+          }
+        }
+      } else if (hasHadamard) {
+        // Uniform superposition
+        const states = Math.min(8, 2 ** numQubits);
+        for (let i = 0; i < states; i++) {
+          const bin = i.toString(2).padStart(numQubits, '0');
+          probabilities[bin] = 1 / states;
+        }
+      } else {
+        // Simple state without superposition
+        probabilities['0'.repeat(numQubits)] = 1;
+      }
+      
+      // Calculate circuit statistics
+      const depth = gates.reduce((max: number, g: any) => Math.max(max, g.position || 0), 0) + 1;
+      const entanglementMeasure = hasEntanglement ? 0.8 + Math.random() * 0.2 : Math.random() * 0.3;
+      const complexity = (gates.length / (numQubits * 3)) * 0.8;
+      
+      // Generate explanation if requested
+      let explanation = undefined;
+      if (options?.explain) {
+        if (hasEntanglement && numQubits === 2) {
+          explanation = "This circuit creates a Bell state (|00⟩ + |11⟩)/√2, which demonstrates quantum entanglement between two qubits. Bell states are fundamental to quantum teleportation and superdense coding protocols.";
+        } else if (hasEntanglement && numQubits === 3) {
+          explanation = "This circuit appears to create a GHZ state (|000⟩ + |111⟩)/√2, which is a maximally entangled state of three qubits. GHZ states are useful for testing quantum nonlocality and are important in quantum error correction.";
+        } else if (hasHadamard && numQubits > 0) {
+          explanation = `This circuit creates a uniform superposition of ${numQubits} qubits, placing each qubit in an equal probability of being measured as 0 or 1. This is a fundamental building block for many quantum algorithms.`;
+        } else {
+          explanation = `This ${numQubits}-qubit circuit applies a series of gates including ${gates.map((g: any) => g.gate).filter((v: string, i: number, a: string[]) => a.indexOf(v) === i).join(', ')}. The resulting quantum state shows the probability distribution seen in the results.`;
+        }
+      }
+      
+      res.status(200).json({
+        result: {
+          probabilities,
+          visualization: "Circuit visualization data",
+          statistics: {
+            entanglement: entanglementMeasure,
+            complexity: complexity,
+            depth: depth
+          },
+          ...(explanation && { explanation })
+        }
+      });
+    } catch (error) {
+      console.error("Error simulating quantum circuit:", error);
+      res.status(500).json({ error: "Failed to simulate quantum circuit" });
+    }
+  });
+  
   app.post("/api/quantum/circuit/optimize", async (req: Request, res: Response) => {
     try {
       const { gates, numQubits, optimization } = req.body;
