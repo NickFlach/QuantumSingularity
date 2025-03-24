@@ -7,6 +7,7 @@
 
 import { apiRequest } from './queryClient';
 import { QuantumGate } from './QuantumOperations';
+import { parseOptimizationDirectives, OptimizationDirective } from './OptimizationDirectives';
 
 interface ExecutionResponse {
   output: string[];
@@ -410,4 +411,93 @@ export async function simulateAIOptimizedCircuit(
     numQubits,
     optimization
   });
+}
+
+/**
+ * Optimizes quantum code based on embedded optimization directives
+ * 
+ * This function parses the code for optimization directives, extracts them,
+ * and applies AI-powered optimizations to the quantum operations in the code.
+ * 
+ * @param code SINGULARIS PRIME code with optimization directives in comments
+ * @returns Original and optimized code with improvement metrics
+ */
+export async function optimizeCodeWithDirectives(code: string): Promise<AIOptimizedCircuitResponse> {
+  // Parse the directives from the code
+  const directives = parseOptimizationDirectives(code);
+  
+  if (directives.length === 0) {
+    throw new Error("No optimization directives found in the code. Add directives using // @optimize_for_* comments.");
+  }
+  
+  // Take the first directive as the primary optimization configuration
+  const primaryDirective = directives[0];
+  
+  // Create the optimization configuration from directive
+  const optimization = {
+    goal: primaryDirective.goal,
+    method: primaryDirective.method,
+    priority: primaryDirective.priority,
+    threshold: primaryDirective.threshold,
+    parameters: primaryDirective.parameters
+  };
+  
+  // Extract quantum gates from the code (this is a simplified implementation)
+  // In a real implementation, this would parse the actual quantum circuit from the code
+  const circuitInfo = extractQuantumCircuit(code);
+  
+  // Call the optimize endpoint with the extracted circuit and optimization config
+  return apiRequest<AIOptimizedCircuitResponse>("POST", "/api/quantum/circuit/optimize", {
+    gates: circuitInfo.gates,
+    numQubits: circuitInfo.numQubits,
+    optimization,
+    sourceCode: code
+  });
+}
+
+/**
+ * Extract quantum circuit from SINGULARIS PRIME code
+ * 
+ * This is a simplified implementation to extract quantum gates
+ * from code. In a real implementation, this would use the full parser.
+ */
+function extractQuantumCircuit(code: string): {
+  gates: { gate: QuantumGate; targets: number[]; controls?: number[] }[];
+  numQubits: number;
+} {
+  const gates: { gate: QuantumGate; targets: number[]; controls?: number[] }[] = [];
+  let numQubits = 2; // Default
+  
+  // Simple regex-based extraction
+  const gateMatches = code.match(/([HXYZS]|CNOT|CZ|SWAP)\(([^)]+)\)/g) || [];
+  
+  // Convert matches to gate objects
+  gateMatches.forEach(match => {
+    const gateType = match.split('(')[0] as QuantumGate;
+    const params = match.split('(')[1].replace(')', '').split(',').map(p => parseInt(p.trim()));
+    
+    if (gateType === 'CNOT' || gateType === 'CZ') {
+      // These are controlled gates with control and target qubits
+      const control = params[0];
+      const target = params[1];
+      gates.push({ gate: gateType, targets: [target], controls: [control] });
+      numQubits = Math.max(numQubits, control + 1, target + 1);
+    } else if (gateType === 'SWAP') {
+      // SWAP has two targets
+      gates.push({ gate: gateType, targets: [params[0], params[1]] });
+      numQubits = Math.max(numQubits, params[0] + 1, params[1] + 1);
+    } else {
+      // Single qubit gates
+      gates.push({ gate: gateType, targets: [params[0]] });
+      numQubits = Math.max(numQubits, params[0] + 1);
+    }
+  });
+  
+  // Look for direct numQubits specification
+  const qubitsMatch = code.match(/numQubits\s*=\s*(\d+)/);
+  if (qubitsMatch && qubitsMatch[1]) {
+    numQubits = parseInt(qubitsMatch[1]);
+  }
+  
+  return { gates, numQubits };
 }

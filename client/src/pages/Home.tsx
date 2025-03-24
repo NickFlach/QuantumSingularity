@@ -39,6 +39,8 @@ import {
   executeCode,
   executeCodeDirect,
   compileCode,
+  optimizeCodeWithDirectives,
+  AIOptimizedCircuitResponse,
   createQuantumGeometricSpace,
   embedQuantumStates,
   transformQuantumGeometry,
