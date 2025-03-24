@@ -3,10 +3,19 @@ import {
   singularisProjects, type Project, type InsertProject,
   singularisFiles, type File, type InsertFile,
   quantumSimulations, type QuantumSimulation, type InsertQuantumSimulation,
-  aiNegotiations, type AINegotiation, type InsertAINegotiation
+  aiNegotiations, type AINegotiation, type InsertAINegotiation,
+  notificationLogs, type NotificationLog, type InsertNotificationLog
 } from "@shared/schema";
+import { db } from "./db";
+import { eq } from "drizzle-orm";
+import session from "express-session";
+import connectPg from "connect-pg-simple";
+import { Pool } from "pg";
 
 export interface IStorage {
+  // Session store for express-session
+  sessionStore: session.Store;
+
   // User operations
   getUser(id: number): Promise<User | undefined>;
   getUserByUsername(username: string): Promise<User | undefined>;
@@ -16,6 +25,7 @@ export interface IStorage {
   // Project operations
   getProject(id: number): Promise<Project | undefined>;
   getProjects(): Promise<Project[]>;
+  getProjectsByUser(userId: number): Promise<Project[]>;
   createProject(project: InsertProject & { createdAt: string; updatedAt: string }): Promise<Project>;
   
   // File operations
@@ -28,6 +38,10 @@ export interface IStorage {
   
   // AI operations
   createAINegotiation(negotiation: InsertAINegotiation & { createdAt: string }): Promise<AINegotiation>;
+
+  // Email notification operations
+  createNotificationLog(notification: InsertNotificationLog): Promise<NotificationLog>;
+  getNotificationLogs(userId: number): Promise<NotificationLog[]>;
 }
 
 export class MemStorage implements IStorage {

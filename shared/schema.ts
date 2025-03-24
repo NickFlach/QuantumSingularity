@@ -1,4 +1,4 @@
-import { pgTable, text, serial, integer, boolean, jsonb } from "drizzle-orm/pg-core";
+import { pgTable, text, serial, integer, boolean, jsonb, timestamp } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 
@@ -6,6 +6,10 @@ export const users = pgTable("users", {
   id: serial("id").primaryKey(),
   username: text("username").notNull().unique(),
   password: text("password").notNull(),
+  email: text("email"),
+  emailVerified: boolean("email_verified").default(false),
+  emailNotifications: boolean("email_notifications").default(true),
+  profilePicture: text("profile_picture"),
   displayName: text("display_name"),
   bio: text("bio"),
   avatarColor: text("avatar_color"),
@@ -15,6 +19,7 @@ export const users = pgTable("users", {
   achievements: jsonb("achievements"),
   createdAt: text("created_at"),
   lastActive: text("last_active"),
+  lastNotificationSent: timestamp("last_notification_sent"),
 });
 
 export const singularisProjects = pgTable("singularis_projects", {
@@ -57,10 +62,24 @@ export const aiNegotiations = pgTable("ai_negotiations", {
   createdAt: text("created_at").notNull(),
 });
 
+// Add a notification logs table
+export const notificationLogs = pgTable("notification_logs", {
+  id: serial("id").primaryKey(),
+  userId: integer("user_id").references(() => users.id),
+  type: text("type").notNull(), // 'welcome', 'digest', 'achievement', etc.
+  subject: text("subject").notNull(),
+  content: text("content").notNull(),
+  sentAt: timestamp("sent_at").notNull().defaultNow(),
+  status: text("status").notNull(), // 'sent', 'failed', etc.
+});
+
 // Insert schemas
 export const insertUserSchema = createInsertSchema(users).pick({
   username: true,
   password: true,
+  email: true,
+  displayName: true,
+  profilePicture: true,
 });
 
 export const updateUserProfileSchema = createInsertSchema(users).pick({
@@ -69,6 +88,17 @@ export const updateUserProfileSchema = createInsertSchema(users).pick({
   avatarColor: true,
   quantumPersona: true,
   specializations: true,
+  email: true,
+  emailNotifications: true,
+  profilePicture: true,
+});
+
+export const insertNotificationLogSchema = createInsertSchema(notificationLogs).pick({
+  userId: true,
+  type: true,
+  subject: true,
+  content: true,
+  status: true,
 });
 
 export const insertProjectSchema = createInsertSchema(singularisProjects).pick({
@@ -117,3 +147,6 @@ export type QuantumSimulation = typeof quantumSimulations.$inferSelect;
 
 export type InsertAINegotiation = z.infer<typeof insertAINegotiationSchema>;
 export type AINegotiation = typeof aiNegotiations.$inferSelect;
+
+export type InsertNotificationLog = z.infer<typeof insertNotificationLogSchema>;
+export type NotificationLog = typeof notificationLogs.$inferSelect;
