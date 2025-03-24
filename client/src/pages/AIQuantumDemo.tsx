@@ -175,14 +175,14 @@ export default function AIQuantumDemo() {
     setIsOptimizing(true);
     try {
       // This would call the actual API endpoint that processes the optimization
-      const result = await apiRequest<OptimizationResult>({
-        method: "POST",
-        url: "/api/quantum/circuit/optimize",
-        data: { code, directives },
-      });
+      const result = await apiRequest<OptimizationResult>(
+        "POST",
+        "/api/quantum/circuit/optimize",
+        { code, directives }
+      );
       setOptimized(result);
       setShowComparison(true);
-    } catch (error) {
+    } catch (error: any) {
       console.error("Optimization error:", error);
       // Create sample optimization data for demo purposes
       const sampleOptimization: OptimizationResult = {
@@ -216,11 +216,11 @@ export default function AIQuantumDemo() {
     setIsOptimizing(true);
     try {
       // This would call the API endpoint for analysis
-      const analysis = await apiRequest({
-        method: "POST",
-        url: "/api/analyze",
-        data: { code },
-      });
+      const analysis = await apiRequest<{ analysis: string }>(
+        "POST",
+        "/api/analyze",
+        { code }
+      );
       console.log("Analysis result:", analysis);
     } catch (error) {
       console.error("Analysis error:", error);

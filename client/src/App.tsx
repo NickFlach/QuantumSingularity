@@ -5,12 +5,14 @@ import { Toaster } from "@/components/ui/toaster";
 import NotFound from "@/pages/not-found";
 import Home from "@/pages/Home";
 import Settings from "@/pages/Settings";
+import AIQuantumDemo from "@/pages/AIQuantumDemo";
 
 function Router() {
   return (
     <Switch>
       <Route path="/" component={Home} />
       <Route path="/settings" component={Settings} />
+      <Route path="/demo" component={AIQuantumDemo} />
       <Route component={NotFound} />
     </Switch>
   );
