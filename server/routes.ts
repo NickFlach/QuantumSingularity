@@ -108,7 +108,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Authentication routes
   app.post("/api/auth/register", async (req: Request, res: Response) => {
     try {
-      const { username, password } = req.body;
+      const { username, password, email } = req.body;
       
       if (!username || !password) {
         return res.status(400).json({ message: "Username and password are required" });
@@ -120,11 +120,33 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: "Username already taken" });
       }
       
-      // Create new user
-      const user = await storage.createUser({ username, password });
+      const createdAt = new Date().toISOString();
+      
+      // Create new user with email if provided
+      const user = await storage.createUser({ 
+        username, 
+        password, 
+        email,
+        emailNotifications: true,
+        createdAt, 
+        lastActive: createdAt
+      });
       
       // Remove password from response
       const { password: _, ...userWithoutPassword } = user;
+      
+      // Send welcome email if email is provided
+      if (email) {
+        try {
+          await sendTemplateEmail(user, "welcome", {
+            recipientEmail: email,
+            recipientName: username
+          });
+        } catch (emailError) {
+          console.error("Failed to send welcome email:", emailError);
+          // Don't fail registration if email fails
+        }
+      }
       
       return res.status(201).json({ user: userWithoutPassword });
     } catch (error) {

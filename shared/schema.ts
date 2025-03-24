@@ -80,8 +80,11 @@ export const insertUserSchema = createInsertSchema(users).pick({
   username: true,
   password: true,
   email: true,
+  emailNotifications: true,
   displayName: true,
   profilePicture: true,
+  createdAt: true,
+  lastActive: true,
 });
 
 export const updateUserProfileSchema = createInsertSchema(users).pick({
