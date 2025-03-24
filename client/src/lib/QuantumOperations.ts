@@ -128,7 +128,7 @@ export function simulateQKD(bits: number = 256) {
 }
 
 // Simulate Quantum Logic Gates
-export type QuantumGate = 'H' | 'X' | 'Y' | 'Z' | 'CNOT' | 'CZ' | 'SWAP' | 'RX' | 'RY' | 'RZ' | 'T' | 'S';
+export type QuantumGate = 'H' | 'X' | 'Y' | 'Z' | 'CNOT' | 'CZ' | 'SWAP' | 'RX' | 'RY' | 'RZ';
 
 export function simulateQuantumGate(gate: QuantumGate, inputState: string): string {
   // This is a very simplified simulation of quantum gates
