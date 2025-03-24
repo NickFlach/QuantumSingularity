@@ -6,6 +6,15 @@ export const users = pgTable("users", {
   id: serial("id").primaryKey(),
   username: text("username").notNull().unique(),
   password: text("password").notNull(),
+  displayName: text("display_name"),
+  bio: text("bio"),
+  avatarColor: text("avatar_color"),
+  quantumLevel: integer("quantum_level").default(1),
+  quantumPersona: text("quantum_persona"),
+  specializations: jsonb("specializations"),
+  achievements: jsonb("achievements"),
+  createdAt: text("created_at"),
+  lastActive: text("last_active"),
 });
 
 export const singularisProjects = pgTable("singularis_projects", {
@@ -54,6 +63,14 @@ export const insertUserSchema = createInsertSchema(users).pick({
   password: true,
 });
 
+export const updateUserProfileSchema = createInsertSchema(users).pick({
+  displayName: true,
+  bio: true,
+  avatarColor: true,
+  quantumPersona: true,
+  specializations: true,
+});
+
 export const insertProjectSchema = createInsertSchema(singularisProjects).pick({
   name: true,
   description: true,
@@ -86,6 +103,7 @@ export const insertAINegotiationSchema = createInsertSchema(aiNegotiations).pick
 
 // Types
 export type InsertUser = z.infer<typeof insertUserSchema>;
+export type UpdateUserProfile = z.infer<typeof updateUserProfileSchema>;
 export type User = typeof users.$inferSelect;
 
 export type InsertProject = z.infer<typeof insertProjectSchema>;
