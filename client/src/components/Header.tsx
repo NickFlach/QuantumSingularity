@@ -39,9 +39,11 @@ const Header = () => {
             <i className="ri-settings-4-line mr-1"></i> Settings
           </div>
         </Link>
-        <button className="px-3 py-1.5 rounded-md bg-[#00b4d8]/20 hover:bg-[#00b4d8]/40 transition text-white">
-          <i className="ri-account-circle-line mr-1"></i> Profile
-        </button>
+        <Link href="/profile">
+          <div className="px-3 py-1.5 rounded-md bg-[#00b4d8]/20 hover:bg-[#00b4d8]/40 transition text-white cursor-pointer">
+            <i className="ri-account-circle-line mr-1"></i> Profile
+          </div>
+        </Link>
         <button className="px-3 py-1.5 rounded-md bg-[#6a0dad] text-white hover:bg-[#6a0dad]/80 transition">
           <i className="ri-github-line mr-1"></i> GitHub
         </button>

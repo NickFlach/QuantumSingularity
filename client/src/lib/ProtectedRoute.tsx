@@ -1,6 +1,7 @@
 import { Route, useLocation } from "wouter";
 import { useAuth } from "./AuthContext";
 import { Loader2 } from "lucide-react";
+import { useEffect } from "react";
 
 interface ProtectedRouteProps {
   path: string;
@@ -11,25 +12,31 @@ export function ProtectedRoute({ path, component: Component }: ProtectedRoutePro
   const [, navigate] = useLocation();
   const { user, loading } = useAuth();
 
-  return (
-    <Route
-      path={path}
-      component={() => {
-        if (loading) {
-          return (
-            <div className="flex items-center justify-center min-h-screen">
-              <Loader2 className="h-8 w-8 animate-spin text-primary" />
-            </div>
-          );
-        }
+  // Use effect hook to handle navigation after rendering
+  useEffect(() => {
+    if (!loading && !user) {
+      navigate("/auth");
+    }
+  }, [user, loading, navigate]);
 
-        if (!user) {
-          navigate("/auth");
-          return null;
-        }
+  // Render a component wrapper
+  const ProtectedComponent = () => {
+    if (loading) {
+      return (
+        <div className="flex items-center justify-center min-h-screen">
+          <Loader2 className="h-8 w-8 animate-spin text-primary" />
+        </div>
+      );
+    }
 
-        return <Component />;
-      }}
-    />
-  );
+    // Only render the component if user exists
+    if (user) {
+      return <Component />;
+    }
+
+    // Return empty div while redirecting
+    return <div className="hidden"></div>;
+  };
+
+  return <Route path={path} component={ProtectedComponent} />;
 }

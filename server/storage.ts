@@ -73,6 +73,8 @@ export class MemStorage implements IStorage {
       ...insertUser, 
       id,
       displayName: insertUser.username,
+      bio: null,
+      quantumPersona: null,
       createdAt: now,
       lastActive: now,
       quantumLevel: 1,
