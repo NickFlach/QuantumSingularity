@@ -163,7 +163,11 @@ async function logNotification(params: {
 export async function sendTemplateEmail(
   user: User, 
   template: Exclude<EmailTemplate, "custom">,
-  customFields?: Record<string, string>
+  customFields: {
+    recipientEmail?: string;
+    recipientName?: string;
+    [key: string]: any;
+  } = {}
 ): Promise<{ success: boolean; message: string; logId?: number }> {
   // Check if user has email notifications enabled
   if (!user.emailNotifications) {
@@ -203,20 +207,22 @@ export async function sendTemplateEmail(
   const templateContent = emailTemplates[template];
   
   try {
-    // Create email parameters
-    const emailParams = new EmailParams();
-    
-    // Set from (sender)
-    emailParams.setFrom(new Sender(DEFAULT_FROM_EMAIL, DEFAULT_FROM_NAME));
-    
-    // Set recipients
-    const recipients = [new Recipient(user.email, user.displayName || user.username)];
-    emailParams.setRecipients(recipients);
-    
-    // Set content
-    emailParams.setSubject(templateContent.subject);
-    emailParams.setText(templateContent.plainTextContent(user));
-    emailParams.setHtml(templateContent.htmlContent(user));
+    // Create email parameters with proper structure for MailerSend
+    const emailParams = new EmailParams({
+      from: {
+        email: DEFAULT_FROM_EMAIL,
+        name: DEFAULT_FROM_NAME
+      },
+      to: [
+        {
+          email: user.email || customFields.recipientEmail || "",
+          name: user.displayName || user.username || customFields.recipientName || ""
+        }
+      ],
+      subject: templateContent.subject,
+      text: templateContent.plainTextContent(user),
+      html: templateContent.htmlContent(user)
+    });
 
     // Send the email
     await mailersend.email.send(emailParams);
@@ -292,20 +298,22 @@ export async function sendCustomEmail(
   }
 
   try {
-    // Create email parameters
-    const emailParams = new EmailParams();
-    
-    // Set from (sender)
-    emailParams.setFrom(new Sender(DEFAULT_FROM_EMAIL, DEFAULT_FROM_NAME));
-    
-    // Set recipients
-    const recipients = [new Recipient(email, name)];
-    emailParams.setRecipients(recipients);
-    
-    // Set content
-    emailParams.setSubject(subject);
-    emailParams.setText(textContent);
-    emailParams.setHtml(htmlContent);
+    // Create email parameters with proper structure for MailerSend
+    const emailParams = new EmailParams({
+      from: {
+        email: DEFAULT_FROM_EMAIL,
+        name: DEFAULT_FROM_NAME
+      },
+      to: [
+        {
+          email: email,
+          name: name
+        }
+      ],
+      subject: subject,
+      text: textContent,
+      html: htmlContent
+    });
 
     // Send the email
     await mailersend.email.send(emailParams);
