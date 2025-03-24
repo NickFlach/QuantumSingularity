@@ -13,6 +13,7 @@ import ProjectsPage from "@/pages/projects-page";
 import ProjectDetail from "@/pages/project-detail";
 import ProfilePage from "@/pages/profile-page";
 import AuthPage from "@/pages/auth-page";
+import QuantumExperience from "@/pages/QuantumExperience";
 import Header from "@/components/Header";
 import { AuthProvider } from "./lib/AuthContext";
 import { ProtectedRoute } from "./lib/ProtectedRoute";
@@ -20,7 +21,8 @@ import { ProtectedRoute } from "./lib/ProtectedRoute";
 function Router() {
   return (
     <Switch>
-      <ProtectedRoute path="/" component={Home} />
+      <ProtectedRoute path="/" component={QuantumExperience} />
+      <ProtectedRoute path="/home" component={Home} />
       <ProtectedRoute path="/settings" component={Settings} />
       <ProtectedRoute path="/demo" component={AIQuantumDemo} />
       <ProtectedRoute path="/docs" component={DocumentationPage} />
