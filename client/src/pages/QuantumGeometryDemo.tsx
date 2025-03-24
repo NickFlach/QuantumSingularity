@@ -264,94 +264,95 @@ export default function QuantumGeometryDemo() {
                     <Sigma className="h-4 w-4" /> Invariants
                   </TabsTrigger>
                 </TabsList>
+                
+                <TabsContent value="states" className="mt-2">
+                  <div className="rounded-md bg-muted p-4 min-h-[320px] flex flex-col items-center justify-center">
+                    <div className="text-center mb-4">
+                      <h3 className="text-lg font-medium">Quantum States in {currentSpace.dimension}D Space</h3>
+                      <p className="text-sm text-muted-foreground">
+                        {visualization3D ? '3D Visualization' : '2D Projection'} with {rotationAngle}° rotation
+                      </p>
+                    </div>
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 w-full">
+                      {currentSpace.states.map((state, i) => (
+                        <div key={state.id} className="border rounded-md p-3 bg-background">
+                          <div className="text-sm font-medium">State {i+1}</div>
+                          <div className="text-xs text-muted-foreground mt-1">
+                            Coordinates: [{state.coordinates.map(c => c.toFixed(2)).join(', ')}]
+                          </div>
+                          <div className="mt-2 h-2 bg-gradient-to-r from-indigo-500 to-purple-500 rounded-full"
+                            style={{ width: `${state.coordinates[0] * 100}%` }}
+                          />
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                </TabsContent>
+                
+                <TabsContent value="entanglement" className="mt-2">
+                  <div className="rounded-md bg-muted p-4 min-h-[320px]">
+                    {currentSpace.entanglements.map((entanglement, i) => (
+                      <div key={i} className="border rounded-md p-4 bg-background mb-4">
+                        <h3 className="text-lg font-medium">Entanglement Properties</h3>
+                        <p className="text-sm text-muted-foreground mb-3">
+                          {entanglement.entanglementResult.description}
+                        </p>
+                        
+                        <div className="space-y-4">
+                          <div>
+                            <div className="text-sm font-medium mb-1">Entanglement Strength</div>
+                            <div className="h-2 w-full bg-gray-200 rounded-full overflow-hidden">
+                              <div 
+                                className="h-full bg-gradient-to-r from-blue-500 to-purple-600 rounded-full"
+                                style={{ width: `${entanglement.entanglementResult.entanglementStrength * 100}%` }}
+                              />
+                            </div>
+                            <div className="text-xs text-right mt-1">
+                              {(entanglement.entanglementResult.entanglementStrength * 100).toFixed(1)}%
+                            </div>
+                          </div>
+                          
+                          <div className="grid grid-cols-3 gap-2">
+                            <div className="border rounded-md p-2">
+                              <div className="text-xs font-medium mb-1">Information Preservation</div>
+                              <div className="text-lg">{(entanglement.quantumEffects.informationPreservation * 100).toFixed(1)}%</div>
+                            </div>
+                            <div className="border rounded-md p-2">
+                              <div className="text-xs font-medium mb-1">Decoherence Resistance</div>
+                              <div className="text-lg">{(entanglement.quantumEffects.decoherenceResistance * 100).toFixed(1)}%</div>
+                            </div>
+                            <div className="border rounded-md p-2">
+                              <div className="text-xs font-medium mb-1">Non-Locality Measure</div>
+                              <div className="text-lg">{(entanglement.quantumEffects.nonLocalityMeasure * 100).toFixed(1)}%</div>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </TabsContent>
+                
+                <TabsContent value="invariants" className="mt-2">
+                  <div className="rounded-md bg-muted p-4 min-h-[320px]">
+                    <h3 className="text-lg font-medium mb-4">Topological Invariants</h3>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      {currentSpace.invariants.map((inv, i) => (
+                        <div key={i} className="border rounded-md p-4 bg-background">
+                          <div className="text-sm font-medium">{inv.name}</div>
+                          <div className="flex items-end justify-between mt-2">
+                            <div className="text-2xl font-bold">{inv.value.toFixed(2)}</div>
+                            <div className="h-8 w-8 rounded-full bg-gradient-to-br from-indigo-500 to-purple-500 flex items-center justify-center text-white text-xs">
+                              {i+1}
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                </TabsContent>
               </Tabs>
             </CardHeader>
             <CardContent>
-              <TabsContent value="states" className="mt-0">
-                <div className="rounded-md bg-muted p-4 min-h-[320px] flex flex-col items-center justify-center">
-                  <div className="text-center mb-4">
-                    <h3 className="text-lg font-medium">Quantum States in {currentSpace.dimension}D Space</h3>
-                    <p className="text-sm text-muted-foreground">
-                      {visualization3D ? '3D Visualization' : '2D Projection'} with {rotationAngle}° rotation
-                    </p>
-                  </div>
-                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 w-full">
-                    {currentSpace.states.map((state, i) => (
-                      <div key={state.id} className="border rounded-md p-3 bg-background">
-                        <div className="text-sm font-medium">State {i+1}</div>
-                        <div className="text-xs text-muted-foreground mt-1">
-                          Coordinates: [{state.coordinates.map(c => c.toFixed(2)).join(', ')}]
-                        </div>
-                        <div className="mt-2 h-2 bg-gradient-to-r from-indigo-500 to-purple-500 rounded-full"
-                          style={{ width: `${state.coordinates[0] * 100}%` }}
-                        />
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              </TabsContent>
-              
-              <TabsContent value="entanglement" className="mt-0">
-                <div className="rounded-md bg-muted p-4 min-h-[320px]">
-                  {currentSpace.entanglements.map((entanglement, i) => (
-                    <div key={i} className="border rounded-md p-4 bg-background mb-4">
-                      <h3 className="text-lg font-medium">Entanglement Properties</h3>
-                      <p className="text-sm text-muted-foreground mb-3">
-                        {entanglement.entanglementResult.description}
-                      </p>
-                      
-                      <div className="space-y-4">
-                        <div>
-                          <div className="text-sm font-medium mb-1">Entanglement Strength</div>
-                          <div className="h-2 w-full bg-gray-200 rounded-full overflow-hidden">
-                            <div 
-                              className="h-full bg-gradient-to-r from-blue-500 to-purple-600 rounded-full"
-                              style={{ width: `${entanglement.entanglementResult.entanglementStrength * 100}%` }}
-                            />
-                          </div>
-                          <div className="text-xs text-right mt-1">
-                            {(entanglement.entanglementResult.entanglementStrength * 100).toFixed(1)}%
-                          </div>
-                        </div>
-                        
-                        <div className="grid grid-cols-3 gap-2">
-                          <div className="border rounded-md p-2">
-                            <div className="text-xs font-medium mb-1">Information Preservation</div>
-                            <div className="text-lg">{(entanglement.quantumEffects.informationPreservation * 100).toFixed(1)}%</div>
-                          </div>
-                          <div className="border rounded-md p-2">
-                            <div className="text-xs font-medium mb-1">Decoherence Resistance</div>
-                            <div className="text-lg">{(entanglement.quantumEffects.decoherenceResistance * 100).toFixed(1)}%</div>
-                          </div>
-                          <div className="border rounded-md p-2">
-                            <div className="text-xs font-medium mb-1">Non-Locality Measure</div>
-                            <div className="text-lg">{(entanglement.quantumEffects.nonLocalityMeasure * 100).toFixed(1)}%</div>
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </TabsContent>
-              
-              <TabsContent value="invariants" className="mt-0">
-                <div className="rounded-md bg-muted p-4 min-h-[320px]">
-                  <h3 className="text-lg font-medium mb-4">Topological Invariants</h3>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    {currentSpace.invariants.map((inv, i) => (
-                      <div key={i} className="border rounded-md p-4 bg-background">
-                        <div className="text-sm font-medium">{inv.name}</div>
-                        <div className="flex items-end justify-between mt-2">
-                          <div className="text-2xl font-bold">{inv.value.toFixed(2)}</div>
-                          <div className="h-8 w-8 rounded-full bg-gradient-to-br from-indigo-500 to-purple-500 flex items-center justify-center text-white text-xs">
-                            {i+1}
-                          </div>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              </TabsContent>
             </CardContent>
           </Card>
         </div>
