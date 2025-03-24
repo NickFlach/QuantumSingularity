@@ -7,6 +7,7 @@ import Home from "@/pages/Home";
 import Settings from "@/pages/Settings";
 import AIQuantumDemo from "@/pages/AIQuantumDemo";
 import DocumentationPage from "@/pages/documentation-page";
+import QuantumGeometryDemo from "@/pages/QuantumGeometryDemo";
 import Header from "@/components/Header";
 import { AuthProvider } from "./lib/AuthContext";
 
@@ -17,6 +18,7 @@ function Router() {
       <Route path="/settings" component={Settings} />
       <Route path="/demo" component={AIQuantumDemo} />
       <Route path="/docs" component={DocumentationPage} />
+      <Route path="/quantum-geometry" component={QuantumGeometryDemo} />
       <Route component={NotFound} />
     </Switch>
   );
