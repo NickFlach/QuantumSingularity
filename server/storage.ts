@@ -212,10 +212,15 @@ export class MemStorage implements IStorage {
   async createNotificationLog(notification: InsertNotificationLog): Promise<NotificationLog> {
     const id = this.notificationIdCounter++;
     const newNotification: NotificationLog = {
-      ...notification,
       id,
       userId: notification.userId || null,
-      sentAt: new Date()
+      type: notification.type,
+      template: notification.template || null,
+      subject: notification.subject,
+      content: notification.content,
+      sentAt: new Date(),
+      status: notification.status,
+      errorMessage: notification.errorMessage || null
     };
     this.notificationLogs.set(id, newNotification);
     return newNotification;
@@ -334,9 +339,14 @@ export class DatabaseStorage implements IStorage {
   // Notification logs
   async createNotificationLog(notification: InsertNotificationLog): Promise<NotificationLog> {
     const [newNotification] = await db.insert(notificationLogs).values({
-      ...notification,
       userId: notification.userId || null,
-      sentAt: new Date()
+      type: notification.type,
+      template: notification.template || null,
+      subject: notification.subject,
+      content: notification.content,
+      sentAt: new Date(),
+      status: notification.status,
+      errorMessage: notification.errorMessage || null
     }).returning();
     return newNotification;
   }

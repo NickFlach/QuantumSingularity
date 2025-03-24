@@ -1,7 +1,6 @@
 import { MailerSend, EmailParams, Recipient, Sender } from "mailersend";
 import { storage } from "./storage";
 import { NotificationLog, type User, type InsertNotificationLog } from "@shared/schema";
-import { z } from "zod";
 
 // Check if MailerSend API key is available
 if (!process.env.MAILERSEND_API_KEY) {
@@ -22,7 +21,8 @@ export type EmailTemplate =
   | "project_created" 
   | "quantum_simulation_completed" 
   | "ai_negotiation_completed"
-  | "system_update";
+  | "system_update"
+  | "custom";
 
 interface EmailTemplateContent {
   subject: string;
@@ -31,7 +31,7 @@ interface EmailTemplateContent {
 }
 
 // Email templates
-const emailTemplates: Record<EmailTemplate, EmailTemplateContent> = {
+const emailTemplates: Record<Exclude<EmailTemplate, "custom">, EmailTemplateContent> = {
   welcome: {
     subject: "Welcome to SINGULARIS PRIME",
     plainTextContent: (user: User) => `
@@ -137,25 +137,23 @@ const emailTemplates: Record<EmailTemplate, EmailTemplateContent> = {
   }
 };
 
-/**
- * Creates a notification log entry in the database
- */
-async function createNotificationLog(data: {
-  userId: number | null,
-  template: string | null,
-  subject: string,
-  content: string,
-  status: "sent" | "failed",
-  errorMessage?: string
+// Create a notification log in the database
+async function logNotification(params: {
+  userId: number | null;
+  template: string | null;
+  subject: string;
+  content: string;
+  status: 'sent' | 'failed';
+  errorMessage?: string;
 }): Promise<NotificationLog> {
   return await storage.createNotificationLog({
-    userId: data.userId,
-    template: data.template,
-    subject: data.subject,
-    content: data.content,
-    status: data.status,
-    errorMessage: data.errorMessage || null,
-    sentAt: new Date()
+    userId: params.userId,
+    type: 'email',
+    template: params.template,
+    subject: params.subject,
+    content: params.content,
+    status: params.status,
+    errorMessage: params.errorMessage || null
   });
 }
 
@@ -164,9 +162,9 @@ async function createNotificationLog(data: {
  */
 export async function sendTemplateEmail(
   user: User, 
-  template: EmailTemplate,
+  template: Exclude<EmailTemplate, "custom">,
   customFields?: Record<string, string>
-): Promise<{success: boolean, message: string, logId?: number}> {
+): Promise<{ success: boolean; message: string; logId?: number }> {
   // Check if user has email notifications enabled
   if (!user.emailNotifications) {
     return {
@@ -186,9 +184,9 @@ export async function sendTemplateEmail(
   // Check if MailerSend is configured
   if (!mailersend) {
     // Log the attempt even if we can't send
-    const log = await createNotificationLog({
+    const log = await logNotification({
       userId: user.id,
-      template: template,
+      template,
       subject: `Failed to send ${template} email`,
       content: "MailerSend API key not configured",
       status: "failed",
@@ -205,22 +203,15 @@ export async function sendTemplateEmail(
   const templateContent = emailTemplates[template];
   
   try {
-    const recipientName = user.displayName || user.username;
+    // Create email parameters
     const emailParams = new EmailParams();
     
-    // Set sender
-    emailParams.setFrom({
-      email: DEFAULT_FROM_EMAIL,
-      name: DEFAULT_FROM_NAME
-    });
+    // Set from (sender)
+    emailParams.setFrom(new Sender(DEFAULT_FROM_EMAIL, DEFAULT_FROM_NAME));
     
     // Set recipients
-    emailParams.setRecipients([
-      {
-        email: user.email,
-        name: recipientName
-      }
-    ]);
+    const recipients = [new Recipient(user.email, user.displayName || user.username)];
+    emailParams.setRecipients(recipients);
     
     // Set content
     emailParams.setSubject(templateContent.subject);
@@ -231,9 +222,9 @@ export async function sendTemplateEmail(
     await mailersend.email.send(emailParams);
 
     // Log the successful email
-    const log = await createNotificationLog({
+    const log = await logNotification({
       userId: user.id,
-      template: template,
+      template,
       subject: templateContent.subject,
       content: templateContent.plainTextContent(user),
       status: "sent"
@@ -253,9 +244,9 @@ export async function sendTemplateEmail(
     console.error("Error sending email:", error);
     
     // Log the failed attempt
-    const log = await createNotificationLog({
+    const log = await logNotification({
       userId: user.id,
-      template: template,
+      template,
       subject: templateContent.subject,
       content: templateContent.plainTextContent(user),
       status: "failed",
@@ -271,7 +262,7 @@ export async function sendTemplateEmail(
 }
 
 /**
- * Send a custom email to a user
+ * Send a custom email
  */
 export async function sendCustomEmail(
   email: string,
@@ -280,11 +271,11 @@ export async function sendCustomEmail(
   textContent: string,
   htmlContent: string,
   userId?: number
-): Promise<{success: boolean, message: string, logId?: number}> {
+): Promise<{ success: boolean; message: string; logId?: number }> {
   // Check if MailerSend is configured
   if (!mailersend) {
     // Log the attempt even if we can't send
-    const log = await createNotificationLog({
+    const log = await logNotification({
       userId: userId || null,
       template: "custom",
       subject: "Failed to send custom email",
@@ -301,21 +292,15 @@ export async function sendCustomEmail(
   }
 
   try {
+    // Create email parameters
     const emailParams = new EmailParams();
     
-    // Set sender
-    emailParams.setFrom({
-      email: DEFAULT_FROM_EMAIL,
-      name: DEFAULT_FROM_NAME
-    });
+    // Set from (sender)
+    emailParams.setFrom(new Sender(DEFAULT_FROM_EMAIL, DEFAULT_FROM_NAME));
     
     // Set recipients
-    emailParams.setRecipients([
-      {
-        email: email,
-        name: name
-      }
-    ]);
+    const recipients = [new Recipient(email, name)];
+    emailParams.setRecipients(recipients);
     
     // Set content
     emailParams.setSubject(subject);
@@ -326,10 +311,10 @@ export async function sendCustomEmail(
     await mailersend.email.send(emailParams);
 
     // Log the successful email
-    const log = await createNotificationLog({
+    const log = await logNotification({
       userId: userId || null,
       template: "custom",
-      subject: subject,
+      subject,
       content: textContent,
       status: "sent"
     });
@@ -343,10 +328,10 @@ export async function sendCustomEmail(
     console.error("Error sending custom email:", error);
     
     // Log the failed attempt
-    const log = await createNotificationLog({
+    const log = await logNotification({
       userId: userId || null,
       template: "custom",
-      subject: subject,
+      subject,
       content: textContent,
       status: "failed",
       errorMessage: error instanceof Error ? error.message : String(error)
