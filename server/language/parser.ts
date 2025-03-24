@@ -267,6 +267,30 @@ export class SingularisParser {
       parameters = this.code.substring(paramStart, this.position - 1);
     }
     
+    // Special handling for AI optimization directives
+    const aiOptimizationDirectives = [
+      'optimize_for_fidelity',
+      'optimize_for_explainability',
+      'minimize_gates',
+      'minimize_depth',
+      'minimize_errors',
+      'optimize_execution_time',
+      'differentiable',
+      'approximate_ok',
+      'critical_operation',
+      'error_tolerant'
+    ];
+    
+    if (aiOptimizationDirectives.includes(name)) {
+      return {
+        type: 'AIOptimizationDirective',
+        directive: name,
+        parameters: parameters || {},
+        line: this.line,
+        column: this.column
+      };
+    }
+    
     return {
       type: 'Annotation',
       name,

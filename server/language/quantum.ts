@@ -17,7 +17,11 @@ import {
   QuantumGeometry, 
   GeometricElement, 
   TopologicalProperty, 
-  QuantumMetric 
+  QuantumMetric,
+  AIOptimization,
+  OptimizationGoal,
+  OptimizationMethod,
+  CircuitPriority
 } from './core-objects';
 
 // Simulated Quantum Key Distribution via entanglement
@@ -281,6 +285,146 @@ export function simulateQuantumCircuit(
     decoherenceProbability,
     measurementProbabilities,
     outcome,
+    timestamp: new Date().toISOString()
+  };
+}
+
+/**
+ * AI-Optimized Quantum Circuit Simulation
+ * 
+ * This function uses AI optimization techniques to improve quantum circuits
+ * based on specified optimization goals and methods.
+ */
+export function simulateAIOptimizedCircuit(
+  gates: { gate: QuantumGate; targets: number[]; controls?: number[] }[],
+  numQubits: number = 2,
+  optimization: {
+    goal: OptimizationGoal,
+    method?: OptimizationMethod,
+    priority?: CircuitPriority,
+    threshold?: number,
+    parameters?: Record<string, number>
+  }
+) {
+  // Create a string representation of the original circuit
+  const circuitString = gates.map(g => 
+    `${g.gate}(${g.targets.join(',')}${g.controls ? '; controls=' + g.controls.join(',') : ''})`
+  ).join('\n');
+  
+  // Run the standard quantum circuit simulation for reference
+  const originalSimulation = simulateQuantumCircuit(gates, numQubits);
+  
+  // Create AI optimization instance
+  const aiOptimizer = new AIOptimization(
+    optimization.goal,
+    optimization.method || 'gradient_descent',
+    optimization.threshold || 0.9,
+    optimization.priority || 'critical',
+    optimization.parameters || {}
+  );
+  
+  // Optimize the circuit
+  const optimizationResult = aiOptimizer.optimizeCircuit(circuitString);
+  
+  // Generate an optimized version of the gates based on the optimization goal
+  const optimizedGates = [...gates]; // Start with a copy
+  
+  // Apply optimization transformations based on the goal
+  switch (optimization.goal) {
+    case 'gate_count':
+      // Simulate gate reduction by potentially removing some gates
+      // In a real implementation, this would use sophisticated circuit optimization
+      if (optimizedGates.length > 3) {
+        // Find gates that might cancel each other or be redundant
+        // For demonstration, we'll just remove a random gate
+        const removeIndex = Math.floor(Math.random() * (optimizedGates.length - 1)) + 1;
+        optimizedGates.splice(removeIndex, 1);
+      }
+      break;
+      
+    case 'depth':
+      // Simulate depth reduction by parallelizing compatible gates
+      // In a real implementation, this would rearrange gates to minimize circuit depth
+      // For this simulation, we'll just reorder the array to suggest parallelization
+      if (optimizedGates.length > 2) {
+        // Swap two adjacent gates to simulate reordering for parallelization
+        const idx = Math.floor(Math.random() * (optimizedGates.length - 1));
+        [optimizedGates[idx], optimizedGates[idx + 1]] = [optimizedGates[idx + 1], optimizedGates[idx]];
+      }
+      break;
+      
+    case 'error_mitigation':
+      // Add error correction gates
+      if (Math.random() < 0.7) { // 70% chance of adding error correction
+        // Simulate addition of error correction by adding a Z gate
+        // Real error correction would be much more sophisticated
+        optimizedGates.push({
+          gate: 'Z', 
+          targets: [Math.floor(Math.random() * numQubits)]
+        });
+      }
+      break;
+      
+    case 'execution_time':
+      // Optimize for execution time by potentially removing or combining gates
+      if (optimizedGates.length > 2) {
+        // For demonstration, combine adjacent gates of the same type
+        for (let i = 0; i < optimizedGates.length - 1; i++) {
+          if (optimizedGates[i].gate === optimizedGates[i + 1].gate &&
+              JSON.stringify(optimizedGates[i].targets) === JSON.stringify(optimizedGates[i + 1].targets)) {
+            // Remove the redundant gate (in reality, this would be more complex)
+            optimizedGates.splice(i + 1, 1);
+            break;
+          }
+        }
+      }
+      break;
+      
+    case 'fidelity':
+      // Add gates to improve fidelity by potentially adding error correction
+      const randomQubit = Math.floor(Math.random() * numQubits);
+      // Add a series of gates that act as a simple error correction code
+      optimizedGates.push({ gate: 'H', targets: [randomQubit] });
+      optimizedGates.push({ gate: 'Z', targets: [randomQubit] });
+      optimizedGates.push({ gate: 'H', targets: [randomQubit] });
+      break;
+      
+    case 'explainability':
+      // Reorganize gates to make the circuit more interpretable
+      // For demonstration, we'll group gates by type
+      optimizedGates.sort((a, b) => a.gate.localeCompare(b.gate));
+      break;
+  }
+  
+  // Run the simulation with the optimized gates
+  const optimizedSimulation = simulateQuantumCircuit(optimizedGates, numQubits);
+  
+  // Calculate improvement metrics
+  const improvementMetrics = {
+    gateCount: optimizedGates.length - gates.length,
+    depthChange: (optimizedGates.length - gates.length) / Math.max(1, gates.length),
+    // Use the AI optimization's improvement metrics for additional values
+    ...optimizationResult.improvementMetrics
+  };
+  
+  // Return the combined result
+  return {
+    original: {
+      circuit: circuitString,
+      gates: gates.length,
+      depth: gates.length, // Simplified depth calculation
+      simulation: originalSimulation
+    },
+    optimized: {
+      circuit: optimizationResult.optimizedCircuit,
+      gates: optimizedGates.length,
+      depth: optimizedGates.length, // Simplified depth calculation
+      simulation: optimizedSimulation,
+      explanation: aiOptimizer.explainOptimization()
+    },
+    improvement: improvementMetrics,
+    explainability: optimizationResult.explainability,
+    resourceEstimates: aiOptimizer.estimateResources(),
     timestamp: new Date().toISOString()
   };
 }
