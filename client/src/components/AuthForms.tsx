@@ -45,6 +45,9 @@ const registerSchema = z.object({
   username: z.string().min(3, {
     message: "Username must be at least 3 characters.",
   }),
+  email: z.string().email({
+    message: "Please enter a valid email address.",
+  }),
   password: z.string().min(6, {
     message: "Password must be at least 6 characters.",
   }),
@@ -81,6 +84,7 @@ export function AuthForms({ onSuccess }: { onSuccess: () => void }) {
     resolver: zodResolver(registerSchema),
     defaultValues: {
       username: "",
+      email: "",
       password: "",
       confirmPassword: "",
     },
@@ -150,7 +154,16 @@ export function AuthForms({ onSuccess }: { onSuccess: () => void }) {
 
   const onRegisterSubmit = async (data: RegisterFormValues) => {
     try {
-      await registerUser(data.username, data.password);
+      // Pass data to the register API endpoint
+      const response = await apiRequest("POST", "/api/auth/register", {
+        username: data.username,
+        password: data.password,
+        email: data.email
+      });
+      
+      // After successful registration, log in automatically
+      await login(data.username, data.password);
+      
       toast({
         title: "Registration Successful",
         description: "Your account has been created",
@@ -263,6 +276,27 @@ export function AuthForms({ onSuccess }: { onSuccess: () => void }) {
                       </FormControl>
                       <FormDescription>
                         Used to identify you in the system
+                      </FormDescription>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                
+                <FormField
+                  control={registerForm.control}
+                  name="email"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Email</FormLabel>
+                      <FormControl>
+                        <Input 
+                          type="email" 
+                          placeholder="Enter your email address" 
+                          {...field} 
+                        />
+                      </FormControl>
+                      <FormDescription>
+                        We'll send you notifications about your projects
                       </FormDescription>
                       <FormMessage />
                     </FormItem>
