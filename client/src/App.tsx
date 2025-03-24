@@ -6,7 +6,9 @@ import NotFound from "@/pages/not-found";
 import Home from "@/pages/Home";
 import Settings from "@/pages/Settings";
 import AIQuantumDemo from "@/pages/AIQuantumDemo";
+import DocumentationPage from "@/pages/documentation-page";
 import Header from "@/components/Header";
+import { AuthProvider } from "./lib/AuthContext";
 
 function Router() {
   return (
@@ -14,6 +16,7 @@ function Router() {
       <Route path="/" component={Home} />
       <Route path="/settings" component={Settings} />
       <Route path="/demo" component={AIQuantumDemo} />
+      <Route path="/docs" component={DocumentationPage} />
       <Route component={NotFound} />
     </Switch>
   );
@@ -22,13 +25,15 @@ function Router() {
 function App() {
   return (
     <QueryClientProvider client={queryClient}>
-      <div className="flex flex-col min-h-screen">
-        <Header />
-        <main className="flex-1">
-          <Router />
-        </main>
-      </div>
-      <Toaster />
+      <AuthProvider>
+        <div className="flex flex-col min-h-screen">
+          <Header />
+          <main className="flex-1">
+            <Router />
+          </main>
+        </div>
+        <Toaster />
+      </AuthProvider>
     </QueryClientProvider>
   );
 }
