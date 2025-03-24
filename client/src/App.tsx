@@ -6,6 +6,7 @@ import NotFound from "@/pages/not-found";
 import Home from "@/pages/Home";
 import Settings from "@/pages/Settings";
 import AIQuantumDemo from "@/pages/AIQuantumDemo";
+import Header from "@/components/Header";
 
 function Router() {
   return (
@@ -21,7 +22,12 @@ function Router() {
 function App() {
   return (
     <QueryClientProvider client={queryClient}>
-      <Router />
+      <div className="flex flex-col min-h-screen">
+        <Header />
+        <main className="flex-1">
+          <Router />
+        </main>
+      </div>
       <Toaster />
     </QueryClientProvider>
   );

@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from "react";
+import { Link } from "wouter";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
@@ -6,7 +7,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { Label } from "@/components/ui/label";
-import { CheckCircle, AlertCircle, Zap, Sparkles, Code, BarChart, RefreshCw } from "lucide-react";
+import { CheckCircle, AlertCircle, Zap, Sparkles, Code, BarChart, RefreshCw, ArrowLeft } from "lucide-react";
 import { apiRequest } from "@/lib/queryClient";
 import { parseOptimizationDirectives } from "@/lib/OptimizationDirectives";
 import { Monaco } from "@monaco-editor/react";
@@ -222,7 +223,7 @@ export default function AIQuantumDemo() {
         { code }
       );
       console.log("Analysis result:", analysis);
-    } catch (error) {
+    } catch (error: any) {
       console.error("Analysis error:", error);
     } finally {
       setIsOptimizing(false);
@@ -231,12 +232,23 @@ export default function AIQuantumDemo() {
 
   return (
     <div className="container max-w-6xl py-6">
-      <h1 className="text-3xl font-bold mb-2 bg-gradient-to-r from-blue-600 to-purple-600 text-transparent bg-clip-text">
-        SINGULARIS PRIME AI-Quantum Integration Demo
-      </h1>
-      <p className="text-muted-foreground mb-6">
-        Experience the synergy between AI optimization and quantum computing with human-auditable explainability
-      </p>
+      <div className="flex items-center justify-between mb-4">
+        <div>
+          <h1 className="text-3xl font-bold mb-2 bg-gradient-to-r from-blue-600 to-purple-600 text-transparent bg-clip-text">
+            SINGULARIS PRIME AI-Quantum Integration Demo
+          </h1>
+          <p className="text-muted-foreground">
+            Experience the synergy between AI optimization and quantum computing with human-auditable explainability
+          </p>
+        </div>
+        <Link href="/">
+          <Button variant="outline" className="gap-2">
+            <ArrowLeft size={16} />
+            Back to IDE
+          </Button>
+        </Link>
+      </div>
+      <Separator className="mb-6" />
 
       <Tabs defaultValue="circuit" value={tab} onValueChange={setTab} className="mb-8">
         <TabsList className="grid grid-cols-3 w-full max-w-md">

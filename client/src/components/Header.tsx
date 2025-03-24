@@ -14,6 +14,11 @@ const Header = () => {
         </Link>
       </div>
       <div className="flex space-x-4">
+        <Link href="/demo">
+          <div className="px-3 py-1.5 rounded-md bg-gradient-to-r from-blue-600 to-purple-600 text-white cursor-pointer hover:opacity-90 transition">
+            <i className="ri-flashlight-line mr-1"></i> AI-Quantum Demo
+          </div>
+        </Link>
         <Link href="/settings">
           <div className="px-3 py-1.5 rounded-md bg-[#6a0dad]/20 hover:bg-[#6a0dad]/40 transition text-white cursor-pointer">
             <i className="ri-settings-4-line mr-1"></i> Settings
