@@ -9,6 +9,7 @@ import { Separator } from "@/components/ui/separator";
 import { QuantumOperationsPanel } from "@/components/QuantumOperationsPanel";
 import { QuantumVisualizer } from "@/components/QuantumVisualizer";
 import { CodeAssistant } from "@/components/CodeAssistant";
+import { OptimizationDirectivesPanel } from "@/components/OptimizationDirectivesPanel";
 import { 
   FileCode, 
   Play, 
