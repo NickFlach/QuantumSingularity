@@ -6,6 +6,8 @@ import { useMutation } from "@tanstack/react-query";
 import { Eye, EyeOff, LogIn, UserPlus } from "lucide-react";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
+import { useLocation } from "wouter";
+import { useAuth } from "@/lib/AuthContext";
 
 import {
   Card,
@@ -62,6 +64,8 @@ export function AuthForms({ onSuccess }: { onSuccess: () => void }) {
   const [showPassword, setShowPassword] = useState<boolean>(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState<boolean>(false);
   const { toast } = useToast();
+  const { login, register: registerUser, loading } = useAuth();
+  const [, navigate] = useLocation();
 
   // Login form
   const loginForm = useForm<LoginFormValues>({
@@ -126,12 +130,39 @@ export function AuthForms({ onSuccess }: { onSuccess: () => void }) {
     },
   });
 
-  const onLoginSubmit = (data: LoginFormValues) => {
-    loginMutation.mutate(data);
+  const onLoginSubmit = async (data: LoginFormValues) => {
+    try {
+      await login(data.username, data.password);
+      toast({
+        title: "Login Successful",
+        description: "Welcome back to SINGULARIS PRIME",
+      });
+      onSuccess();
+      window.location.href = "/"; // Force refresh after login
+    } catch (error: any) {
+      toast({
+        title: "Login Failed",
+        description: error.message || "Invalid username or password",
+        variant: "destructive",
+      });
+    }
   };
 
-  const onRegisterSubmit = (data: RegisterFormValues) => {
-    registerMutation.mutate(data);
+  const onRegisterSubmit = async (data: RegisterFormValues) => {
+    try {
+      await registerUser(data.username, data.password);
+      toast({
+        title: "Registration Successful",
+        description: "Your account has been created",
+      });
+      window.location.href = "/"; // Force refresh after registration
+    } catch (error: any) {
+      toast({
+        title: "Registration Failed",
+        description: error.message || "Failed to create account",
+        variant: "destructive",
+      });
+    }
   };
 
   return (
@@ -200,9 +231,9 @@ export function AuthForms({ onSuccess }: { onSuccess: () => void }) {
                 <Button 
                   type="submit" 
                   className="w-full bg-gradient-to-r from-blue-600 to-purple-600"
-                  disabled={loginMutation.isPending}
+                  disabled={loading}
                 >
-                  {loginMutation.isPending ? (
+                  {loading ? (
                     <span className="flex items-center gap-2">
                       <span className="h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent"></span>
                       Logging in...
@@ -299,9 +330,9 @@ export function AuthForms({ onSuccess }: { onSuccess: () => void }) {
                 <Button 
                   type="submit" 
                   className="w-full bg-gradient-to-r from-blue-600 to-purple-600"
-                  disabled={registerMutation.isPending}
+                  disabled={loading}
                 >
-                  {registerMutation.isPending ? (
+                  {loading ? (
                     <span className="flex items-center gap-2">
                       <span className="h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent"></span>
                       Creating Account...
