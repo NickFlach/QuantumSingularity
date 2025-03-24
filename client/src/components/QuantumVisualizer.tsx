@@ -10,6 +10,16 @@ interface QuantumVisualizerProps {
 }
 
 export function QuantumVisualizer({ space }: QuantumVisualizerProps) {
+  // Extract the metric from the space id
+  const getMetricFromId = (id: string): string => {
+    if (id.includes('euclidean')) return 'euclidean';
+    if (id.includes('hyperbolic')) return 'hyperbolic';
+    if (id.includes('minkowski')) return 'minkowski';
+    if (id.includes('elliptic')) return 'elliptic';
+    return 'euclidean'; // default
+  };
+  
+  const metric = space?.entanglements?.[0]?.spaceProperties?.metric || getMetricFromId(space?.id || '');
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const [rotation, setRotation] = useState<number>(0);
   
@@ -198,7 +208,7 @@ export function QuantumVisualizer({ space }: QuantumVisualizerProps) {
             <div className="flex items-center">
               <Atom className="h-3 w-3 mr-1 text-[#89B4FA]" />
               <span className="font-medium mr-1">Metric:</span>
-              <span>Minkowski</span>
+              <span>{metric.charAt(0).toUpperCase() + metric.slice(1)}</span>
             </div>
           </div>
           

@@ -340,7 +340,8 @@ export default function QuantumGeometryDemo() {
                           </div>
                           
                           <p className="text-xs text-center text-muted-foreground mt-2">
-                            {currentSpace.metric.charAt(0).toUpperCase() + currentSpace.metric.slice(1)} space with {rotationAngle}° rotation
+                            {currentSpace.id.replace('space-', '').charAt(0).toUpperCase() + 
+                             currentSpace.id.replace('space-', '').slice(1)} space with {rotationAngle}° rotation
                           </p>
                         </div>
                       </div>
