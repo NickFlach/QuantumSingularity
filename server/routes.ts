@@ -7,6 +7,7 @@ import { SingularisInterpreter } from "./language/interpreter";
 import { 
   simulateQuantumEntanglement, 
   simulateQKD,
+  simulateAIOptimizedCircuit,
   createQuantumGeometricSpace,
   simulateQuantumGeometricEmbedding,
   simulateQuantumGeometricTransformation,
@@ -161,6 +162,31 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       return res.status(500).json({ 
         message: "Failed to simulate quantum key distribution",
+        error: error instanceof Error ? error.message : String(error)
+      });
+    }
+  });
+  
+  // Simulate AI-optimized quantum circuit
+  app.post("/api/quantum/circuit/optimize", async (req: Request, res: Response) => {
+    try {
+      const { gates, numQubits, optimization } = req.body;
+      
+      if (!gates || !Array.isArray(gates)) {
+        return res.status(400).json({ message: "Gates array is required" });
+      }
+      
+      if (!optimization || !optimization.goal) {
+        return res.status(400).json({ message: "Optimization goal is required" });
+      }
+      
+      const qubits = numQubits && !isNaN(parseInt(numQubits)) ? parseInt(numQubits) : 2;
+      
+      const result = simulateAIOptimizedCircuit(gates, qubits, optimization);
+      return res.json(result);
+    } catch (error) {
+      return res.status(500).json({ 
+        message: "Failed to simulate AI-optimized quantum circuit",
         error: error instanceof Error ? error.message : String(error)
       });
     }
