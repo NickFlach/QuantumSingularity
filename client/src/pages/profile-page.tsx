@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { useAuth } from "@/hooks/use-auth";
+import { useAuth } from "@/lib/AuthContext";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
 import { 
@@ -435,7 +435,7 @@ export default function ProfilePage() {
                                 </SelectTrigger>
                               </FormControl>
                               <SelectContent>
-                                <SelectItem value="">No Persona Selected</SelectItem>
+                                <SelectItem value="none">No Persona Selected</SelectItem>
                                 {quantumPersonas.map(persona => (
                                   <SelectItem key={persona.id} value={persona.id}>
                                     <div className="flex items-center gap-2">

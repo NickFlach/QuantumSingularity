@@ -8,6 +8,7 @@ interface AuthContextType {
   login: (username: string, password: string) => Promise<void>;
   logout: () => Promise<void>;
   register: (username: string, password: string) => Promise<void>;
+  updateProfile: (updates: Partial<User>) => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -70,12 +71,23 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
+  const updateProfile = async (updates: Partial<User>) => {
+    setLoading(true);
+    try {
+      const response = await apiRequest<{ user: User }>("PUT", "/api/user/profile", updates);
+      setUser(response.user);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const value = {
     user,
     loading,
     login,
     logout,
     register,
+    updateProfile,
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
