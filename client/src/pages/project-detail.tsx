@@ -118,7 +118,7 @@ function ProjectDetail() {
 
       return apiRequest("POST", "/api/files", {
         name: data.name,
-        projectId: parseInt(projectId),
+        projectId: projectId ? parseInt(projectId) : 0,
         type: data.type,
         content,
       });
