@@ -9,13 +9,14 @@ import AIQuantumDemo from "@/pages/AIQuantumDemo";
 import DocumentationPage from "@/pages/documentation-page";
 import QuantumGeometryDemo from "@/pages/QuantumGeometryDemo";
 import QuantumCircuitDesignerPage from "@/pages/QuantumCircuitDesignerPage";
+import MagicalQuantumCircuitPage from "@/pages/MagicalQuantumCircuitPage";
 import ProjectsPage from "@/pages/projects-page";
 import ProjectDetail from "@/pages/project-detail";
 import ProfilePage from "@/pages/profile-page";
 import AuthPage from "@/pages/auth-page";
 import Header from "@/components/Header";
 import { AuthProvider } from "./lib/AuthContext";
-import { ProtectedRoute } from "./lib/ProtectedRoute";
+import { ProtectedRoute } from "@/lib/ProtectedRoute";
 
 function Router() {
   return (
@@ -26,6 +27,7 @@ function Router() {
       <ProtectedRoute path="/docs" component={DocumentationPage} />
       <ProtectedRoute path="/quantum-geometry" component={QuantumGeometryDemo} />
       <ProtectedRoute path="/quantum-circuit" component={QuantumCircuitDesignerPage} />
+      <ProtectedRoute path="/magical-quantum-circuit" component={MagicalQuantumCircuitPage} />
       <ProtectedRoute path="/projects" component={ProjectsPage} />
       <ProtectedRoute path="/projects/:id" component={ProjectDetail} />
       <ProtectedRoute path="/profile" component={ProfilePage} />
