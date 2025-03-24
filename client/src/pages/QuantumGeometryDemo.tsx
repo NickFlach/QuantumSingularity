@@ -14,6 +14,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Slider } from "@/components/ui/slider";
 import { ChevronLeft, Atom, Cpu, Sigma, Grid3X3 } from "lucide-react";
+import { QuantumVisualizer } from "@/components/QuantumVisualizer";
 
 // Import quantum types
 import { QuantumSpace, QuantumState, QuantumInvariant } from "@/types/quantum";
@@ -326,25 +327,46 @@ export default function QuantumGeometryDemo() {
                 </TabsList>
                 
                 <TabsContent value="states" className="mt-2">
-                  <div className="rounded-md bg-muted p-4 min-h-[320px] flex flex-col items-center justify-center">
-                    <div className="text-center mb-4">
-                      <h3 className="text-lg font-medium">Quantum States in {currentSpace.dimension}D Space</h3>
-                      <p className="text-sm text-muted-foreground">
-                        {visualization3D ? '3D Visualization' : '2D Projection'} with {rotationAngle}° rotation
-                      </p>
-                    </div>
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 w-full">
-                      {currentSpace.states.map((state, i) => (
-                        <div key={state.id} className="border rounded-md p-3 bg-background">
-                          <div className="text-sm font-medium">State {i+1}</div>
-                          <div className="text-xs text-muted-foreground mt-1">
-                            Coordinates: [{state.coordinates.map(c => c.toFixed(2)).join(', ')}]
+                  <div className="rounded-md bg-muted p-4 min-h-[320px]">
+                    <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                      {/* Visual representation */}
+                      <div className="lg:col-span-2">
+                        <div className="border rounded-md p-3 bg-background h-full">
+                          <h3 className="text-lg font-medium mb-4">Quantum States in {currentSpace.dimension}D Space</h3>
+                          
+                          {/* Quantum visualization component */}
+                          <div className="flex justify-center py-2">
+                            <QuantumVisualizer space={currentSpace} />
                           </div>
-                          <div className="mt-2 h-2 bg-gradient-to-r from-indigo-500 to-purple-500 rounded-full"
-                            style={{ width: `${state.coordinates[0] * 100}%` }}
-                          />
+                          
+                          <p className="text-xs text-center text-muted-foreground mt-2">
+                            {currentSpace.metric.charAt(0).toUpperCase() + currentSpace.metric.slice(1)} space with {rotationAngle}° rotation
+                          </p>
                         </div>
-                      ))}
+                      </div>
+                      
+                      {/* State information */}
+                      <div className="lg:col-span-1">
+                        <div className="border rounded-md p-3 bg-background h-full">
+                          <h3 className="text-md font-medium mb-3">Quantum State Details</h3>
+                          <div className="space-y-3 max-h-[250px] overflow-y-auto pr-1">
+                            {currentSpace.states.map((state, i) => (
+                              <div key={state.id} className="border-b pb-2 last:border-b-0">
+                                <div className="flex justify-between items-center">
+                                  <div className="text-sm font-medium">State {i+1}</div>
+                                  <div className="h-4 w-4 rounded-full bg-gradient-to-br from-indigo-500 to-purple-500"></div>
+                                </div>
+                                <div className="text-xs text-muted-foreground mt-1">
+                                  Coordinates: [{state.coordinates.map(c => c.toFixed(2)).join(', ')}]
+                                </div>
+                                <div className="mt-2 h-2 bg-gradient-to-r from-indigo-500 to-purple-500 rounded-full"
+                                  style={{ width: `${state.coordinates[0] * 100}%` }}
+                                />
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      </div>
                     </div>
                   </div>
                 </TabsContent>
