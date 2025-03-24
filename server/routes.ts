@@ -36,7 +36,7 @@ import {
   setActiveAIProvider
 } from "./language/ai-service";
 
-import { insertFileSchema, insertProjectSchema } from "@shared/schema";
+import { insertFileSchema, insertProjectSchema, User } from "@shared/schema";
 
 import express from "express";
 import session from "express-session";
