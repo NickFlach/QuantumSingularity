@@ -152,12 +152,68 @@ export default function QuantumGeometryDemo() {
   const [selectedView, setSelectedView] = useState<string>("states");
   const [rotationAngle, setRotationAngle] = useState<number>(0);
   const [visualization3D, setVisualization3D] = useState<boolean>(true);
+  const [quantumSpaces, setQuantumSpaces] = useState<QuantumSpace[]>(sampleQuantumSpaces);
+  const [isGenerating, setIsGenerating] = useState<boolean>(false);
   
   const getSpaceById = (id: string) => {
-    return sampleQuantumSpaces.find(space => space.id === id) || sampleQuantumSpaces[0];
+    return quantumSpaces.find(space => space.id === id) || quantumSpaces[0];
   };
 
   const currentSpace = getSpaceById(selectedSpace);
+  
+  // Generate new random quantum states for the current space
+  const generateNewSimulation = () => {
+    setIsGenerating(true);
+    
+    // Create a copy of the current spaces
+    const newSpaces = [...quantumSpaces];
+    
+    // Find the index of the current space
+    const spaceIndex = newSpaces.findIndex(space => space.id === selectedSpace);
+    
+    if (spaceIndex !== -1) {
+      // Create a new version of the selected space
+      const space = newSpaces[spaceIndex];
+      
+      // Generate new quantum states with random coordinates
+      const newStates = space.states.map((state, index) => {
+        // Create random coordinates based on the space's dimension
+        const coordinates = Array(space.dimension).fill(0).map(() => Math.random());
+        
+        return {
+          id: `state-${selectedSpace}-${index + 1}-${Date.now()}`,
+          coordinates
+        };
+      });
+      
+      // Update the space with new states
+      newSpaces[spaceIndex] = {
+        ...space,
+        states: newStates,
+        // Update entanglements with new random values
+        entanglements: space.entanglements.map(entanglement => ({
+          ...entanglement,
+          entanglementResult: {
+            ...entanglement.entanglementResult,
+            entanglementStrength: 0.5 + Math.random() * 0.5, // Random value between 0.5 and 1
+          },
+          quantumEffects: {
+            informationPreservation: 0.6 + Math.random() * 0.4,
+            decoherenceResistance: 0.5 + Math.random() * 0.5,
+            nonLocalityMeasure: 0.7 + Math.random() * 0.3,
+          }
+        }))
+      };
+      
+      // Update the state with new spaces
+      setQuantumSpaces(newSpaces);
+    }
+    
+    // Simulate an API call delay
+    setTimeout(() => {
+      setIsGenerating(false);
+    }, 800);
+  };
   
   return (
     <Container>
@@ -236,8 +292,12 @@ export default function QuantumGeometryDemo() {
               </div>
 
               <div className="space-y-2 pt-2">
-                <Button className="w-full bg-gradient-to-r from-purple-600 to-indigo-600">
-                  Generate New Simulation
+                <Button 
+                  className="w-full bg-gradient-to-r from-purple-600 to-indigo-600"
+                  onClick={generateNewSimulation}
+                  disabled={isGenerating}
+                >
+                  {isGenerating ? "Generating..." : "Generate New Simulation"}
                 </Button>
               </div>
             </CardContent>
