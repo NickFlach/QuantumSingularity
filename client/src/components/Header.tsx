@@ -29,6 +29,11 @@ const Header = () => {
             <i className="ri-space-ship-line mr-1"></i> Quantum Geometry
           </div>
         </Link>
+        <Link href="/quantum-circuit">
+          <div className="px-3 py-1.5 rounded-md bg-gradient-to-r from-pink-600 to-orange-500 text-white cursor-pointer hover:opacity-90 transition">
+            <i className="ri-code-box-line mr-1"></i> Circuit Designer
+          </div>
+        </Link>
         <Link href="/settings">
           <div className="px-3 py-1.5 rounded-md bg-[#6a0dad]/20 hover:bg-[#6a0dad]/40 transition text-white cursor-pointer">
             <i className="ri-settings-4-line mr-1"></i> Settings
