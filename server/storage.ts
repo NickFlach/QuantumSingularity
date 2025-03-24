@@ -10,7 +10,7 @@ import { db } from "./db";
 import { eq } from "drizzle-orm";
 import session from "express-session";
 import connectPg from "connect-pg-simple";
-import { Pool } from "pg";
+import { Pool } from "@neondatabase/serverless";
 
 export interface IStorage {
   // Session store for express-session
@@ -50,11 +50,14 @@ export class MemStorage implements IStorage {
   private files: Map<number, File>;
   private quantumSimulations: Map<number, QuantumSimulation>;
   private aiNegotiations: Map<number, AINegotiation>;
+  private notificationLogs: Map<number, NotificationLog>;
   private userIdCounter: number;
   private projectIdCounter: number;
   private fileIdCounter: number;
   private simulationIdCounter: number;
   private negotiationIdCounter: number;
+  private notificationIdCounter: number;
+  public sessionStore: session.Store;
 
   constructor() {
     this.users = new Map();
@@ -62,11 +65,18 @@ export class MemStorage implements IStorage {
     this.files = new Map();
     this.quantumSimulations = new Map();
     this.aiNegotiations = new Map();
+    this.notificationLogs = new Map();
     this.userIdCounter = 1;
     this.projectIdCounter = 1;
     this.fileIdCounter = 1;
     this.simulationIdCounter = 1;
     this.negotiationIdCounter = 1;
+    this.notificationIdCounter = 1;
+    
+    const MemoryStore = require('memorystore')(session);
+    this.sessionStore = new MemoryStore({
+      checkPeriod: 86400000 // prune expired entries every 24h
+    });
   }
 
   // User operations
@@ -94,7 +104,12 @@ export class MemStorage implements IStorage {
       quantumLevel: 1,
       avatarColor: '#89B4FA',
       specializations: [],
-      achievements: []
+      achievements: [],
+      email: insertUser.email || null,
+      emailVerified: false,
+      emailNotifications: true,
+      profilePicture: insertUser.profilePicture || null,
+      lastNotificationSent: null
     };
     this.users.set(id, user);
     return user;
@@ -185,6 +200,151 @@ export class MemStorage implements IStorage {
     this.aiNegotiations.set(id, newNegotiation);
     return newNegotiation;
   }
+
+  // Projects by user
+  async getProjectsByUser(userId: number): Promise<Project[]> {
+    return Array.from(this.projects.values()).filter(
+      project => project.userId === userId
+    );
+  }
+
+  // Notification logs
+  async createNotificationLog(notification: InsertNotificationLog): Promise<NotificationLog> {
+    const id = this.notificationIdCounter++;
+    const newNotification: NotificationLog = {
+      ...notification,
+      id,
+      userId: notification.userId || null,
+      sentAt: new Date()
+    };
+    this.notificationLogs.set(id, newNotification);
+    return newNotification;
+  }
+
+  async getNotificationLogs(userId: number): Promise<NotificationLog[]> {
+    return Array.from(this.notificationLogs.values()).filter(
+      log => log.userId === userId
+    );
+  }
 }
 
-export const storage = new MemStorage();
+export class DatabaseStorage implements IStorage {
+  public sessionStore: session.Store;
+  private pool: Pool;
+
+  constructor() {
+    this.pool = new Pool({ connectionString: process.env.DATABASE_URL });
+    const PostgresSessionStore = connectPg(session);
+    this.sessionStore = new PostgresSessionStore({
+      pool: this.pool,
+      createTableIfMissing: true,
+    });
+  }
+
+  // User operations
+  async getUser(id: number): Promise<User | undefined> {
+    const [user] = await db.select().from(users).where(eq(users.id, id));
+    return user;
+  }
+
+  async getUserByUsername(username: string): Promise<User | undefined> {
+    const [user] = await db.select().from(users).where(eq(users.username, username));
+    return user;
+  }
+
+  async createUser(insertUser: InsertUser): Promise<User> {
+    const now = new Date().toISOString();
+    const [user] = await db.insert(users).values({
+      ...insertUser,
+      email: insertUser.email || null,
+      emailVerified: false,
+      emailNotifications: true,
+      profilePicture: insertUser.profilePicture || null,
+      displayName: insertUser.displayName || insertUser.username,
+      bio: null,
+      quantumPersona: null,
+      createdAt: now,
+      lastActive: now,
+      quantumLevel: 1,
+      avatarColor: '#89B4FA',
+      specializations: [],
+      achievements: []
+    }).returning();
+    return user;
+  }
+
+  async updateUserProfile(id: number, updates: Partial<User>): Promise<User | undefined> {
+    const now = new Date().toISOString();
+    const [user] = await db.update(users)
+      .set({ ...updates, lastActive: now })
+      .where(eq(users.id, id))
+      .returning();
+    return user;
+  }
+
+  // Project operations
+  async getProject(id: number): Promise<Project | undefined> {
+    const [project] = await db.select().from(singularisProjects).where(eq(singularisProjects.id, id));
+    return project;
+  }
+
+  async getProjects(): Promise<Project[]> {
+    return await db.select().from(singularisProjects);
+  }
+
+  async getProjectsByUser(userId: number): Promise<Project[]> {
+    return await db.select().from(singularisProjects).where(eq(singularisProjects.userId, userId));
+  }
+
+  async createProject(project: InsertProject & { createdAt: string; updatedAt: string }): Promise<Project> {
+    const [newProject] = await db.insert(singularisProjects).values(project).returning();
+    return newProject;
+  }
+
+  // File operations
+  async getFilesByProject(projectId: number): Promise<File[]> {
+    return await db.select().from(singularisFiles).where(eq(singularisFiles.projectId, projectId));
+  }
+
+  async createFile(file: InsertFile & { createdAt: string; updatedAt: string }): Promise<File> {
+    const [newFile] = await db.insert(singularisFiles).values(file).returning();
+    return newFile;
+  }
+
+  async updateFile(id: number, updates: Partial<File>): Promise<File | undefined> {
+    const [updatedFile] = await db.update(singularisFiles)
+      .set({ ...updates, updatedAt: new Date().toISOString() })
+      .where(eq(singularisFiles.id, id))
+      .returning();
+    return updatedFile;
+  }
+
+  // Quantum operations
+  async createQuantumSimulation(simulation: InsertQuantumSimulation & { createdAt: string }): Promise<QuantumSimulation> {
+    const [newSimulation] = await db.insert(quantumSimulations).values(simulation).returning();
+    return newSimulation;
+  }
+
+  // AI operations
+  async createAINegotiation(negotiation: InsertAINegotiation & { createdAt: string }): Promise<AINegotiation> {
+    const [newNegotiation] = await db.insert(aiNegotiations).values(negotiation).returning();
+    return newNegotiation;
+  }
+
+  // Notification logs
+  async createNotificationLog(notification: InsertNotificationLog): Promise<NotificationLog> {
+    const [newNotification] = await db.insert(notificationLogs).values({
+      ...notification,
+      userId: notification.userId || null,
+      sentAt: new Date()
+    }).returning();
+    return newNotification;
+  }
+
+  async getNotificationLogs(userId: number): Promise<NotificationLog[]> {
+    return await db.select().from(notificationLogs).where(eq(notificationLogs.userId, userId));
+  }
+}
+
+// Use database storage instead of memory storage
+export const storage = new DatabaseStorage();
