@@ -6,6 +6,7 @@
  */
 
 import { apiRequest } from './queryClient';
+import { QuantumGate } from './QuantumOperations';
 
 interface ExecutionResponse {
   output: string[];
@@ -14,6 +15,11 @@ interface ExecutionResponse {
 interface CompilationResponse {
   bytecode: string[];
 }
+
+// Quantum Optimization Types
+export type OptimizationGoal = 'fidelity' | 'gate_count' | 'depth' | 'error_mitigation' | 'execution_time' | 'explainability';
+export type OptimizationMethod = 'gradient_descent' | 'quantum_annealing' | 'tensor_network' | 'reinforcement_learning' | 'heuristic';
+export type CircuitPriority = 'critical' | 'approximate_ok' | 'error_tolerant';
 
 // Quantum Geometry Types
 export type GeometricElement = 'point' | 'line' | 'plane' | 'manifold';
@@ -342,5 +348,66 @@ export async function computeQuantumTopologicalInvariants(
     metric,
     topologicalProperties,
     energyDensity
+  });
+}
+
+/**
+ * Interface for AI-optimized quantum circuit response
+ */
+export interface AIOptimizedCircuitResponse {
+  original: {
+    circuit: string;
+    gates: number;
+    depth: number;
+    simulation: any;
+  };
+  optimized: {
+    circuit: string;
+    gates: number;
+    depth: number;
+    simulation: any;
+    explanation: string;
+  };
+  improvement: {
+    gateCount: number;
+    depthChange: number;
+    [key: string]: number;
+  };
+  explainability: number;
+  resourceEstimates: {
+    computationalComplexity: string;
+    estimatedRuntime: number;
+    memoryRequirements: number;
+    [key: string]: any;
+  };
+  timestamp: string;
+}
+
+/**
+ * Simulates an AI-optimized quantum circuit
+ * 
+ * This function optimizes a quantum circuit using AI techniques based on the specified
+ * optimization goal and method. It returns both the original and optimized circuit details.
+ * 
+ * @param gates Array of quantum gates to optimize
+ * @param numQubits Number of qubits in the circuit
+ * @param optimization Optimization parameters including goal, method, priority, threshold
+ * @returns Original and optimized circuit details with improvement metrics
+ */
+export async function simulateAIOptimizedCircuit(
+  gates: { gate: QuantumGate; targets: number[]; controls?: number[] }[],
+  numQubits: number = 2,
+  optimization: {
+    goal: OptimizationGoal;
+    method?: OptimizationMethod;
+    priority?: CircuitPriority;
+    threshold?: number;
+    parameters?: Record<string, number>;
+  }
+): Promise<AIOptimizedCircuitResponse> {
+  return apiRequest<AIOptimizedCircuitResponse>("POST", "/api/quantum/circuit/optimize", {
+    gates,
+    numQubits,
+    optimization
   });
 }

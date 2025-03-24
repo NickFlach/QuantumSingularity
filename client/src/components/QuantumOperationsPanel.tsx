@@ -4,14 +4,19 @@ import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Atom, Wand2, RotateCw, ScanFace, Network } from "lucide-react";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Atom, Wand2, RotateCw, ScanFace, Network, Cpu, Sparkles } from "lucide-react";
 import { 
   createQuantumGeometricSpace,
   embedQuantumStates,
   transformQuantumGeometry,
   entangleQuantumGeometricStates,
-  computeQuantumTopologicalInvariants
+  computeQuantumTopologicalInvariants,
+  simulateAIOptimizedCircuit,
+  type OptimizationGoal
 } from "@/lib/SingularisCompiler";
+
+import { QuantumGate } from "@/lib/QuantumOperations";
 
 interface QuantumOperationsPanelProps {
   onOperationComplete: (output: string[], success: boolean) => void;
@@ -24,6 +29,7 @@ export function QuantumOperationsPanel({
 }: QuantumOperationsPanelProps) {
   const [isExecuting, setIsExecuting] = useState<boolean>(false);
   const [activeTab, setActiveTab] = useState<string>("create-space");
+  const [optimizationGoal, setOptimizationGoal] = useState<OptimizationGoal>("fidelity");
   
   // Run quantum space creation
   const handleCreateSpace = async () => {
@@ -297,6 +303,80 @@ export function QuantumOperationsPanel({
     }
   };
   
+  // Run AI-optimized quantum circuit simulation
+  const handleOptimizeCircuit = async () => {
+    setIsExecuting(true);
+    
+    try {
+      // Define a sample quantum circuit with some gates
+      const gates = [
+        { gate: 'H' as QuantumGate, targets: [0] },
+        { gate: 'X' as QuantumGate, targets: [1] },
+        { gate: 'CNOT' as QuantumGate, targets: [1], controls: [0] },
+        { gate: 'H' as QuantumGate, targets: [0] },
+        { gate: 'Z' as QuantumGate, targets: [1] },
+        { gate: 'H' as QuantumGate, targets: [1] }
+      ];
+      
+      // Number of qubits
+      const numQubits = 2;
+      
+      // Run AI-optimized circuit simulation
+      const optimizationResponse = await simulateAIOptimizedCircuit(
+        gates,
+        numQubits,
+        {
+          goal: optimizationGoal,
+          method: 'gradient_descent',
+          priority: 'critical',
+          threshold: 0.9
+        }
+      );
+      
+      const output = [
+        "$ singularis quantum-circuit optimize",
+        "Initializing AI-Optimized Quantum Circuit Processor...",
+        "────────────────────────────────────────────",
+        "✓ Original circuit:",
+        `  Gates: ${optimizationResponse.original.gates}`,
+        `  Depth: ${optimizationResponse.original.depth}`,
+        "────────────────────────────────────────────",
+        "✓ Optimized circuit:",
+        `  Gates: ${optimizationResponse.optimized.gates}`,
+        `  Depth: ${optimizationResponse.optimized.depth}`,
+        `  Explanation: ${optimizationResponse.optimized.explanation}`,
+        "────────────────────────────────────────────",
+        "✓ Improvement metrics:",
+        `  Gate count change: ${optimizationResponse.improvement.gateCount > 0 ? '+' : ''}${optimizationResponse.improvement.gateCount}`,
+        `  Depth change: ${(optimizationResponse.improvement.depthChange * 100).toFixed(1)}%`,
+        `  Explainability score: ${(optimizationResponse.explainability * 100).toFixed(1)}%`,
+        "────────────────────────────────────────────",
+        "✓ Resource estimates:",
+        `  Computational complexity: ${optimizationResponse.resourceEstimates.computationalComplexity}`,
+        `  Estimated runtime: ${optimizationResponse.resourceEstimates.estimatedRuntime.toFixed(2)} ms`,
+        "────────────────────────────────────────────",
+        "AI-Optimized circuit simulation completed successfully."
+      ];
+      
+      onOperationComplete(output, true);
+      
+    } catch (error) {
+      console.error("AI-Optimized circuit error:", error);
+      
+      const errorOutput = [
+        "$ singularis quantum-circuit optimize",
+        "Initializing AI-Optimized Quantum Circuit Processor...",
+        "ERROR: AI-Optimized quantum circuit simulation failed.",
+        error instanceof Error ? `${error.message}` : "An unknown error occurred.",
+        "Operation terminated with errors."
+      ];
+      
+      onOperationComplete(errorOutput, false);
+    } finally {
+      setIsExecuting(false);
+    }
+  };
+  
   return (
     <Card className="w-full bg-[#181825] border-[#313244] shadow-md">
       <CardHeader className="pb-2">
@@ -307,7 +387,7 @@ export function QuantumOperationsPanel({
       </CardHeader>
       <CardContent>
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-          <TabsList className="grid grid-cols-5 mb-2 bg-[#11111B]">
+          <TabsList className="grid grid-cols-6 mb-2 bg-[#11111B]">
             <TabsTrigger value="create-space" className="text-xs">
               <Atom className="h-3 w-3 mr-1" />
               Space
@@ -327,6 +407,10 @@ export function QuantumOperationsPanel({
             <TabsTrigger value="invariants" className="text-xs">
               <ScanFace className="h-3 w-3 mr-1" />
               Invariants
+            </TabsTrigger>
+            <TabsTrigger value="optimize" className="text-xs">
+              <Sparkles className="h-3 w-3 mr-1" />
+              Optimize
             </TabsTrigger>
           </TabsList>
           
