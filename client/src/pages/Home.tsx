@@ -395,6 +395,12 @@ const Home = () => {
     }
   };
   
+  // Handle AI optimization of code
+  const handleAIOptimize = () => {
+    setSidePanelTab("optimization");
+    setShowOptimizationPanel(true);
+  };
+  
   // Simulate quantum geometry operations
   const handleRunQuantumGeometry = async () => {
     const currentFile = files.find(file => file.name === activeFileId);
@@ -988,6 +994,15 @@ const Home = () => {
                     >
                       <Boxes className="h-3 w-3 mr-1" />
                       Quantum Geometry
+                    </Button>
+                    <Button 
+                      variant="outline" 
+                      size="sm" 
+                      onClick={handleAIOptimize}
+                      className="text-xs"
+                    >
+                      <Activity className="h-3 w-3 mr-1" />
+                      AI Optimize
                     </Button>
                   </div>
                   
