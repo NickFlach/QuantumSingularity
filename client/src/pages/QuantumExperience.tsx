@@ -417,102 +417,6 @@ export default function QuantumExperience() {
   const [showUnlockedAchievement, setShowUnlockedAchievement] = useState<Achievement | null>(null);
   const [experimentTags, setExperimentTags] = useState<string[]>([]);
   const [newTag, setNewTag] = useState("");
-  const canvasRef = useRef<HTMLCanvasElement>(null);
-  
-  // Initialize particle animation
-  useEffect(() => {
-    const canvas = canvasRef.current;
-    if (!canvas) return;
-    
-    const ctx = canvas.getContext('2d');
-    if (!ctx) return;
-    
-    const particles: {
-      x: number;
-      y: number;
-      size: number;
-      speedX: number;
-      speedY: number;
-      color: string;
-    }[] = [];
-    
-    const colors = ['#8b5cf6', '#3b82f6', '#10b981', '#f59e0b', '#ef4444'];
-    
-    // Create particles
-    function createParticles(count: number) {
-      for (let i = 0; i < count; i++) {
-        particles.push({
-          x: Math.random() * canvas.width,
-          y: Math.random() * canvas.height,
-          size: Math.random() * 3 + 1,
-          speedX: Math.random() * 1 - 0.5,
-          speedY: Math.random() * 1 - 0.5,
-          color: colors[Math.floor(Math.random() * colors.length)]
-        });
-      }
-    }
-    
-    // Animation loop
-    function animate() {
-      requestAnimationFrame(animate);
-      
-      // Clear canvas
-      ctx.clearRect(0, 0, canvas.width, canvas.height);
-      
-      // Update and draw particles
-      for (let i = 0; i < particles.length; i++) {
-        let p = particles[i];
-        
-        // Update position
-        p.x += p.speedX;
-        p.y += p.speedY;
-        
-        // Bounce off edges
-        if (p.x < 0 || p.x > canvas.width) p.speedX *= -1;
-        if (p.y < 0 || p.y > canvas.height) p.speedY *= -1;
-        
-        // Draw particle
-        ctx.beginPath();
-        ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
-        ctx.fillStyle = p.color;
-        ctx.fill();
-        
-        // Draw lines between nearby particles
-        for (let j = i + 1; j < particles.length; j++) {
-          let p2 = particles[j];
-          let dx = p.x - p2.x;
-          let dy = p.y - p2.y;
-          let distance = Math.sqrt(dx * dx + dy * dy);
-          
-          if (distance < 100) {
-            ctx.beginPath();
-            ctx.strokeStyle = p.color;
-            ctx.globalAlpha = (100 - distance) / 100 * 0.2;
-            ctx.lineWidth = 0.5;
-            ctx.moveTo(p.x, p.y);
-            ctx.lineTo(p2.x, p2.y);
-            ctx.stroke();
-            ctx.globalAlpha = 1;
-          }
-        }
-      }
-    }
-    
-    // Handle resize
-    function resizeCanvas() {
-      canvas.width = window.innerWidth;
-      canvas.height = window.innerHeight;
-      createParticles(Math.min(100, Math.floor(window.innerWidth * window.innerHeight / 10000)));
-    }
-    
-    window.addEventListener('resize', resizeCanvas);
-    resizeCanvas();
-    animate();
-    
-    return () => {
-      window.removeEventListener('resize', resizeCanvas);
-    };
-  }, []);
   
   // Handle adding operation to experiment
   const addOperation = (operation: QuantumOperation) => {
@@ -809,10 +713,14 @@ export default function QuantumExperience() {
 
   return (
     <div className="relative min-h-screen bg-slate-950">
-      {/* Particle animation background */}
-      <canvas
-        ref={canvasRef}
-        className="absolute inset-0 h-full w-full opacity-30"
+      {/* Animated background with CSS instead of canvas */}
+      <div 
+        className="absolute inset-0 opacity-30"
+        style={{
+          backgroundImage: 'radial-gradient(circle at 25% 25%, rgba(139, 92, 246, 0.5) 0%, transparent 50%), radial-gradient(circle at 75% 75%, rgba(59, 130, 246, 0.5) 0%, transparent 50%), radial-gradient(circle at 50% 50%, rgba(16, 185, 129, 0.3) 0%, transparent 50%)',
+          backgroundSize: '200% 200%',
+          animation: 'gradient 15s ease infinite',
+        }}
       />
       
       {/* Main content */}
