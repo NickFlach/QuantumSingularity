@@ -382,7 +382,9 @@ export function QuantumOperationsPanel({
       <CardHeader className="pb-2">
         <CardTitle className="text-sm font-medium flex items-center text-[#CDD6F4]">
           <Atom className="h-4 w-4 mr-2 text-[#89B4FA]" />
-          Quantum Geometry Operations
+          Quantum Operations
+          <Sparkles className="h-3 w-3 mx-2 text-[#F5C2E7]" />
+          <span className="text-[#F5C2E7]">AI Optimization</span>
         </CardTitle>
       </CardHeader>
       <CardContent>
@@ -592,6 +594,84 @@ export function QuantumOperationsPanel({
               >
                 <ScanFace className="h-3 w-3 mr-1" />
                 Compute Invariants
+              </Button>
+            </TabsContent>
+            
+            <TabsContent value="optimize" className="mt-0">
+              <h3 className="text-sm font-medium mb-2">AI-Optimized Quantum Circuit</h3>
+              <p className="text-xs text-[#A6ADC8] mb-3">
+                Apply AI optimization techniques to quantum circuits for improved efficiency and performance.
+              </p>
+              
+              <div className="space-y-3 mb-4">
+                <div className="text-xs">
+                  <div className="mb-1 font-medium">Optimization Goal:</div>
+                  <Select
+                    value={optimizationGoal}
+                    onValueChange={(value) => setOptimizationGoal(value as OptimizationGoal)}
+                  >
+                    <SelectTrigger className="w-full bg-[#313244]">
+                      <SelectValue placeholder="Select optimization goal" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="fidelity">Quantum Fidelity</SelectItem>
+                      <SelectItem value="gate_count">Gate Count</SelectItem>
+                      <SelectItem value="depth">Circuit Depth</SelectItem>
+                      <SelectItem value="error_mitigation">Error Mitigation</SelectItem>
+                      <SelectItem value="execution_time">Execution Time</SelectItem>
+                      <SelectItem value="explainability">Explainability</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                
+                <div className="bg-[#1E1E2E] p-3 rounded-md text-xs">
+                  <h4 className="font-medium mb-2">Circuit Gates</h4>
+                  <div className="font-mono bg-[#313244] p-2 rounded-md mb-2 text-[#CDD6F4]">
+                    H(q[0]) → X(q[1]) → CNOT(q[0],q[1]) → H(q[0]) → Z(q[1]) → H(q[1])
+                  </div>
+                  
+                  <div className="grid grid-cols-2 gap-2">
+                    <div>
+                      <div className="mb-1">Gate Count:</div>
+                      <div className="bg-[#313244] rounded-md px-2 py-1 text-center">6</div>
+                    </div>
+                    <div>
+                      <div className="mb-1">Circuit Depth:</div>
+                      <div className="bg-[#313244] rounded-md px-2 py-1 text-center">5</div>
+                    </div>
+                  </div>
+                </div>
+                
+                <div className="bg-[#1E1E2E] p-3 rounded-md text-xs">
+                  <div className="flex items-center mb-2">
+                    <Sparkles className="h-3 w-3 mr-1 text-[#F5C2E7]" />
+                    <h4 className="font-medium text-[#F5C2E7]">AI Optimization Preview</h4>
+                  </div>
+                  
+                  <div className="space-y-2">
+                    <div className="flex justify-between">
+                      <span>Expected Gate Reduction:</span>
+                      <span>~30%</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span>Expected Depth Reduction:</span>
+                      <span>~25%</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span>Explainability Score:</span>
+                      <span>~90%</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              
+              <Button 
+                onClick={handleOptimizeCircuit} 
+                disabled={isExecuting}
+                className="w-full bg-[#F5C2E7] text-[#1E1E2E] hover:bg-[#F5C2E7]/90"
+              >
+                <Cpu className="h-3 w-3 mr-1" />
+                Run AI Optimization
               </Button>
             </TabsContent>
           </ScrollArea>
