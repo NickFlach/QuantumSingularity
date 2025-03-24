@@ -1,4 +1,4 @@
-import { Switch, Route } from "wouter";
+import { Switch, Route, useLocation } from "wouter";
 import { queryClient } from "./lib/queryClient";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
@@ -10,31 +10,37 @@ import DocumentationPage from "@/pages/documentation-page";
 import QuantumGeometryDemo from "@/pages/QuantumGeometryDemo";
 import ProjectsPage from "@/pages/projects-page";
 import ProjectDetail from "@/pages/project-detail";
+import AuthPage from "@/pages/auth-page";
 import Header from "@/components/Header";
 import { AuthProvider } from "./lib/AuthContext";
+import { ProtectedRoute } from "./lib/ProtectedRoute";
 
 function Router() {
   return (
     <Switch>
-      <Route path="/" component={Home} />
-      <Route path="/settings" component={Settings} />
-      <Route path="/demo" component={AIQuantumDemo} />
-      <Route path="/docs" component={DocumentationPage} />
-      <Route path="/quantum-geometry" component={QuantumGeometryDemo} />
-      <Route path="/projects" component={ProjectsPage} />
-      <Route path="/projects/:id" component={ProjectDetail} />
+      <ProtectedRoute path="/" component={Home} />
+      <ProtectedRoute path="/settings" component={Settings} />
+      <ProtectedRoute path="/demo" component={AIQuantumDemo} />
+      <ProtectedRoute path="/docs" component={DocumentationPage} />
+      <ProtectedRoute path="/quantum-geometry" component={QuantumGeometryDemo} />
+      <ProtectedRoute path="/projects" component={ProjectsPage} />
+      <ProtectedRoute path="/projects/:id" component={ProjectDetail} />
+      <Route path="/auth" component={AuthPage} />
       <Route component={NotFound} />
     </Switch>
   );
 }
 
 function App() {
+  const [location] = useLocation();
+  const showHeader = location !== '/auth';
+
   return (
     <QueryClientProvider client={queryClient}>
       <AuthProvider>
         <div className="flex flex-col min-h-screen">
-          <Header />
-          <main className="flex-1">
+          {showHeader && <Header />}
+          <main className={`flex-1 ${!showHeader ? 'pt-0' : ''}`}>
             <Router />
           </main>
         </div>
