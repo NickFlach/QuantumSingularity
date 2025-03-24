@@ -1195,7 +1195,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Send the email
       const result = await sendTemplateEmail(
         targetUser,
-        template as EmailTemplate
+        template as Exclude<EmailTemplate, "custom">
       );
       
       return res.status(result.success ? 200 : 500).json(result);
