@@ -177,6 +177,52 @@ export async function registerRoutes(app: Express): Promise<Server> {
     return res.json({ user: userWithoutPassword });
   });
   
+  // User profile routes
+  app.put("/api/user/profile", async (req: Request, res: Response) => {
+    if (!req.isAuthenticated() || !req.user) {
+      return res.status(401).json({ message: "Not authenticated" });
+    }
+    
+    try {
+      const userId = (req.user as any).id;
+      const updates = req.body;
+      
+      // Filter out properties that shouldn't be updated directly
+      const allowedUpdates = [
+        'displayName', 'bio', 'avatarColor', 'quantumPersona', 'specializations'
+      ];
+      
+      const filteredUpdates = Object.fromEntries(
+        Object.entries(updates).filter(([key]) => 
+          allowedUpdates.includes(key)
+        )
+      );
+      
+      const updatedUser = await storage.updateUserProfile(userId, filteredUpdates);
+      
+      if (!updatedUser) {
+        return res.status(404).json({ message: "User not found" });
+      }
+      
+      // Remove password from response
+      const { password: _, ...userWithoutPassword } = updatedUser;
+      
+      // Update the session user
+      req.login(updatedUser, (err) => {
+        if (err) {
+          return res.status(500).json({ message: "Session update failed" });
+        }
+        res.status(200).json({ user: userWithoutPassword });
+      });
+    } catch (error) {
+      console.error("Error updating user profile:", error);
+      res.status(500).json({ 
+        message: "Failed to update profile",
+        error: error instanceof Error ? error.message : String(error)
+      });
+    }
+  });
+  
   // API routes for SINGULARIS PRIME language services
   
   // Parse SINGULARIS PRIME code

@@ -11,6 +11,7 @@ import QuantumGeometryDemo from "@/pages/QuantumGeometryDemo";
 import QuantumCircuitDesignerPage from "@/pages/QuantumCircuitDesignerPage";
 import ProjectsPage from "@/pages/projects-page";
 import ProjectDetail from "@/pages/project-detail";
+import ProfilePage from "@/pages/profile-page";
 import AuthPage from "@/pages/auth-page";
 import Header from "@/components/Header";
 import { AuthProvider } from "./lib/AuthContext";
@@ -27,6 +28,7 @@ function Router() {
       <ProtectedRoute path="/quantum-circuit" component={QuantumCircuitDesignerPage} />
       <ProtectedRoute path="/projects" component={ProjectsPage} />
       <ProtectedRoute path="/projects/:id" component={ProjectDetail} />
+      <ProtectedRoute path="/profile" component={ProfilePage} />
       <Route path="/auth" component={AuthPage} />
       <Route component={NotFound} />
     </Switch>
