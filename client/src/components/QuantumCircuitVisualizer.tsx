@@ -1,221 +1,248 @@
-import React, { useEffect, useRef } from "react";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { QuantumGate } from "@/lib/QuantumOperations";
+import { useRef, useEffect } from 'react';
+import { CircuitGate } from './QuantumCircuitDesigner';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
+import { Atom, Network } from 'lucide-react';
 
 interface QuantumCircuitVisualizerProps {
-  circuit: {
-    gates: { gate: QuantumGate; targets: number[]; controls?: number[] }[];
-    numQubits: number;
-  };
-  optimizedCircuit?: {
-    gates: { gate: QuantumGate; targets: number[]; controls?: number[] }[];
-  };
-  showOptimized?: boolean;
+  gates: CircuitGate[];
+  numQubits: number;
+  stateProbabilities?: Record<string, number>;
 }
 
 export function QuantumCircuitVisualizer({
-  circuit,
-  optimizedCircuit,
-  showOptimized = false,
+  gates,
+  numQubits,
+  stateProbabilities = {}
 }: QuantumCircuitVisualizerProps) {
-  const canvasRef = useRef<HTMLCanvasElement>(null);
+  const canvasRef = useRef<HTMLCanvasElement | null>(null);
 
-  // Colors for different gates
-  const gateColors = {
-    H: "#4a9fe3", // Hadamard - blue
-    X: "#de3b40", // Pauli-X - red
-    Y: "#68b723", // Pauli-Y - green
-    Z: "#9768d1", // Pauli-Z - purple
-    CNOT: "#f9c440", // CNOT - yellow
-    CZ: "#db8a33", // CZ - orange
-    SWAP: "#41c6c8", // SWAP - teal
-    RX: "#c061cb", // RX - pink
-    RY: "#9a59b5", // RY - violet
-    RZ: "#3daee9", // RZ - light blue
+  // Gate and wire colors
+  const colors = {
+    background: '#1E1E2E',
+    wire: '#6C7086',
+    qubitLabel: '#CDD6F4',
+    stateProbability: '#F5C2E7',
+    H: '#89B4FA',
+    X: '#F38BA8',
+    Y: '#A6E3A1',
+    Z: '#94E2D5',
+    CNOT: '#FAB387',
+    CZ: '#CBA6F7', 
+    SWAP: '#F9E2AF',
+    RX: '#EBA0AC',
+    RY: '#ABE9B3',
+    RZ: '#B4BEFE',
   };
 
-  // Gate symbols
-  const gateSymbols: Record<string, string> = {
-    H: "H",
-    X: "X",
-    Y: "Y",
-    Z: "Z",
-    CNOT: "⊕",
-    CZ: "Z",
-    SWAP: "×",
-    RX: "Rx",
-    RY: "Ry",
-    RZ: "Rz",
+  // Configuration
+  const config = {
+    gateSize: 30,
+    wireSpacing: 50,
+    leftMargin: 50,
+    topMargin: 10,
+    qubitRadius: 4,
+    stateBarHeight: 80,
+    stateBarMargin: 10,
   };
 
+  // Draw the circuit visualization on the canvas
   useEffect(() => {
-    if (canvasRef.current) {
-      const canvas = canvasRef.current;
-      const ctx = canvas.getContext("2d");
-      if (!ctx) return;
+    const canvas = canvasRef.current;
+    if (!canvas) return;
 
-      // Clear canvas
-      ctx.clearRect(0, 0, canvas.width, canvas.height);
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return;
 
-      // Set dimensions
-      const circuitToRender = showOptimized && optimizedCircuit ? optimizedCircuit : circuit;
-      const numQubits = circuit.numQubits;
-      const numGates = circuitToRender.gates.length;
+    // Find the maximum position to determine circuit width
+    const maxPosition = gates.length > 0 
+      ? Math.max(...gates.map(g => g.position)) + 1
+      : 5;
+
+    // Adjust canvas dimensions
+    const circuitWidth = maxPosition * config.gateSize * 1.5 + config.leftMargin * 2;
+    const circuitHeight = numQubits * config.wireSpacing + config.topMargin * 2;
+    const canvasHeight = circuitHeight + (Object.keys(stateProbabilities).length > 0 
+      ? config.stateBarHeight + config.stateBarMargin 
+      : 0);
+
+    canvas.width = circuitWidth;
+    canvas.height = canvasHeight;
+
+    // Clear canvas
+    ctx.fillStyle = colors.background;
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+    // Draw qubit wires
+    for (let i = 0; i < numQubits; i++) {
+      const y = i * config.wireSpacing + config.topMargin + config.wireSpacing / 2;
       
-      // Canvas sizing
-      const maxWidth = canvas.width;
-      const maxHeight = canvas.height;
+      // Qubit label
+      ctx.fillStyle = colors.qubitLabel;
+      ctx.font = '12px monospace';
+      ctx.textAlign = 'right';
+      ctx.textBaseline = 'middle';
+      ctx.fillText(`q${i}:`, config.leftMargin - 10, y);
       
-      const qubitSpacing = maxHeight / (numQubits + 1);
-      const gateSpacing = Math.min(maxWidth / (numGates + 1), 60);
-      const gateSize = Math.min(qubitSpacing * 0.6, 40);
+      // Initial qubit state
+      ctx.beginPath();
+      ctx.fillStyle = colors.qubitLabel;
+      ctx.arc(config.leftMargin, y, config.qubitRadius, 0, Math.PI * 2);
+      ctx.fill();
       
-      // Draw qubit lines
-      ctx.strokeStyle = "#cccccc";
+      // Wire
+      ctx.beginPath();
+      ctx.strokeStyle = colors.wire;
+      ctx.lineWidth = 1;
+      ctx.moveTo(config.leftMargin, y);
+      ctx.lineTo(circuitWidth - config.leftMargin / 2, y);
+      ctx.stroke();
+    }
+
+    // Draw gates
+    gates.forEach(gate => {
+      const x = gate.position * config.gateSize * 1.5 + config.leftMargin + config.gateSize;
+      const y = gate.qubit * config.wireSpacing + config.topMargin + config.wireSpacing / 2;
+      
+      // Gate box
+      ctx.fillStyle = colors[gate.type] || colors.H;
+      ctx.strokeStyle = '#181825';
       ctx.lineWidth = 1;
       
-      for (let i = 0; i < numQubits; i++) {
+      if (gate.type === 'SWAP') {
+        // SWAP gate is drawn as an X
         ctx.beginPath();
-        ctx.moveTo(40, (i + 1) * qubitSpacing);
-        ctx.lineTo(maxWidth - 20, (i + 1) * qubitSpacing);
+        ctx.moveTo(x - 10, y - 10);
+        ctx.lineTo(x + 10, y + 10);
+        ctx.moveTo(x + 10, y - 10);
+        ctx.lineTo(x - 10, y + 10);
+        ctx.strokeStyle = colors.SWAP;
+        ctx.lineWidth = 2;
+        ctx.stroke();
+      } else {
+        // Normal gate
+        ctx.beginPath();
+        ctx.rect(x - config.gateSize / 2, y - config.gateSize / 2, config.gateSize, config.gateSize);
+        ctx.fill();
         ctx.stroke();
         
-        // Qubit labels
-        ctx.fillStyle = "#333333";
-        ctx.font = "14px Arial";
-        ctx.textAlign = "right";
-        ctx.fillText(`q[${i}]`, 35, (i + 1) * qubitSpacing + 5);
+        // Gate label
+        ctx.fillStyle = '#181825';
+        ctx.font = 'bold 12px monospace';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText(gate.type, x, y);
       }
       
-      // Draw gates
-      circuitToRender.gates.forEach((gate, gateIndex) => {
-        const x = (gateIndex + 1) * gateSpacing + 40;
+      // Control line for CNOT and CZ
+      if (gate.controlQubit !== undefined) {
+        const controlY = gate.controlQubit * config.wireSpacing + config.topMargin + config.wireSpacing / 2;
+        ctx.beginPath();
+        ctx.strokeStyle = colors[gate.type] || colors.CNOT;
+        ctx.lineWidth = 2;
+        ctx.moveTo(x, Math.min(y, controlY));
+        ctx.lineTo(x, Math.max(y, controlY));
+        ctx.stroke();
         
-        // Single qubit gates
-        if (!gate.controls || gate.controls.length === 0) {
-          gate.targets.forEach(targetQubit => {
-            const y = (targetQubit + 1) * qubitSpacing;
-            
-            // Gate background
-            ctx.fillStyle = gateColors[gate.gate] || "#888888";
-            ctx.beginPath();
-            ctx.rect(x - gateSize/2, y - gateSize/2, gateSize, gateSize);
-            ctx.fill();
-            
-            // Gate border
-            ctx.strokeStyle = "#333333";
-            ctx.lineWidth = 1;
-            ctx.stroke();
-            
-            // Gate label
-            ctx.fillStyle = "#ffffff";
-            ctx.font = "bold 14px Arial";
-            ctx.textAlign = "center";
-            ctx.textBaseline = "middle";
-            ctx.fillText(gateSymbols[gate.gate] || gate.gate, x, y);
-          });
-        } 
-        // Multi-qubit gates (with controls)
-        else {
-          const allQubits = [...gate.controls, ...gate.targets].sort((a, b) => a - b);
-          const minQubit = allQubits[0];
-          const maxQubit = allQubits[allQubits.length - 1];
-          
-          // Vertical line connecting controls and targets
-          ctx.strokeStyle = "#333333";
-          ctx.lineWidth = 2;
-          ctx.beginPath();
-          ctx.moveTo(x, (minQubit + 1) * qubitSpacing);
-          ctx.lineTo(x, (maxQubit + 1) * qubitSpacing);
-          ctx.stroke();
-          
-          // Draw controls (dots)
-          gate.controls.forEach(controlQubit => {
-            const y = (controlQubit + 1) * qubitSpacing;
-            ctx.fillStyle = "#000000";
-            ctx.beginPath();
-            ctx.arc(x, y, gateSize / 4, 0, 2 * Math.PI);
-            ctx.fill();
-          });
-          
-          // Draw targets
-          gate.targets.forEach(targetQubit => {
-            const y = (targetQubit + 1) * qubitSpacing;
-            
-            if (gate.gate === "CNOT") {
-              // CNOT target (⊕)
-              ctx.strokeStyle = "#333333";
-              ctx.lineWidth = 2;
-              ctx.beginPath();
-              ctx.arc(x, y, gateSize / 3, 0, 2 * Math.PI);
-              ctx.stroke();
-              
-              ctx.beginPath();
-              ctx.moveTo(x, y - gateSize / 3);
-              ctx.lineTo(x, y + gateSize / 3);
-              ctx.moveTo(x - gateSize / 3, y);
-              ctx.lineTo(x + gateSize / 3, y);
-              ctx.stroke();
-            } else if (gate.gate === "SWAP") {
-              // SWAP gate (×)
-              ctx.strokeStyle = "#333333";
-              ctx.lineWidth = 2;
-              ctx.beginPath();
-              ctx.moveTo(x - gateSize / 3, y - gateSize / 3);
-              ctx.lineTo(x + gateSize / 3, y + gateSize / 3);
-              ctx.moveTo(x + gateSize / 3, y - gateSize / 3);
-              ctx.lineTo(x - gateSize / 3, y + gateSize / 3);
-              ctx.stroke();
-            } else {
-              // Other multi-qubit gates
-              ctx.fillStyle = gateColors[gate.gate] || "#888888";
-              ctx.beginPath();
-              ctx.rect(x - gateSize/2, y - gateSize/2, gateSize, gateSize);
-              ctx.fill();
-              
-              ctx.strokeStyle = "#333333";
-              ctx.lineWidth = 1;
-              ctx.stroke();
-              
-              ctx.fillStyle = "#ffffff";
-              ctx.font = "bold 14px Arial";
-              ctx.textAlign = "center";
-              ctx.textBaseline = "middle";
-              ctx.fillText(gateSymbols[gate.gate] || gate.gate, x, y);
-            }
-          });
-        }
-      });
+        // Control point
+        ctx.beginPath();
+        ctx.fillStyle = colors[gate.type] || colors.CNOT;
+        ctx.arc(x, controlY, 5, 0, Math.PI * 2);
+        ctx.fill();
+      }
+    });
+    
+    // Draw state probabilities if provided
+    if (Object.keys(stateProbabilities).length > 0) {
+      const stateBarY = circuitHeight + config.stateBarMargin;
+      const stateBarWidth = circuitWidth - config.leftMargin * 2;
       
-      // Draw title
-      ctx.fillStyle = "#000000";
-      ctx.font = "16px Arial";
-      ctx.textAlign = "center";
-      ctx.fillText(
-        showOptimized ? "Optimized Quantum Circuit" : "Original Quantum Circuit",
-        canvas.width / 2,
-        20
-      );
+      // Bar background
+      ctx.fillStyle = '#313244';
+      ctx.fillRect(config.leftMargin, stateBarY, stateBarWidth, config.stateBarHeight - config.stateBarMargin);
+      
+      // Title
+      ctx.fillStyle = colors.qubitLabel;
+      ctx.font = 'bold 12px monospace';
+      ctx.textAlign = 'left';
+      ctx.textBaseline = 'top';
+      ctx.fillText('State Probabilities:', config.leftMargin, stateBarY - 18);
+      
+      // Draw bars for each state
+      const states = Object.entries(stateProbabilities);
+      const barHeight = (config.stateBarHeight - config.stateBarMargin * 2) / states.length;
+      
+      states.forEach(([state, probability], index) => {
+        const barY = stateBarY + index * barHeight + config.stateBarMargin / 2;
+        
+        // State label
+        ctx.fillStyle = colors.qubitLabel;
+        ctx.font = '11px monospace';
+        ctx.textAlign = 'right';
+        ctx.textBaseline = 'middle';
+        ctx.fillText(`|${state}⟩`, config.leftMargin + 50, barY + barHeight / 2);
+        
+        // State probability bar background
+        ctx.fillStyle = '#313244';
+        ctx.fillRect(config.leftMargin + 60, barY, stateBarWidth - 120, barHeight - 4);
+        
+        // State probability bar
+        const gradientWidth = Math.max(2, (stateBarWidth - 120) * probability);
+        const gradient = ctx.createLinearGradient(
+          config.leftMargin + 60, 
+          barY, 
+          config.leftMargin + 60 + gradientWidth, 
+          barY
+        );
+        gradient.addColorStop(0, colors.stateProbability);
+        gradient.addColorStop(1, colors.H);
+        ctx.fillStyle = gradient;
+        ctx.fillRect(config.leftMargin + 60, barY, gradientWidth, barHeight - 4);
+        
+        // Probability text
+        ctx.fillStyle = colors.qubitLabel;
+        ctx.font = '10px monospace';
+        ctx.textAlign = 'left';
+        ctx.textBaseline = 'middle';
+        ctx.fillText(`${(probability * 100).toFixed(1)}%`, config.leftMargin + 70 + gradientWidth, barY + barHeight / 2);
+      });
     }
-  }, [circuit, optimizedCircuit, showOptimized]);
+
+  }, [gates, numQubits, stateProbabilities]);
+
+  if (gates.length === 0) {
+    return (
+      <Card className="w-full h-full bg-[#181825] border-[#313244]">
+        <CardContent className="flex flex-col items-center justify-center h-80 p-4">
+          <Network className="h-10 w-10 text-[#A6ADC8] opacity-20 mb-2" />
+          <p className="text-sm text-[#A6ADC8]">No quantum circuit to visualize</p>
+          <p className="text-xs text-[#A6ADC8] mt-1 opacity-70">Add gates to see visualization</p>
+        </CardContent>
+      </Card>
+    );
+  }
 
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle>
-          {showOptimized ? "Optimized Quantum Circuit" : "Quantum Circuit Visualization"}
+    <Card className="w-full bg-[#181825] border-[#313244]">
+      <CardHeader className="pb-2">
+        <CardTitle className="text-sm font-medium flex items-center justify-between">
+          <div className="flex items-center">
+            <Atom className="h-4 w-4 mr-2 text-[#89B4FA]" />
+            <span className="text-[#CDD6F4]">Quantum Circuit Visualization</span>
+          </div>
+          <Badge variant="outline" className="text-xs bg-[#313244]">
+            {numQubits} qubits, {gates.length} gates
+          </Badge>
         </CardTitle>
-        <CardDescription>
-          Visual representation of quantum gates and their connections
-        </CardDescription>
       </CardHeader>
       <CardContent>
-        <canvas
-          ref={canvasRef}
-          width={800}
-          height={400}
-          className="w-full h-auto border rounded"
-        />
+        <div className="w-full overflow-auto bg-[#1E1E2E] rounded-md p-2 mb-2">
+          <canvas
+            ref={canvasRef}
+            className="max-w-full"
+            style={{ minHeight: Object.keys(stateProbabilities).length > 0 ? '350px' : '200px' }}
+          />
+        </div>
       </CardContent>
     </Card>
   );

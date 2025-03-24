@@ -7,6 +7,7 @@ import { Separator } from '@/components/ui/separator';
 import { Switch } from '@/components/ui/switch';
 import { Badge } from '@/components/ui/badge';
 import { QuantumCircuitDesigner, CircuitGate } from '@/components/QuantumCircuitDesigner';
+import { QuantumCircuitVisualizer } from '@/components/QuantumCircuitVisualizer';
 import { apiRequest } from '@/lib/queryClient';
 import { AlertCircle, Atom, ChevronRight, Code, FlaskConical, HelpCircle, Layers, RotateCw, Zap } from 'lucide-react';
 import { QuantumGate } from '@/lib/QuantumOperations';
@@ -127,6 +128,9 @@ export default function QuantumCircuitDesignerPage() {
               <TabsTrigger value="designer" className="data-[state=active]:bg-[#45475A]">
                 Designer
               </TabsTrigger>
+              <TabsTrigger value="preview" className="data-[state=active]:bg-[#45475A]">
+                Preview
+              </TabsTrigger>
               <TabsTrigger value="results" className="data-[state=active]:bg-[#45475A]">
                 Results
               </TabsTrigger>
@@ -135,12 +139,20 @@ export default function QuantumCircuitDesignerPage() {
               </TabsTrigger>
             </TabsList>
             
-            <div className="flex items-center space-x-2">
-              <span className="text-xs text-muted-foreground">Advanced Options</span>
-              <Switch
-                checked={showAdvancedOptions}
-                onCheckedChange={setShowAdvancedOptions}
-              />
+            <div className="flex items-center space-x-4">
+              <div className="flex items-center space-x-2">
+                <span className="text-xs text-muted-foreground">Advanced Options</span>
+                <Switch
+                  checked={showAdvancedOptions}
+                  onCheckedChange={setShowAdvancedOptions}
+                />
+              </div>
+              {showAdvancedOptions && (
+                <div className="flex items-center space-x-2 bg-[#313244] px-2 py-1 rounded-md">
+                  <span className="text-xs text-[#CDD6F4]">AI Explanation</span>
+                  <Badge variant="outline" className="text-xs bg-[#45475A]">Enabled</Badge>
+                </div>
+              )}
             </div>
           </div>
           
@@ -235,6 +247,155 @@ export default function QuantumCircuitDesignerPage() {
                     </ul>
                   </CardContent>
                 </Card>
+              </div>
+            </div>
+          </TabsContent>
+          
+          <TabsContent value="preview" className="space-y-4">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div className="md:col-span-2">
+                <QuantumCircuitVisualizer
+                  gates={currentCircuit}
+                  numQubits={Math.max(...currentCircuit.map(g => g.qubit), 0) + 1 || 3}
+                  stateProbabilities={simulationResult?.probabilities}
+                />
+              </div>
+              
+              <div className="space-y-4">
+                <Card className="bg-[#181825] border-[#313244]">
+                  <CardHeader>
+                    <CardTitle className="text-sm font-medium flex items-center">
+                      <Layers className="h-4 w-4 mr-2 text-[#89B4FA]" />
+                      Circuit Information
+                    </CardTitle>
+                    <CardDescription className="text-xs text-[#A6ADC8]">
+                      Current circuit configuration
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent className="space-y-2">
+                    <div className="flex justify-between items-center text-xs">
+                      <span className="text-[#A6ADC8]">Number of qubits:</span>
+                      <Badge variant="outline" className="bg-[#313244]">
+                        {Math.max(...currentCircuit.map(g => g.qubit), 0) + 1 || 3}
+                      </Badge>
+                    </div>
+                    <div className="flex justify-between items-center text-xs">
+                      <span className="text-[#A6ADC8]">Number of gates:</span>
+                      <Badge variant="outline" className="bg-[#313244]">
+                        {currentCircuit.length}
+                      </Badge>
+                    </div>
+                    <div className="flex justify-between items-center text-xs">
+                      <span className="text-[#A6ADC8]">Circuit depth:</span>
+                      <Badge variant="outline" className="bg-[#313244]">
+                        {currentCircuit.length > 0 
+                          ? Math.max(...currentCircuit.map(g => g.position)) + 1 
+                          : 0}
+                      </Badge>
+                    </div>
+                    
+                    <Separator className="my-2" />
+                    
+                    <h4 className="text-xs font-medium text-[#CDD6F4]">Gate Breakdown</h4>
+                    
+                    {currentCircuit.length > 0 ? (
+                      <div className="space-y-1 mt-1">
+                        {Array.from(new Set(currentCircuit.map(g => g.type))).map(gateType => (
+                          <div key={gateType} className="flex justify-between items-center text-xs">
+                            <div className="flex items-center">
+                              <div className="w-4 h-4 rounded-sm mr-2" 
+                                style={{ 
+                                  backgroundColor: 
+                                    gateType === 'H' ? '#89B4FA' : 
+                                    gateType === 'X' ? '#F38BA8' : 
+                                    gateType === 'Y' ? '#A6E3A1' : 
+                                    gateType === 'Z' ? '#94E2D5' :
+                                    gateType === 'CNOT' ? '#FAB387' :
+                                    gateType === 'CZ' ? '#CBA6F7' :
+                                    gateType === 'SWAP' ? '#F9E2AF' :
+                                    '#89DCEB'
+                                }} 
+                              />
+                              <span className="text-[#CDD6F4]">{gateType}</span>
+                            </div>
+                            <Badge variant="outline" className="bg-[#313244]">
+                              {currentCircuit.filter(g => g.type === gateType).length}
+                            </Badge>
+                          </div>
+                        ))}
+                      </div>
+                    ) : (
+                      <p className="text-xs text-[#A6ADC8] italic">No gates in circuit</p>
+                    )}
+                    
+                    <div className="pt-2">
+                      <Button 
+                        onClick={() => handleExecuteCircuit(currentCircuit)}
+                        disabled={currentCircuit.length === 0}
+                        size="sm"
+                        className="w-full bg-[#89B4FA] text-[#1E1E2E] hover:bg-[#89B4FA]/90"
+                      >
+                        Run Circuit Simulation
+                      </Button>
+                    </div>
+                  </CardContent>
+                </Card>
+                
+                {showAdvancedOptions && (
+                  <Card className="bg-[#181825] border-[#313244]">
+                    <CardHeader>
+                      <CardTitle className="text-sm font-medium flex items-center">
+                        <Zap className="h-4 w-4 mr-2 text-[#89B4FA]" />
+                        Advanced Features
+                      </CardTitle>
+                      <CardDescription className="text-xs text-[#A6ADC8]">
+                        Additional quantum circuit capabilities
+                      </CardDescription>
+                    </CardHeader>
+                    <CardContent className="space-y-3">
+                      <div className="space-y-1.5">
+                        <div className="flex items-center justify-between">
+                          <label htmlFor="simulationShots" className="text-xs text-[#CDD6F4]">
+                            Simulation Shots
+                          </label>
+                          <span className="text-xs text-[#A6ADC8]">1,024</span>
+                        </div>
+                        <div className="h-1 w-full bg-[#313244] rounded-full overflow-hidden">
+                          <div className="bg-[#89B4FA] h-full" style={{ width: '50%' }} />
+                        </div>
+                      </div>
+                      
+                      <div className="space-y-1.5">
+                        <div className="flex items-center justify-between">
+                          <label htmlFor="errorRate" className="text-xs text-[#CDD6F4]">
+                            Noise Simulation
+                          </label>
+                          <Badge variant="outline" className="text-xs bg-[#313244]">Disabled</Badge>
+                        </div>
+                        <div className="h-1 w-full bg-[#313244] rounded-full overflow-hidden">
+                          <div className="bg-[#F38BA8] h-full" style={{ width: '0%' }} />
+                        </div>
+                      </div>
+                      
+                      <div className="pt-1">
+                        <label className="text-xs text-[#CDD6F4] block mb-1.5">
+                          Optimization Goal
+                        </label>
+                        <div className="grid grid-cols-3 gap-1">
+                          <Badge className="text-xs flex justify-center py-1 bg-[#89B4FA] text-[#1E1E2E]">
+                            Fidelity
+                          </Badge>
+                          <Badge className="text-xs flex justify-center py-1 bg-[#313244] hover:bg-[#45475A] cursor-pointer">
+                            Depth
+                          </Badge>
+                          <Badge className="text-xs flex justify-center py-1 bg-[#313244] hover:bg-[#45475A] cursor-pointer">
+                            Gates
+                          </Badge>
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                )}
               </div>
             </div>
           </TabsContent>
