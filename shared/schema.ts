@@ -203,6 +203,16 @@ export const insertCICDAnalysisSchema = createInsertSchema(cicdAnalyses).pick({
   branch: true,
   commitSha: true,
   status: true,
+  explainabilityScore: true,
+  explainabilityFactors: true,
+  securityScore: true,
+  securityVulnerabilities: true,
+  governanceScore: true,
+  governanceCompliant: true,
+  humanOversight: true,
+  createdAt: true,
+  completedAt: true,
+  errorMessage: true,
 });
 
 // Types

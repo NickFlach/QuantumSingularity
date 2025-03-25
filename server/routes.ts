@@ -870,27 +870,44 @@ export async function registerRoutes(app: Express): Promise<Server> {
         .then(repos => repos.find(r => r.fullName === `${owner}/${repo}`));
       
       if (!repository) {
+        // Get basic repository information first
+        const repos = await getUserRepositories(req);
+        const repoInfo = repos.find(r => r.full_name === `${owner}/${repo}`);
+        
+        if (!repoInfo) {
+          return res.status(404).json({ message: "Repository not found in user's GitHub account" });
+        }
+        
         repository = await storage.createGitHubRepository({
           userId: user.id,
-          name: repo,
-          fullName: `${owner}/${repo}`,
-          owner: owner,
-          description: analysis.repository.description || "",
-          url: analysis.repository.html_url,
-          createdAt: now
+          githubId: repoInfo.id,
+          name: repoInfo.name,
+          fullName: repoInfo.full_name,
+          description: repoInfo.description || "",
+          htmlUrl: repoInfo.html_url,
+          defaultBranch: repoInfo.default_branch,
+          ownerLogin: repoInfo.owner.login,
+          ownerAvatarUrl: repoInfo.owner.avatar_url,
+          createdAt: now,
+          connectedAt: new Date()
         });
       }
       
       // Then, store the CI/CD analysis
+      // Store explainability factors as JSON
+      const explainabilityFactors = JSON.stringify(analysis.explainability.factors || []);
+      
       const cicdAnalysis = await storage.createCICDAnalysis({
         repositoryId: repository.id,
+        branch: repository.defaultBranch,
+        commitSha: "HEAD", // We should ideally get the actual commit SHA
+        status: "completed",
         explainabilityScore: analysis.explainability.score.toString(),
+        explainabilityFactors,
         securityScore: analysis.security.score.toString(),
+        securityVulnerabilities: analysis.security.vulnerabilities,
         governanceScore: analysis.governance.score.toString(),
-        vulnerabilities: analysis.security.vulnerabilities,
-        findings: JSON.stringify(analysis.findings),
-        recommendations: JSON.stringify(analysis.recommendations),
-        timestamp: now
+        governanceCompliant: analysis.governance.compliant
       });
       
       return res.json({
@@ -926,9 +943,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
         });
       }
       
-      const webhook = await setupRepositoryWebhook(req, owner, repo);
+      // Create webhook URL for this repository
+      const webhookUrl = `${req.protocol}://${req.get('host')}/api/github/webhook/${owner}/${repo}`;
+      const webhook = await setupRepositoryWebhook(req, owner, repo, webhookUrl);
       
-      return res.json(webhook);
+      return res.json({ success: webhook });
     } catch (error) {
       console.error("Error setting up webhook:", error);
       return res.status(500).json({ 
