@@ -194,31 +194,42 @@ DEPLOY_WITH_VERIFICATION();`,
     
     // Set up completion provider
     monacoInstance.languages.registerCompletionItemProvider('singularisPrime', {
-      provideCompletionItems: (model: any, position: any) => {
+      provideCompletionItems: function (model: any, position: any): { suggestions: any[] } {
+        const wordPosition = model.getWordUntilPosition(position);
+        const range = {
+          startLineNumber: position.lineNumber,
+          endLineNumber: position.lineNumber,
+          startColumn: wordPosition.startColumn,
+          endColumn: wordPosition.endColumn
+        };
+        
         const suggestions = [
           {
             label: 'QKD_INIT',
             kind: monacoInstance.languages.CompletionItemKind.Function,
             insertText: 'QKD_INIT("${1:key_id}", "${2:participant1}", "${3:participant2}");',
             insertTextRules: monacoInstance.languages.CompletionItemInsertTextRule.InsertAsSnippet,
-            documentation: 'Initialize Quantum Key Distribution'
+            documentation: 'Initialize Quantum Key Distribution',
+            range: range
           },
           {
             label: 'AI_CONTRACT',
             kind: monacoInstance.languages.CompletionItemKind.Function,
             insertText: 'AI_CONTRACT("${1:name}", ${2:explainability_threshold}, ${3:quantum_key}) {\n\texplainability: ${4:HIGH},\n\tauditTrail: ${5:ENABLED},\n\thumanFallback: ${6:TRUE}\n}',
             insertTextRules: monacoInstance.languages.CompletionItemInsertTextRule.InsertAsSnippet,
-            documentation: 'Define an AI Contract with governance parameters'
+            documentation: 'Define an AI Contract with governance parameters',
+            range: range
           },
           {
             label: 'QUANTUM_GEOMETRY',
             kind: monacoInstance.languages.CompletionItemKind.Function,
             insertText: 'QUANTUM_GEOMETRY {\n\tdimension: ${1:3},\n\tmetric: "${2:minkowski}",\n\tenergyDensity: ${3:0.75}\n}',
             insertTextRules: monacoInstance.languages.CompletionItemInsertTextRule.InsertAsSnippet,
-            documentation: 'Define a quantum geometric space for computation'
+            documentation: 'Define a quantum geometric space for computation',
+            range: range
           }
         ];
-        return { suggestions };
+        return { suggestions: suggestions };
       }
     });
   };
@@ -726,7 +737,18 @@ DEPLOY_WITH_VERIFICATION();`,
                   </TabsContent>
                   
                   <TabsContent value="quantum" className="flex-grow p-0">
-                    <QuantumOperationsPanel />
+                    <QuantumOperationsPanel 
+                      onOperationComplete={(result) => {
+                        toast({
+                          title: "Operation Complete",
+                          description: "Quantum operation executed successfully"
+                        });
+                      }}
+                      onSpaceCreated={(space) => {
+                        setQuantumSpaces([...quantumSpaces, space]);
+                        setSelectedSpace(space.id);
+                      }}
+                    />
                   </TabsContent>
                 </Tabs>
               </div>
@@ -744,7 +766,7 @@ DEPLOY_WITH_VERIFICATION();`,
                 height="calc(100vh - 9rem)"
                 defaultLanguage="javascript"
                 value={getActiveFileContent()}
-                onChange={updateFileContent}
+                onChange={(value) => value !== undefined && updateFileContent(value)}
                 theme={editorTheme}
                 onMount={handleEditorDidMount}
                 options={{

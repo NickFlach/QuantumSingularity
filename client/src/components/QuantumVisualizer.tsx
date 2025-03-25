@@ -6,7 +6,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { motion } from "framer-motion";
 import { Separator } from "@/components/ui/separator";
 import { Button } from "@/components/ui/button";
-import { Cube3D as Cube, Cube as CubeIcon, Atom as AtomIcon, Box, GitMerge, RotateCw, ArrowDownUp, Wave as Waves } from "lucide-react";
+import { Box, GitMerge, RotateCw, ArrowDownUp, Waves, Atom } from "lucide-react";
 
 export interface QuantumVisualizerProps {
   spaces: any[];
@@ -155,7 +155,7 @@ export function QuantumVisualizer({
                       >
                         <div className="flex items-center">
                           <div className="flex-shrink-0 h-6 w-6 rounded-full bg-indigo-500/20 flex items-center justify-center mr-2">
-                            <AtomIcon className="h-3.5 w-3.5 text-indigo-400" />
+                            <Atom className="h-3.5 w-3.5 text-indigo-400" />
                           </div>
                           <div>
                             <div className="text-xs font-medium">{state.id || `State ${index + 1}`}</div>
