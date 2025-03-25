@@ -247,11 +247,16 @@ CODE TO EVALUATE:
 ${code}
 `;
 
-    const result = await provider.generateJson<{
+    type ExplainabilityResult = {
       score: number,
       analysis: string,
-      improvements: string[]
-    }>(prompt, {
+      improvements: string[],
+      explainability_score?: number,
+      suggestedImprovements?: string[],
+      suggestions_for_improvement?: Record<string, string> | string[]
+    };
+    
+    const result = await provider.generateJson<ExplainabilityResult>(prompt, {
       systemPrompt: "You are an AI explainability assessment system for the SINGULARIS PRIME language. Respond with valid JSON only."
     });
     
@@ -271,7 +276,11 @@ ${code}
     } else if (result.suggestions_for_improvement) {
       // Handle object format
       if (typeof result.suggestions_for_improvement === 'object') {
-        improvements = Object.values(result.suggestions_for_improvement);
+        if (Array.isArray(result.suggestions_for_improvement)) {
+          improvements = result.suggestions_for_improvement;
+        } else {
+          improvements = Object.values(result.suggestions_for_improvement);
+        }
       }
     }
     

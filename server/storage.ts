@@ -360,7 +360,7 @@ export class MemStorage implements IStorage {
       id,
       repositoryId: analysis.repositoryId === undefined ? null : analysis.repositoryId,
       status: analysis.status,
-      branchName: analysis.branchName,
+      branch: analysis.branch,
       commitSha: analysis.commitSha,
       explainabilityScore: null,
       explainabilityFactors: [],
