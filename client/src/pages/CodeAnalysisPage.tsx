@@ -10,8 +10,8 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { useToast } from '@/hooks/use-toast';
 import { CodeAnalysisVisualizer } from '@/components/CodeAnalysisVisualizer';
-import { Brain, Code, FileText } from 'lucide-react';
-import { exampleAIProtocolsCode, exampleQuantumOpsCode } from '@/data/exampleCode';
+import { Brain, Code, FileText, Globe } from 'lucide-react';
+import { exampleAIProtocolsCode, exampleQuantumOpsCode, exampleGeometryCode } from '@/data/exampleCode';
 
 export default function CodeAnalysisPage() {
   const [code, setCode] = useState<string>(exampleAIProtocolsCode);
@@ -31,16 +31,23 @@ export default function CodeAnalysisPage() {
     } else if (example === "quantum-ops") {
       setCode(exampleQuantumOpsCode);
       setActiveTab("quantum-ops");
+    } else if (example === "quantum-geometry") {
+      setCode(exampleGeometryCode);
+      setActiveTab("quantum-geometry");
     }
+    
+    let description = "AI Protocols";
+    if (example === "quantum-ops") description = "Quantum Operations";
+    if (example === "quantum-geometry") description = "Quantum Geometry";
     
     toast({
       title: "Example Loaded",
-      description: `${example === "ai-protocols" ? "AI Protocols" : "Quantum Operations"} example loaded successfully.`,
+      description: `${description} example loaded successfully.`,
     });
   };
   
   return (
-    <div className="container mx-auto py-6 h-[calc(100vh-7rem)]">
+    <div className="container mx-auto py-6">
       <div className="mb-6">
         <h1 className="text-3xl font-bold flex items-center gap-2">
           <Brain className="h-7 w-7 text-purple-500" />
@@ -62,7 +69,7 @@ export default function CodeAnalysisPage() {
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <div className="flex gap-4">
+          <div className="flex flex-wrap gap-4">
             <Button 
               variant={activeTab === "ai-protocols" ? "default" : "outline"}
               onClick={() => loadExample("ai-protocols")}
@@ -77,11 +84,21 @@ export default function CodeAnalysisPage() {
               <Code className="h-4 w-4 mr-2" />
               Quantum Operations Example
             </Button>
+            <Button 
+              variant={activeTab === "quantum-geometry" ? "default" : "outline"}
+              onClick={() => loadExample("quantum-geometry")}
+            >
+              <Globe className="h-4 w-4 mr-2" />
+              Quantum Geometry Example
+            </Button>
           </div>
         </CardContent>
       </Card>
       
-      <ResizablePanelGroup direction="horizontal" className="h-[calc(100vh-18rem)] border rounded-lg overflow-hidden">
+      <ResizablePanelGroup 
+        direction="horizontal" 
+        className="min-h-[600px] h-[calc(100vh-18rem)] border rounded-lg"
+      >
         <ResizablePanel defaultSize={50} minSize={30}>
           <div className="h-full flex flex-col">
             <div className="border-b p-4 bg-muted/30">
@@ -101,7 +118,7 @@ export default function CodeAnalysisPage() {
                   minimap: { enabled: false },
                   fontSize: 14,
                   wordWrap: 'on',
-                  scrollBeyondLastLine: false,
+                  scrollBeyondLastLine: true,
                   lineNumbers: 'on',
                   glyphMargin: true,
                   folding: true,

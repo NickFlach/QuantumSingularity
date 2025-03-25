@@ -176,7 +176,7 @@ export function CodeAnalysisVisualizer({ code, onBack }: CodeAnalysisVisualizerP
   };
 
   return (
-    <Card className="w-full h-full flex flex-col overflow-hidden">
+    <Card className="w-full h-full flex flex-col">
       <CardHeader className="pb-2">
         <div className="flex justify-between items-center">
           <CardTitle className="text-xl">SINGULARIS PRIME Code Analysis</CardTitle>
@@ -214,8 +214,8 @@ export function CodeAnalysisVisualizer({ code, onBack }: CodeAnalysisVisualizerP
             </div>
           </div>
         ) : (
-          <>
-            <TabsContent value="analysis" className="flex-1 overflow-auto p-6">
+          <div className="flex-1 overflow-y-auto">
+            <TabsContent value="analysis" className="p-6">
               {analysis ? formatAnalysis(analysis) : (
                 <div className="text-center text-muted-foreground p-6">
                   No analysis available. Please run analysis first.
@@ -223,7 +223,7 @@ export function CodeAnalysisVisualizer({ code, onBack }: CodeAnalysisVisualizerP
               )}
             </TabsContent>
             
-            <TabsContent value="explainability" className="flex-1 overflow-auto p-6">
+            <TabsContent value="explainability" className="p-6">
               {explainabilityScore !== null ? (
                 <div className="space-y-6">
                   <div className="flex flex-col items-center">
@@ -302,7 +302,7 @@ export function CodeAnalysisVisualizer({ code, onBack }: CodeAnalysisVisualizerP
               )}
             </TabsContent>
             
-            <TabsContent value="improvements" className="flex-1 overflow-auto p-6">
+            <TabsContent value="improvements" className="p-6">
               {improvementSuggestions.length > 0 ? (
                 <div className="space-y-4">
                   <h3 className="font-semibold">Suggestions to Improve Explainability</h3>
@@ -323,7 +323,7 @@ export function CodeAnalysisVisualizer({ code, onBack }: CodeAnalysisVisualizerP
                 </div>
               )}
             </TabsContent>
-          </>
+          </div>
         )}
       </Tabs>
       
