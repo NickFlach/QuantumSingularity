@@ -34,6 +34,11 @@ interface ExplainabilityResult {
   score: number;
   analysis: string;
   improvements: string[];
+  factors?: {
+    factor: string;
+    impact: string;
+    details: string;
+  }[];
 }
 
 export function CodeAnalysisVisualizer({ code, onBack }: CodeAnalysisVisualizerProps) {
@@ -42,6 +47,7 @@ export function CodeAnalysisVisualizer({ code, onBack }: CodeAnalysisVisualizerP
   const [explainabilityScore, setExplainabilityScore] = useState<number | null>(null);
   const [explainabilityAnalysis, setExplainabilityAnalysis] = useState<string>('');
   const [improvementSuggestions, setImprovementSuggestions] = useState<string[]>([]);
+  const [explainabilityFactors, setExplainabilityFactors] = useState<{factor: string; impact: string; details: string}[]>([]);
   const [activeTab, setActiveTab] = useState<string>('analysis');
   const { toast } = useToast();
 
@@ -65,6 +71,11 @@ export function CodeAnalysisVisualizer({ code, onBack }: CodeAnalysisVisualizerP
       setExplainabilityScore(explainabilityResult.score);
       setExplainabilityAnalysis(explainabilityResult.analysis);
       setImprovementSuggestions(explainabilityResult.improvements);
+      
+      // Set factors if they exist
+      if (explainabilityResult.factors) {
+        setExplainabilityFactors(explainabilityResult.factors);
+      }
       
       toast({
         title: "Analysis Complete",
@@ -261,6 +272,28 @@ export function CodeAnalysisVisualizer({ code, onBack }: CodeAnalysisVisualizerP
                     {renderCategoryBadge("Human Oversight", explainabilityScore)}
                     {renderCategoryBadge("Interplanetary Comms", explainabilityScore)}
                   </div>
+                  
+                  {explainabilityFactors.length > 0 && (
+                    <>
+                      <Separator className="my-4" />
+                      <div>
+                        <h3 className="font-semibold mb-3">Factors Affecting Explainability</h3>
+                        <div className="space-y-4">
+                          {explainabilityFactors.map((factor, index) => (
+                            <div key={index} className="border rounded-md p-4">
+                              <div className="flex items-center gap-2 mb-2">
+                                <span className="font-medium">{factor.factor}</span>
+                                <Badge className={factor.impact === 'positive' ? 'bg-green-500' : factor.impact === 'negative' ? 'bg-red-500' : 'bg-blue-500'}>
+                                  {factor.impact.charAt(0).toUpperCase() + factor.impact.slice(1)}
+                                </Badge>
+                              </div>
+                              <p className="text-sm">{factor.details}</p>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    </>
+                  )}
                 </div>
               ) : (
                 <div className="text-center text-muted-foreground p-6">
