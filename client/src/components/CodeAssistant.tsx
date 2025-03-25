@@ -1,524 +1,533 @@
-import React, { useState } from 'react';
-import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
-import { Input } from '@/components/ui/input';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Textarea } from '@/components/ui/textarea';
-import { useToast } from '@/hooks/use-toast';
-import { apiRequest } from '@/lib/queryClient';
-import { Sparkles, Code, MessageSquare, Send, Wand, Zap, Lightbulb, Eye, Scissors } from 'lucide-react';
-import { Badge } from '@/components/ui/badge';
+import { useState, useEffect } from "react";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import { Separator } from "@/components/ui/separator";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Badge } from "@/components/ui/badge";
+import { motion } from "framer-motion";
+import { useToast } from "@/hooks/use-toast";
+import { apiRequest } from "@/lib/queryClient";
+import { 
+  Lightbulb, 
+  Code, 
+  Bot, 
+  MessageSquare, 
+  Loader2, 
+  CornerDownRight,
+  BrainCircuit,
+  Sparkles,
+  Send,
+  ArrowRight,
+  Puzzle,
+  HelpCircle,
+  Terminal,
+  Search,
+  GitMerge
+} from "lucide-react";
 
-interface CodeAssistantProps {
-  currentCode: string;
-  onInsertCode: (code: string) => void;
-}
-
-interface SuggestionResponse {
+export interface CodeAssistantProps {
   code: string;
-  explanation: string;
+  onCodeSuggestion: (suggestion: string) => void;
 }
 
-interface CodeAnalysisResponse {
-  score: number;
-  issues: {
-    type: 'error' | 'warning' | 'info';
-    message: string;
-    line?: number;
-  }[];
-  suggestions: string[];
-}
-
-export function CodeAssistant({ currentCode, onInsertCode }: CodeAssistantProps) {
-  const [activeTab, setActiveTab] = useState("chat");
-  const [prompt, setPrompt] = useState("");
-  const [chatHistory, setChatHistory] = useState<{ role: 'user' | 'assistant', content: string }[]>([]);
-  const [isLoading, setIsLoading] = useState(false);
-  const [codeDescription, setCodeDescription] = useState("");
-  const [generatedCode, setGeneratedCode] = useState("");
-  const [optimization, setOptimization] = useState<'performance' | 'security' | 'explainability'>('performance');
-  const [explanation, setExplanation] = useState("");
-  const [codeAnalysis, setCodeAnalysis] = useState<CodeAnalysisResponse | null>(null);
-  const [suggestions, setSuggestions] = useState<SuggestionResponse[]>([]);
+export function CodeAssistant({ code, onCodeSuggestion }: CodeAssistantProps) {
+  const [selectedTab, setSelectedTab] = useState<string>("suggestions");
+  const [chatHistory, setChatHistory] = useState<{ role: 'user' | 'assistant', content: string }[]>([
+    { 
+      role: 'assistant', 
+      content: 'Hello! I\'m the SINGULARIS PRIME AI Assistant. I can help you with quantum programming, AI governance contracts, and paradox resolution. How can I assist you today?' 
+    }
+  ]);
+  const [inputMessage, setInputMessage] = useState<string>('');
+  const [isLoading, setIsLoading] = useState<boolean>(false);
+  const [suggestions, setSuggestions] = useState<string[]>([]);
+  const [explanations, setExplanations] = useState<{ section: string, explanation: string }[]>([]);
+  const [analyzing, setAnalyzing] = useState<boolean>(false);
   
   const { toast } = useToast();
 
-  // Chat with the assistant
-  const handleChat = async () => {
-    if (!prompt.trim()) return;
+  // Preloaded suggestions based on common quantum operations
+  const preloadedSuggestions = [
+    {
+      title: "Create Quantum Entanglement",
+      code: `QKD_INIT("secure_key", "alice", "bob");
+
+// Create Bell pair entanglement
+QUANTUM_OPERATION {
+  type: "entanglement",
+  target: "qubits[0:1]",
+  fidelity: 0.99
+}`
+    },
+    {
+      title: "Define AI Governance Contract",
+      code: `AI_CONTRACT("governance_contract", 0.95, secureKey) {
+  explainability: HIGH,
+  auditTrail: ENABLED,
+  humanFallback: TRUE,
+  quantumVerification: ENABLED
+}`
+    },
+    {
+      title: "Create Quantum Geometric Space",
+      code: `QUANTUM_GEOMETRY {
+  dimension: 4,
+  metric: "minkowski",
+  energyDensity: 0.85,
+  topologicalProperties: ["connected", "orientable"]
+}`
+    },
+    {
+      title: "Configure AI-to-AI Negotiation",
+      code: `DEFINE_AI_ENTITY("agent_alpha", {
+  trustLevel: 0.92,
+  expertise: ["resource_optimization", "risk_assessment"]
+});
+
+DEFINE_AI_ENTITY("agent_beta", {
+  trustLevel: 0.88,
+  expertise: ["verification", "transparency"]
+});
+
+AI_NEGOTIATE(agent_alpha, agent_beta, {
+  objectives: ["optimal_resource_allocation", "safety_compliance"],
+  constraints: ["explainability > 0.85"]
+});`
+    }
+  ];
+
+  // Load suggestions when code changes
+  useEffect(() => {
+    if (code && code.trim() !== '') {
+      analyzeCode();
+    }
+  }, [code]);
+
+  const analyzeCode = async () => {
+    if (!code || code.trim() === '') return;
     
+    setAnalyzing(true);
     try {
-      setIsLoading(true);
-      const newHistory = [...chatHistory, { role: 'user' as const, content: prompt }];
-      setChatHistory(newHistory);
+      // Simulate API call to analyze code - in a real implementation, this would call the backend
+      // const response = await apiRequest("POST", "/api/ai/assistant/analyze", { code });
       
-      const response = await apiRequest<{ response: string }>(
-        'POST',
-        '/api/ai/assistant/chat',
-        {
-          prompt,
-          context: currentCode,
-          history: chatHistory
-        }
-      );
+      // Instead of an actual API call, we'll generate some fake suggestions based on the code content
+      const generatedSuggestions = [];
+      const generatedExplanations = [];
       
-      setChatHistory([...newHistory, { role: 'assistant' as const, content: response.response }]);
-      setPrompt("");
+      if (code.includes('QKD_INIT')) {
+        generatedSuggestions.push(
+          `// Add quantum key verification\nVERIFY_QKD("${code.match(/QKD_INIT\("([^"]+)"/) ? code.match(/QKD_INIT\("([^"]+)"/)![1] : 'key_name'}");\n`
+        );
+        
+        generatedExplanations.push({
+          section: "Quantum Key Distribution",
+          explanation: "Creates a secure quantum key between two parties using quantum entanglement. The key is resistant to eavesdropping due to the quantum no-cloning theorem."
+        });
+      }
+      
+      if (code.includes('AI_CONTRACT')) {
+        generatedSuggestions.push(
+          `// Add audit monitoring\nMONITOR_AUDIT_TRAIL(${code.match(/AI_CONTRACT\("([^"]+)"/) ? code.match(/AI_CONTRACT\("([^"]+)"/)![1] : 'contract_name'}, { frequency: "real-time" });\n`
+        );
+        
+        generatedExplanations.push({
+          section: "AI Governance Contract",
+          explanation: "Defines formal governance parameters for AI operations, ensuring transparency, explainability, and human oversight throughout the AI execution lifecycle."
+        });
+      }
+      
+      if (code.includes('QUANTUM_GEOMETRY')) {
+        generatedSuggestions.push(
+          `// Compute topological invariants\nCOMPUTE_INVARIANTS({ spaceDimension: ${code.includes('dimension') ? code.match(/dimension:\s*(\d+)/)![1] : '3'} });\n`
+        );
+        
+        generatedExplanations.push({
+          section: "Quantum Geometric Space",
+          explanation: "Defines a geometric framework for quantum computation based on topological properties, enabling more robust quantum operations through geometric phase manipulation."
+        });
+      }
+      
+      if (code.includes('AI_NEGOTIATE')) {
+        generatedSuggestions.push(
+          `// Verify negotiation outcomes\nVERIFY_NEGOTIATION_RESULT({ explainabilityThreshold: 0.9 });\n`
+        );
+        
+        generatedExplanations.push({
+          section: "AI-to-AI Negotiation",
+          explanation: "Facilitates structured negotiation between AI agents with different expertise areas, ensuring they reach consensus while maintaining governance constraints."
+        });
+      }
+      
+      // If we have no specific suggestions, offer a general one
+      if (generatedSuggestions.length === 0) {
+        generatedSuggestions.push(
+          `// Add error handling\nTRY_QUANTUM_OPERATION({\n  onError: (e) => REPORT_QUANTUM_ERROR(e)\n});\n`
+        );
+      }
+      
+      setSuggestions(generatedSuggestions);
+      setExplanations(generatedExplanations);
+      
     } catch (error) {
-      console.error('Chat error:', error);
       toast({
-        title: "Chat Error",
-        description: "Failed to get a response from the assistant.",
-        variant: "destructive"
+        title: "Analysis Failed",
+        description: error instanceof Error ? error.message : "Failed to analyze code",
+        variant: "destructive",
       });
     } finally {
-      setIsLoading(false);
+      setAnalyzing(false);
     }
   };
 
-  // Generate code from description
-  const handleGenerateCode = async () => {
-    if (!codeDescription.trim()) return;
+  const sendChatMessage = async () => {
+    if (!inputMessage.trim()) return;
+    
+    const userMessage = { role: 'user' as const, content: inputMessage };
+    setChatHistory([...chatHistory, userMessage]);
+    setInputMessage('');
+    setIsLoading(true);
     
     try {
-      setIsLoading(true);
-      const response = await apiRequest<{ code: string }>(
-        'POST',
-        '/api/ai/assistant/generate',
-        {
-          description: codeDescription
-        }
-      );
+      // In a real implementation, we would call the backend
+      // const response = await apiRequest("POST", "/api/ai/assistant/chat", { 
+      //   message: userMessage.content,
+      //   context: code
+      // });
       
-      setGeneratedCode(response.code);
+      // Simulated response - generate a response based on the query
+      setTimeout(() => {
+        let assistantResponse = '';
+        
+        if (userMessage.content.toLowerCase().includes('quantum')) {
+          assistantResponse = "Quantum operations in SINGULARIS PRIME leverage geometric transformations to provide more stable qubit operations. You can use functions like QUANTUM_OPERATION and QUANTUM_GEOMETRY to define your quantum computation spaces.";
+        } else if (userMessage.content.toLowerCase().includes('ai') || userMessage.content.toLowerCase().includes('governance')) {
+          assistantResponse = "AI Governance in SINGULARIS PRIME is managed through formal contracts that specify explainability requirements, human oversight parameters, and audit mechanisms. The AI_CONTRACT directive is the primary way to implement these constraints.";
+        } else if (userMessage.content.toLowerCase().includes('entangle')) {
+          assistantResponse = "Entanglement is a core quantum phenomenon that SINGULARIS PRIME makes accessible through high-level abstractions. You can create entangled qubits using the QUANTUM_OPERATION directive with type: 'entanglement'.";
+        } else if (userMessage.content.toLowerCase().includes('help') || userMessage.content.toLowerCase().includes('example')) {
+          assistantResponse = "Here's a simple example of how to create a quantum circuit with error correction:\n\n```\nQUANTUM_OPERATION {\n  type: \"circuit\",\n  gates: [\"H\", \"CNOT\", \"T\"],\n  errorCorrection: true,\n  fidelity: 0.99\n}\n```";
+        } else {
+          assistantResponse = "I'm here to help with your SINGULARIS PRIME programming questions. I can explain quantum operations, AI governance contracts, or provide code examples. What specific aspect would you like to explore further?";
+        }
+        
+        setChatHistory(current => [...current, { role: 'assistant', content: assistantResponse }]);
+        setIsLoading(false);
+      }, 1000);
+      
     } catch (error) {
-      console.error('Code generation error:', error);
       toast({
-        title: "Generation Error",
-        description: "Failed to generate code from description.",
-        variant: "destructive"
+        title: "Chat Failed",
+        description: error instanceof Error ? error.message : "Failed to get assistant response",
+        variant: "destructive",
       });
-    } finally {
       setIsLoading(false);
     }
   };
-
-  // Explain code
-  const handleExplainCode = async () => {
-    if (!currentCode.trim()) {
-      toast({
-        title: "No Code",
-        description: "There is no code to explain.",
-        variant: "destructive"
-      });
-      return;
-    }
-    
-    try {
-      setIsLoading(true);
-      const response = await apiRequest<{ explanation: string }>(
-        'POST',
-        '/api/ai/assistant/explain',
-        {
-          code: currentCode
-        }
-      );
-      
-      setExplanation(response.explanation);
-    } catch (error) {
-      console.error('Explain error:', error);
-      toast({
-        title: "Explanation Error",
-        description: "Failed to explain the code.",
-        variant: "destructive"
-      });
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  // Analyze code
-  const handleAnalyzeCode = async () => {
-    if (!currentCode.trim()) {
-      toast({
-        title: "No Code",
-        description: "There is no code to analyze.",
-        variant: "destructive"
-      });
-      return;
-    }
-    
-    try {
-      setIsLoading(true);
-      const response = await apiRequest<{ analysis: CodeAnalysisResponse }>(
-        'POST',
-        '/api/ai/assistant/analyze',
-        {
-          code: currentCode
-        }
-      );
-      
-      setCodeAnalysis(response.analysis);
-    } catch (error) {
-      console.error('Analysis error:', error);
-      toast({
-        title: "Analysis Error",
-        description: "Failed to analyze the code.",
-        variant: "destructive"
-      });
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  // Get code suggestions
-  const handleGetSuggestions = async () => {
-    try {
-      setIsLoading(true);
-      const response = await apiRequest<{ suggestions: SuggestionResponse[] }>(
-        'POST',
-        '/api/ai/assistant/suggest',
-        {
-          context: currentCode
-        }
-      );
-      
-      setSuggestions(response.suggestions);
-    } catch (error) {
-      console.error('Suggestions error:', error);
-      toast({
-        title: "Suggestions Error",
-        description: "Failed to get code suggestions.",
-        variant: "destructive"
-      });
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  // Optimize code
-  const handleOptimizeCode = async () => {
-    if (!currentCode.trim()) {
-      toast({
-        title: "No Code",
-        description: "There is no code to optimize.",
-        variant: "destructive"
-      });
-      return;
-    }
-    
-    try {
-      setIsLoading(true);
-      const response = await apiRequest<{ optimizedCode: string }>(
-        'POST',
-        '/api/ai/assistant/optimize',
-        {
-          code: currentCode,
-          focus: optimization
-        }
-      );
-      
-      setGeneratedCode(response.optimizedCode);
-      setActiveTab("generate"); // Switch to generate tab to show the optimized code
-    } catch (error) {
-      console.error('Optimization error:', error);
-      toast({
-        title: "Optimization Error",
-        description: "Failed to optimize the code.",
-        variant: "destructive"
-      });
-    } finally {
-      setIsLoading(false);
-    }
+  
+  const handleSuggestionClick = (code: string) => {
+    onCodeSuggestion(code);
+    toast({
+      title: "Code Suggestion Applied",
+      description: "The suggestion has been added to your code"
+    });
   };
 
   return (
-    <Card className="w-full">
-      <CardHeader>
-        <CardTitle className="flex items-center gap-2">
-          <Sparkles className="h-5 w-5" />
-          <span>SINGULARIS PRIME Code Assistant</span>
-        </CardTitle>
-        <CardDescription>
-          AI-powered assistance for writing and understanding SINGULARIS PRIME code
-        </CardDescription>
-      </CardHeader>
-      <CardContent>
-        <Tabs value={activeTab} onValueChange={setActiveTab}>
-          <TabsList className="grid grid-cols-5 mb-4">
-            <TabsTrigger value="chat">
-              <MessageSquare className="h-4 w-4 mr-2" />
-              Chat
+    <ScrollArea className="h-[calc(100vh-11rem)]">
+      <div className="p-4 space-y-4">
+        <Tabs value={selectedTab} onValueChange={setSelectedTab}>
+          <TabsList className="w-full grid grid-cols-3">
+            <TabsTrigger value="suggestions" className="text-xs">
+              <Lightbulb className="h-3.5 w-3.5 mr-1.5" />
+              Suggestions
             </TabsTrigger>
-            <TabsTrigger value="generate">
-              <Wand className="h-4 w-4 mr-2" />
-              Generate
+            <TabsTrigger value="chat" className="text-xs">
+              <MessageSquare className="h-3.5 w-3.5 mr-1.5" />
+              AI Chat
             </TabsTrigger>
-            <TabsTrigger value="analyze">
-              <Eye className="h-4 w-4 mr-2" />
-              Analyze
-            </TabsTrigger>
-            <TabsTrigger value="explain">
-              <Lightbulb className="h-4 w-4 mr-2" />
+            <TabsTrigger value="explain" className="text-xs">
+              <HelpCircle className="h-3.5 w-3.5 mr-1.5" />
               Explain
-            </TabsTrigger>
-            <TabsTrigger value="optimize">
-              <Scissors className="h-4 w-4 mr-2" />
-              Optimize
             </TabsTrigger>
           </TabsList>
           
-          {/* Chat Tab */}
-          <TabsContent value="chat" className="space-y-4">
-            <div className="max-h-[300px] overflow-y-auto border rounded-md p-4 mb-4">
-              {chatHistory.length === 0 ? (
-                <div className="text-center text-muted-foreground py-8">
-                  <MessageSquare className="h-8 w-8 mx-auto mb-2 opacity-50" />
-                  <p>Chat with the SINGULARIS PRIME assistant about quantum computing, AI governance, or code help.</p>
+          <TabsContent value="suggestions" className="mt-4 space-y-4">
+            <div className="space-y-3">
+              {/* Code-specific suggestions */}
+              <div className="space-y-1">
+                <div className="flex items-center justify-between">
+                  <div className="text-sm font-medium flex items-center">
+                    <BrainCircuit className="h-4 w-4 mr-1.5 text-indigo-400" />
+                    Code Suggestions
+                  </div>
+                  {analyzing ? (
+                    <Badge variant="outline" className="text-xs flex items-center">
+                      <Loader2 className="h-3 w-3 mr-1 animate-spin" />
+                      Analyzing
+                    </Badge>
+                  ) : (
+                    <Button 
+                      variant="ghost" 
+                      size="sm" 
+                      className="h-7 text-xs"
+                      onClick={analyzeCode}
+                    >
+                      <Search className="h-3.5 w-3.5 mr-1" />
+                      Analyze
+                    </Button>
+                  )}
                 </div>
-              ) : (
-                <div className="space-y-4">
-                  {chatHistory.map((msg, i) => (
-                    <div key={i} className={`flex ${msg.role === 'assistant' ? 'justify-start' : 'justify-end'}`}>
-                      <div className={`max-w-[80%] px-4 py-2 rounded-lg ${
-                        msg.role === 'assistant' 
-                          ? 'bg-secondary text-secondary-foreground' 
-                          : 'bg-primary text-primary-foreground'
-                      }`}>
-                        <p className="whitespace-pre-wrap">{msg.content}</p>
+                
+                {suggestions.length > 0 ? (
+                  <div className="space-y-2">
+                    {suggestions.map((suggestion, index) => (
+                      <Card key={index} className="overflow-hidden border-slate-800 bg-slate-900">
+                        <CardContent className="p-3">
+                          <div className="bg-slate-950 rounded p-2 font-mono text-xs overflow-x-auto mb-2">
+                            <pre className="whitespace-pre-wrap">{suggestion}</pre>
+                          </div>
+                          <div className="flex justify-end">
+                            <Button 
+                              variant="ghost" 
+                              size="sm"
+                              className="h-7 text-xs"
+                              onClick={() => handleSuggestionClick(suggestion)}
+                            >
+                              <ArrowRight className="h-3 w-3 mr-1.5" />
+                              Apply
+                            </Button>
+                          </div>
+                        </CardContent>
+                      </Card>
+                    ))}
+                  </div>
+                ) : analyzing ? (
+                  <div className="bg-slate-900 rounded-md p-4 text-center">
+                    <motion.div
+                      animate={{ opacity: [0.5, 1, 0.5] }}
+                      transition={{ duration: 1.5, repeat: Infinity }}
+                    >
+                      <p className="text-sm text-muted-foreground">Analyzing your code...</p>
+                    </motion.div>
+                  </div>
+                ) : (
+                  <div className="bg-slate-900 rounded-md p-4 text-center">
+                    <p className="text-sm text-muted-foreground">No specific suggestions for your current code.</p>
+                  </div>
+                )}
+              </div>
+              
+              {/* Quantum templates */}
+              <div className="space-y-1">
+                <div className="text-sm font-medium flex items-center">
+                  <Sparkles className="h-4 w-4 mr-1.5 text-purple-400" />
+                  Template Snippets
+                </div>
+                
+                <div className="grid grid-cols-1 gap-2">
+                  {preloadedSuggestions.map((suggestion, index) => (
+                    <Card key={index} className="overflow-hidden border-slate-800 bg-slate-900">
+                      <CardHeader className="py-2 px-3">
+                        <CardTitle className="text-xs flex items-center">
+                          <Puzzle className="h-3.5 w-3.5 mr-1.5 text-indigo-400" />
+                          {suggestion.title}
+                        </CardTitle>
+                      </CardHeader>
+                      <CardContent className="p-3 pt-0">
+                        <div className="bg-slate-950 rounded p-2 font-mono text-xs overflow-x-auto max-h-24 scrollbar-thin">
+                          <pre className="whitespace-pre-wrap">{suggestion.code}</pre>
+                        </div>
+                        <div className="flex justify-end mt-2">
+                          <Button 
+                            variant="ghost" 
+                            size="sm"
+                            className="h-7 text-xs"
+                            onClick={() => handleSuggestionClick(suggestion.code)}
+                          >
+                            <ArrowRight className="h-3 w-3 mr-1.5" />
+                            Insert
+                          </Button>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  ))}
+                </div>
+              </div>
+            </div>
+          </TabsContent>
+          
+          <TabsContent value="chat" className="mt-4">
+            <Card className="border-slate-800 bg-slate-900">
+              <CardHeader className="p-3 pb-0">
+                <CardTitle className="text-sm flex items-center">
+                  <Bot className="h-4 w-4 mr-1.5 text-indigo-400" />
+                  SINGULARIS PRIME Assistant
+                </CardTitle>
+                <CardDescription className="text-xs">
+                  Ask questions about quantum programming and AI governance
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="p-3">
+                <div className="bg-slate-950 rounded-md p-3 h-[calc(100vh-22rem)] flex flex-col">
+                  <div className="flex-grow overflow-y-auto space-y-3 mb-3">
+                    {chatHistory.map((message, index) => (
+                      <div 
+                        key={index} 
+                        className={`flex ${message.role === 'user' ? 'justify-end' : 'justify-start'}`}
+                      >
+                        <div 
+                          className={`max-w-[85%] rounded-lg px-3 py-2 ${
+                            message.role === 'user' 
+                              ? 'bg-indigo-700/70 text-white' 
+                              : 'bg-slate-800 text-slate-100'
+                          }`}
+                        >
+                          {message.role === 'assistant' && (
+                            <div className="flex items-center text-xs text-indigo-300 mb-1">
+                              <Bot className="h-3 w-3 mr-1" />
+                              SINGULARIS Assistant
+                            </div>
+                          )}
+                          <div className="text-xs whitespace-pre-wrap">{message.content}</div>
+                        </div>
+                      </div>
+                    ))}
+                    
+                    {isLoading && (
+                      <div className="flex justify-start">
+                        <div className="bg-slate-800 rounded-lg px-3 py-2 text-slate-100 max-w-[85%]">
+                          <div className="flex items-center text-xs text-indigo-300 mb-1">
+                            <Bot className="h-3 w-3 mr-1" />
+                            SINGULARIS Assistant
+                          </div>
+                          <div className="text-xs flex items-center">
+                            <motion.div
+                              animate={{ opacity: [0.4, 1, 0.4] }}
+                              transition={{ duration: 1.5, repeat: Infinity }}
+                              className="flex items-center"
+                            >
+                              <span className="mr-2">Thinking</span>
+                              <span className="flex space-x-1">
+                                <span className="w-1 h-1 bg-indigo-400 rounded-full inline-block"></span>
+                                <span className="w-1 h-1 bg-indigo-400 rounded-full inline-block"></span>
+                                <span className="w-1 h-1 bg-indigo-400 rounded-full inline-block"></span>
+                              </span>
+                            </motion.div>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                  
+                  <div className="flex items-center space-x-2">
+                    <input
+                      type="text"
+                      value={inputMessage}
+                      onChange={(e) => setInputMessage(e.target.value)}
+                      onKeyDown={(e) => e.key === 'Enter' && sendChatMessage()}
+                      placeholder="Ask about quantum programming..."
+                      className="flex-grow bg-slate-800 border-slate-700 rounded text-xs py-2 px-3 focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500"
+                    />
+                    <Button 
+                      size="sm" 
+                      className="h-8 w-8 p-0"
+                      onClick={sendChatMessage}
+                      disabled={isLoading}
+                    >
+                      {isLoading ? (
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                      ) : (
+                        <Send className="h-4 w-4" />
+                      )}
+                    </Button>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          </TabsContent>
+          
+          <TabsContent value="explain" className="mt-4">
+            <Card className="border-slate-800 bg-slate-900">
+              <CardHeader className="p-3 pb-2">
+                <CardTitle className="text-sm flex items-center">
+                  <Terminal className="h-4 w-4 mr-1.5 text-indigo-400" />
+                  Code Explanation
+                </CardTitle>
+                <CardDescription className="text-xs">
+                  Understand quantum operations and AI governance
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="p-3 pt-0">
+                {explanations.length > 0 ? (
+                  <div className="space-y-3">
+                    {explanations.map((item, index) => (
+                      <div key={index} className="space-y-1">
+                        <div className="text-xs font-medium text-indigo-400">{item.section}</div>
+                        <div className="bg-slate-950 rounded p-3 text-xs">
+                          {item.explanation}
+                        </div>
+                      </div>
+                    ))}
+                    
+                    <Separator className="my-3" />
+                    
+                    <div className="space-y-1">
+                      <div className="text-xs font-medium text-indigo-400">Learning Resources</div>
+                      <div className="space-y-2">
+                        <div className="bg-slate-950 rounded p-2 text-xs flex items-center">
+                          <div className="h-6 w-6 bg-blue-500/20 rounded-full flex items-center justify-center mr-2">
+                            <Code className="h-3.5 w-3.5 text-blue-400" />
+                          </div>
+                          <div>
+                            <div className="font-medium">Quantum Computing Fundamentals</div>
+                            <div className="text-muted-foreground text-[10px]">Understanding quantum states, gates, and circuits</div>
+                          </div>
+                        </div>
+                        
+                        <div className="bg-slate-950 rounded p-2 text-xs flex items-center">
+                          <div className="h-6 w-6 bg-purple-500/20 rounded-full flex items-center justify-center mr-2">
+                            <BrainCircuit className="h-3.5 w-3.5 text-purple-400" />
+                          </div>
+                          <div>
+                            <div className="font-medium">AI Governance Protocols</div>
+                            <div className="text-muted-foreground text-[10px]">Implementing transparent and explainable AI systems</div>
+                          </div>
+                        </div>
+                        
+                        <div className="bg-slate-950 rounded p-2 text-xs flex items-center">
+                          <div className="h-6 w-6 bg-teal-500/20 rounded-full flex items-center justify-center mr-2">
+                            <GitMerge className="h-3.5 w-3.5 text-teal-400" />
+                          </div>
+                          <div>
+                            <div className="font-medium">Quantum-AI Integration</div>
+                            <div className="text-muted-foreground text-[10px]">Bridging quantum computing with artificial intelligence</div>
+                          </div>
+                        </div>
                       </div>
                     </div>
-                  ))}
-                </div>
-              )}
-            </div>
-            <div className="flex items-center space-x-2">
-              <Input
-                placeholder="Ask about quantum concepts, AI governance, or code help..."
-                value={prompt}
-                onChange={(e) => setPrompt(e.target.value)}
-                disabled={isLoading}
-                onKeyDown={(e) => e.key === 'Enter' && handleChat()}
-              />
-              <Button onClick={handleChat} disabled={isLoading || !prompt.trim()}>
-                <Send className="h-4 w-4 mr-2" />
-                Send
-              </Button>
-            </div>
-          </TabsContent>
-          
-          {/* Generate Tab */}
-          <TabsContent value="generate" className="space-y-4">
-            <div className="space-y-4">
-              <div>
-                <Textarea
-                  placeholder="Describe the code you want to generate in natural language..."
-                  value={codeDescription}
-                  onChange={(e) => setCodeDescription(e.target.value)}
-                  disabled={isLoading}
-                  rows={3}
-                />
-              </div>
-              <Button 
-                onClick={handleGenerateCode} 
-                disabled={isLoading || !codeDescription.trim()}
-                className="w-full"
-              >
-                <Wand className="h-4 w-4 mr-2" />
-                Generate Code
-              </Button>
-              {generatedCode && (
-                <div className="mt-4 space-y-2">
-                  <h4 className="text-sm font-medium">Generated Code:</h4>
-                  <pre className="bg-muted p-2 rounded-md overflow-x-auto whitespace-pre-wrap">
-                    <code>{generatedCode}</code>
-                  </pre>
-                  <Button 
-                    variant="outline" 
-                    onClick={() => onInsertCode(generatedCode)}
-                    className="w-full mt-2"
-                  >
-                    <Code className="h-4 w-4 mr-2" />
-                    Insert Into Editor
-                  </Button>
-                </div>
-              )}
-            </div>
-          </TabsContent>
-          
-          {/* Analyze Tab */}
-          <TabsContent value="analyze" className="space-y-4">
-            <Button 
-              onClick={handleAnalyzeCode} 
-              disabled={isLoading || !currentCode.trim()}
-              className="w-full"
-            >
-              <Eye className="h-4 w-4 mr-2" />
-              Analyze Current Code
-            </Button>
-            
-            {codeAnalysis && (
-              <div className="space-y-4 mt-4">
-                <div className="flex items-center justify-between">
-                  <h4 className="text-sm font-medium">Code Quality Score:</h4>
-                  <Badge variant={
-                    codeAnalysis.score >= 80 ? "default" : 
-                    codeAnalysis.score >= 60 ? "outline" : "destructive"
-                  }>
-                    {codeAnalysis.score}/100
-                  </Badge>
-                </div>
-                
-                <div>
-                  <h4 className="text-sm font-medium mb-2">Issues:</h4>
-                  {codeAnalysis.issues.length === 0 ? (
-                    <p className="text-sm text-muted-foreground">No issues found.</p>
-                  ) : (
-                    <ul className="space-y-2">
-                      {codeAnalysis.issues.map((issue, i) => (
-                        <li key={i} className="flex items-start space-x-2">
-                          <Badge variant={
-                            issue.type === 'error' ? "destructive" : 
-                            issue.type === 'warning' ? "outline" : "secondary"
-                          } className="mt-0.5">
-                            {issue.type}
-                          </Badge>
-                          <span className="text-sm">
-                            {issue.message}
-                            {issue.line !== undefined && ` (Line ${issue.line})`}
-                          </span>
-                        </li>
-                      ))}
-                    </ul>
-                  )}
-                </div>
-                
-                <div>
-                  <h4 className="text-sm font-medium mb-2">Suggestions:</h4>
-                  {codeAnalysis.suggestions.length === 0 ? (
-                    <p className="text-sm text-muted-foreground">No suggestions available.</p>
-                  ) : (
-                    <ul className="space-y-1">
-                      {codeAnalysis.suggestions.map((suggestion, i) => (
-                        <li key={i} className="text-sm flex items-start">
-                          <span className="mr-2">•</span>
-                          <span>{suggestion}</span>
-                        </li>
-                      ))}
-                    </ul>
-                  )}
-                </div>
-              </div>
-            )}
-            
-            <div className="border-t pt-4 mt-4">
-              <Button 
-                onClick={handleGetSuggestions} 
-                disabled={isLoading}
-                variant="outline"
-                className="w-full"
-              >
-                <Lightbulb className="h-4 w-4 mr-2" />
-                Get Code Suggestions
-              </Button>
-              
-              {suggestions.length > 0 && (
-                <div className="space-y-4 mt-4">
-                  <h4 className="text-sm font-medium">Suggested Code Snippets:</h4>
-                  {suggestions.map((suggestion, i) => (
-                    <div key={i} className="border rounded-md p-3 space-y-2">
-                      <pre className="bg-muted p-2 rounded-md overflow-x-auto text-xs">
-                        <code>{suggestion.code}</code>
-                      </pre>
-                      <p className="text-sm text-muted-foreground">{suggestion.explanation}</p>
-                      <Button 
-                        variant="outline" 
-                        size="sm"
-                        onClick={() => onInsertCode(suggestion.code)}
-                        className="w-full mt-1"
-                      >
-                        <Code className="h-3 w-3 mr-2" />
-                        Insert Snippet
-                      </Button>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
-          </TabsContent>
-          
-          {/* Explain Tab */}
-          <TabsContent value="explain" className="space-y-4">
-            <Button 
-              onClick={handleExplainCode} 
-              disabled={isLoading || !currentCode.trim()}
-              className="w-full"
-            >
-              <Lightbulb className="h-4 w-4 mr-2" />
-              Explain Current Code
-            </Button>
-            
-            {explanation && (
-              <div className="mt-4 space-y-2">
-                <h4 className="text-sm font-medium">Explanation:</h4>
-                <div className="bg-muted p-3 rounded-md">
-                  <p className="whitespace-pre-wrap text-sm">{explanation}</p>
-                </div>
-              </div>
-            )}
-          </TabsContent>
-          
-          {/* Optimize Tab */}
-          <TabsContent value="optimize" className="space-y-4">
-            <div className="space-y-2">
-              <h4 className="text-sm font-medium">Optimization Focus:</h4>
-              <div className="flex flex-wrap gap-2">
-                <Button 
-                  variant={optimization === 'performance' ? 'default' : 'outline'}
-                  size="sm"
-                  onClick={() => setOptimization('performance')}
-                >
-                  <Zap className="h-4 w-4 mr-2" />
-                  Performance
-                </Button>
-                <Button 
-                  variant={optimization === 'security' ? 'default' : 'outline'}
-                  size="sm"
-                  onClick={() => setOptimization('security')}
-                >
-                  <Zap className="h-4 w-4 mr-2" />
-                  Security
-                </Button>
-                <Button 
-                  variant={optimization === 'explainability' ? 'default' : 'outline'}
-                  size="sm"
-                  onClick={() => setOptimization('explainability')}
-                >
-                  <Zap className="h-4 w-4 mr-2" />
-                  Explainability
-                </Button>
-              </div>
-            </div>
-            
-            <Button 
-              onClick={handleOptimizeCode} 
-              disabled={isLoading || !currentCode.trim()}
-              className="w-full mt-2"
-            >
-              <Scissors className="h-4 w-4 mr-2" />
-              Optimize for {optimization}
-            </Button>
-            
-            <p className="text-xs text-muted-foreground mt-2">
-              Optimized code will appear in the Generate tab where you can review and insert it.
-            </p>
+                  </div>
+                ) : analyzing ? (
+                  <div className="bg-slate-950 rounded-md p-8 text-center">
+                    <motion.div
+                      animate={{ opacity: [0.5, 1, 0.5] }}
+                      transition={{ duration: 1.5, repeat: Infinity }}
+                    >
+                      <p className="text-sm text-muted-foreground">Analyzing your code...</p>
+                    </motion.div>
+                  </div>
+                ) : (
+                  <div className="bg-slate-950 rounded-md p-8 text-center">
+                    <HelpCircle className="h-8 w-8 text-muted-foreground mx-auto mb-2 opacity-50" />
+                    <p className="text-sm text-muted-foreground">No code detected to explain. Add some SINGULARIS PRIME code to receive explanations.</p>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
           </TabsContent>
         </Tabs>
-      </CardContent>
-      <CardFooter className="flex justify-between text-xs text-muted-foreground">
-        <div>Powered by AI</div>
-        <div>SINGULARIS PRIME v1.0</div>
-      </CardFooter>
-    </Card>
+      </div>
+    </ScrollArea>
   );
 }

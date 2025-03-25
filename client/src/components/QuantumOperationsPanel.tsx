@@ -1,682 +1,556 @@
 import { useState } from "react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Separator } from "@/components/ui/separator";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { Badge } from "@/components/ui/badge";
+import { Slider } from "@/components/ui/slider";
+import { Switch } from "@/components/ui/switch";
+import { Label } from "@/components/ui/label";
+import { Separator } from "@/components/ui/separator";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Atom, Wand2, RotateCw, ScanFace, Network, Cpu, Sparkles } from "lucide-react";
+import { Input } from "@/components/ui/input";
+import { motion } from "framer-motion";
 import { 
-  createQuantumGeometricSpace,
-  embedQuantumStates,
-  transformQuantumGeometry,
-  entangleQuantumGeometricStates,
-  computeQuantumTopologicalInvariants,
-  simulateAIOptimizedCircuit,
-  type OptimizationGoal
-} from "@/lib/SingularisCompiler";
+  Atom, 
+  Box, 
+  GitMerge, 
+  Shuffle, 
+  RotateCcw, 
+  RotateCw, 
+  Zap, 
+  Shield, 
+  GitBranch
+} from "lucide-react";
 
-import { QuantumGate } from "@/lib/QuantumOperations";
-
-interface QuantumOperationsPanelProps {
-  onOperationComplete: (output: string[], success: boolean) => void;
-  onSpaceCreated: (spaceData: any) => void;
+export interface QuantumOperationsPanelProps {
+  onOperationComplete: (operation: any) => void;
+  onSpaceCreated: (space: any) => void;
 }
 
-export function QuantumOperationsPanel({ 
-  onOperationComplete, 
-  onSpaceCreated 
+export function QuantumOperationsPanel({
+  onOperationComplete = () => {},
+  onSpaceCreated = () => {}
 }: QuantumOperationsPanelProps) {
-  const [isExecuting, setIsExecuting] = useState<boolean>(false);
-  const [activeTab, setActiveTab] = useState<string>("create-space");
-  const [optimizationGoal, setOptimizationGoal] = useState<OptimizationGoal>("fidelity");
-  
-  // Run quantum space creation
-  const handleCreateSpace = async () => {
-    setIsExecuting(true);
-    
-    try {
-      // Create test space
-      const spaceId = `space-${Date.now().toString(36)}`;
-      const dimension = 3;
-      
-      const spaceResponse = await createQuantumGeometricSpace(
-        spaceId,
-        dimension,
-        ['point', 'line', 'plane'],
-        'minkowski',
-        ['connected', 'compact'],
-        1.0
-      );
-      
-      const output = [
-        "$ singularis quantum-geometry create-space",
-        "Initializing Quantum Geometry Processor...",
-        "────────────────────────────────────────────",
-        `✓ Created quantum geometric space: ${spaceId}`,
-        `  Dimension: ${dimension}`,
-        `  Metric: minkowski`,
-        `  Result: ${spaceResponse.creationResult}`,
-        "────────────────────────────────────────────",
-        "Space creation completed successfully."
-      ];
-      
-      onOperationComplete(output, true);
-      onSpaceCreated({
-        id: spaceId,
-        dimension,
-        elements: ['point', 'line', 'plane'],
-        states: [],
-        transformations: [],
-        entanglements: [],
-        invariants: []
-      });
-      
-      // Switch to embed states tab
-      setActiveTab("embed-states");
-      
-    } catch (error) {
-      console.error("Space creation error:", error);
-      
-      const errorOutput = [
-        "$ singularis quantum-geometry create-space",
-        "Initializing Quantum Geometry Processor...",
-        "ERROR: Quantum space creation failed.",
-        error instanceof Error ? `${error.message}` : "An unknown error occurred.",
-        "Operation terminated with errors."
-      ];
-      
-      onOperationComplete(errorOutput, false);
-    } finally {
-      setIsExecuting(false);
-    }
+  const [selectedCategory, setSelectedCategory] = useState<string>("gates");
+  const [gateParams, setGateParams] = useState({
+    angle: 90,
+    fidelity: 0.95,
+    errorCorrection: true
+  });
+  const [spaceParams, setSpaceParams] = useState({
+    dimension: 3,
+    metric: "minkowski",
+    energy: 0.75
+  });
+
+  const handleGateOperation = (gate: string) => {
+    onOperationComplete({
+      type: "gate",
+      gate,
+      params: gateParams
+    });
   };
-  
-  // Run quantum state embedding
-  const handleEmbedStates = async () => {
-    setIsExecuting(true);
-    
-    try {
-      // Get the most recently created space
-      const spaceId = `space-${Date.now().toString(36)}`; // This would come from state in a real implementation
-      const dimension = 3;
-      
-      // Embed quantum states
-      const stateIds = ['q1', 'q2'];
-      const coordinates = [[0.1, 0.2, 0.3], [0.7, 0.8, 0.9]];
-      
-      const embedResponse = await embedQuantumStates(
-        spaceId,
-        dimension,
-        ['point', 'line'],
-        stateIds,
-        coordinates
-      );
-      
-      const output = [
-        "$ singularis quantum-geometry embed-states",
-        "Initializing Quantum Geometry Processor...",
-        "────────────────────────────────────────────",
-        "✓ Embedded quantum states:",
-        ...embedResponse.embeddings.map(e => `  State '${e.stateId}' at [${e.coordinates.join(', ')}]`),
-        "────────────────────────────────────────────",
-        "State embedding completed successfully."
-      ];
-      
-      onOperationComplete(output, true);
-      
-      // Switch to transform tab
-      setActiveTab("transform");
-      
-    } catch (error) {
-      console.error("State embedding error:", error);
-      
-      const errorOutput = [
-        "$ singularis quantum-geometry embed-states",
-        "Initializing Quantum Geometry Processor...",
-        "ERROR: Quantum state embedding failed.",
-        error instanceof Error ? `${error.message}` : "An unknown error occurred.",
-        "Operation terminated with errors."
-      ];
-      
-      onOperationComplete(errorOutput, false);
-    } finally {
-      setIsExecuting(false);
-    }
+
+  const handleCreateSpace = () => {
+    onSpaceCreated({
+      type: "space",
+      params: spaceParams
+    });
   };
-  
-  // Run quantum geometry transformation
-  const handleTransform = async () => {
-    setIsExecuting(true);
-    
-    try {
-      // Get the most recently created space
-      const spaceId = `space-${Date.now().toString(36)}`; // This would come from state in a real implementation
-      const dimension = 3;
-      
-      // Apply transformation
-      const transformResponse = await transformQuantumGeometry(
-        spaceId,
-        dimension,
-        ['point', 'line'],
-        'rotation',
-        { angleX: 0.5, angleY: 0.3, angleZ: 0.1 }
-      );
-      
-      const output = [
-        "$ singularis quantum-geometry transform",
-        "Initializing Quantum Geometry Processor...",
-        "────────────────────────────────────────────",
-        "✓ Applied transformation:",
-        `  Type: ${transformResponse.transformationType}`,
-        `  Parameters: ${Object.entries(transformResponse.parameters).map(([k, v]) => `${k}=${v}`).join(', ')}`,
-        `  Energy delta: ${transformResponse.energyDelta}`,
-        "────────────────────────────────────────────",
-        "Transformation completed successfully."
-      ];
-      
-      onOperationComplete(output, true);
-      
-      // Switch to entangle tab
-      setActiveTab("entangle");
-      
-    } catch (error) {
-      console.error("Transformation error:", error);
-      
-      const errorOutput = [
-        "$ singularis quantum-geometry transform",
-        "Initializing Quantum Geometry Processor...",
-        "ERROR: Quantum transformation failed.",
-        error instanceof Error ? `${error.message}` : "An unknown error occurred.",
-        "Operation terminated with errors."
-      ];
-      
-      onOperationComplete(errorOutput, false);
-    } finally {
-      setIsExecuting(false);
-    }
-  };
-  
-  // Run quantum entanglement
-  const handleEntangle = async () => {
-    setIsExecuting(true);
-    
-    try {
-      // Get the most recently created space
-      const spaceId = `space-${Date.now().toString(36)}`; // This would come from state in a real implementation
-      const dimension = 3;
-      
-      // Entangle states
-      const entangleResponse = await entangleQuantumGeometricStates(
-        spaceId,
-        dimension,
-        ['point', 'line'],
-        'q1',
-        'q2',
-        0.8
-      );
-      
-      const output = [
-        "$ singularis quantum-geometry entangle",
-        "Initializing Quantum Geometry Processor...",
-        "────────────────────────────────────────────",
-        "✓ Entanglement result:",
-        `  Success: ${entangleResponse.entanglementResult.success}`,
-        `  Strength: ${entangleResponse.entanglementResult.entanglementStrength}`,
-        `  Description: ${entangleResponse.entanglementResult.description}`,
-        "────────────────────────────────────────────",
-        "✓ Quantum Effects:",
-        `  Information Preservation: ${entangleResponse.quantumEffects.informationPreservation}`,
-        `  Decoherence Resistance: ${entangleResponse.quantumEffects.decoherenceResistance}`,
-        `  Non-Locality Measure: ${entangleResponse.quantumEffects.nonLocalityMeasure}`,
-        "────────────────────────────────────────────",
-        "Entanglement operation completed successfully."
-      ];
-      
-      onOperationComplete(output, true);
-      
-      // Switch to invariants tab
-      setActiveTab("invariants");
-      
-    } catch (error) {
-      console.error("Entanglement error:", error);
-      
-      const errorOutput = [
-        "$ singularis quantum-geometry entangle",
-        "Initializing Quantum Geometry Processor...",
-        "ERROR: Quantum entanglement failed.",
-        error instanceof Error ? `${error.message}` : "An unknown error occurred.",
-        "Operation terminated with errors."
-      ];
-      
-      onOperationComplete(errorOutput, false);
-    } finally {
-      setIsExecuting(false);
-    }
-  };
-  
-  // Compute topological invariants
-  const handleComputeInvariants = async () => {
-    setIsExecuting(true);
-    
-    try {
-      // Get the most recently created space
-      const spaceId = `space-${Date.now().toString(36)}`; // This would come from state in a real implementation
-      const dimension = 3;
-      
-      // Compute invariants
-      const invariantsResponse = await computeQuantumTopologicalInvariants(
-        spaceId,
-        dimension,
-        ['point', 'line', 'plane']
-      );
-      
-      const output = [
-        "$ singularis quantum-geometry invariants",
-        "Initializing Quantum Geometry Processor...",
-        "────────────────────────────────────────────",
-        "✓ Computed invariants:",
-        ...invariantsResponse.invariants.map(inv => `  ${inv.name}: ${inv.value}`),
-        "────────────────────────────────────────────",
-        "✓ Interpretation:",
-        ...invariantsResponse.interpretation.map(int => `  ${int.property}: ${int.implication}`),
-        "────────────────────────────────────────────",
-        "Invariants computation completed successfully."
-      ];
-      
-      onOperationComplete(output, true);
-      
-    } catch (error) {
-      console.error("Invariants error:", error);
-      
-      const errorOutput = [
-        "$ singularis quantum-geometry invariants",
-        "Initializing Quantum Geometry Processor...",
-        "ERROR: Quantum invariants computation failed.",
-        error instanceof Error ? `${error.message}` : "An unknown error occurred.",
-        "Operation terminated with errors."
-      ];
-      
-      onOperationComplete(errorOutput, false);
-    } finally {
-      setIsExecuting(false);
-    }
-  };
-  
-  // Run AI-optimized quantum circuit simulation
-  const handleOptimizeCircuit = async () => {
-    setIsExecuting(true);
-    
-    try {
-      // Define a sample quantum circuit with some gates
-      const gates = [
-        { gate: 'H' as QuantumGate, targets: [0] },
-        { gate: 'X' as QuantumGate, targets: [1] },
-        { gate: 'CNOT' as QuantumGate, targets: [1], controls: [0] },
-        { gate: 'H' as QuantumGate, targets: [0] },
-        { gate: 'Z' as QuantumGate, targets: [1] },
-        { gate: 'H' as QuantumGate, targets: [1] }
-      ];
-      
-      // Number of qubits
-      const numQubits = 2;
-      
-      // Run AI-optimized circuit simulation
-      const optimizationResponse = await simulateAIOptimizedCircuit(
-        gates,
-        numQubits,
-        {
-          goal: optimizationGoal,
-          method: 'gradient_descent',
-          priority: 'critical',
-          threshold: 0.9
-        }
-      );
-      
-      const output = [
-        "$ singularis quantum-circuit optimize",
-        "Initializing AI-Optimized Quantum Circuit Processor...",
-        "────────────────────────────────────────────",
-        "✓ Original circuit:",
-        `  Gates: ${optimizationResponse.original.gates}`,
-        `  Depth: ${optimizationResponse.original.depth}`,
-        "────────────────────────────────────────────",
-        "✓ Optimized circuit:",
-        `  Gates: ${optimizationResponse.optimized.gates}`,
-        `  Depth: ${optimizationResponse.optimized.depth}`,
-        `  Explanation: ${optimizationResponse.optimized.explanation}`,
-        "────────────────────────────────────────────",
-        "✓ Improvement metrics:",
-        `  Gate count change: ${optimizationResponse.improvement.gateCount > 0 ? '+' : ''}${optimizationResponse.improvement.gateCount}`,
-        `  Depth change: ${(optimizationResponse.improvement.depthChange * 100).toFixed(1)}%`,
-        `  Explainability score: ${(optimizationResponse.explainability * 100).toFixed(1)}%`,
-        "────────────────────────────────────────────",
-        "✓ Resource estimates:",
-        `  Computational complexity: ${optimizationResponse.resourceEstimates.computationalComplexity}`,
-        `  Estimated runtime: ${optimizationResponse.resourceEstimates.estimatedRuntime.toFixed(2)} ms`,
-        "────────────────────────────────────────────",
-        "AI-Optimized circuit simulation completed successfully."
-      ];
-      
-      onOperationComplete(output, true);
-      
-    } catch (error) {
-      console.error("AI-Optimized circuit error:", error);
-      
-      const errorOutput = [
-        "$ singularis quantum-circuit optimize",
-        "Initializing AI-Optimized Quantum Circuit Processor...",
-        "ERROR: AI-Optimized quantum circuit simulation failed.",
-        error instanceof Error ? `${error.message}` : "An unknown error occurred.",
-        "Operation terminated with errors."
-      ];
-      
-      onOperationComplete(errorOutput, false);
-    } finally {
-      setIsExecuting(false);
-    }
-  };
-  
+
   return (
-    <Card className="w-full bg-[#181825] border-[#313244] shadow-md">
-      <CardHeader className="pb-2">
-        <CardTitle className="text-sm font-medium flex items-center text-[#CDD6F4]">
-          <Atom className="h-4 w-4 mr-2 text-[#89B4FA]" />
-          Quantum Operations
-          <Sparkles className="h-3 w-3 mx-2 text-[#F5C2E7]" />
-          <span className="text-[#F5C2E7]">AI Optimization</span>
-        </CardTitle>
-      </CardHeader>
-      <CardContent>
-        <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-          <TabsList className="grid grid-cols-6 mb-2 bg-[#11111B]">
-            <TabsTrigger value="create-space" className="text-xs">
-              <Atom className="h-3 w-3 mr-1" />
-              Space
-            </TabsTrigger>
-            <TabsTrigger value="embed-states" className="text-xs">
-              <Wand2 className="h-3 w-3 mr-1" />
-              States
-            </TabsTrigger>
-            <TabsTrigger value="transform" className="text-xs">
-              <RotateCw className="h-3 w-3 mr-1" />
-              Transform
-            </TabsTrigger>
-            <TabsTrigger value="entangle" className="text-xs">
-              <Network className="h-3 w-3 mr-1" />
-              Entangle
-            </TabsTrigger>
-            <TabsTrigger value="invariants" className="text-xs">
-              <ScanFace className="h-3 w-3 mr-1" />
-              Invariants
-            </TabsTrigger>
-            <TabsTrigger value="optimize" className="text-xs">
-              <Sparkles className="h-3 w-3 mr-1" />
-              Optimize
-            </TabsTrigger>
-          </TabsList>
-          
-          <ScrollArea className="h-64 rounded-md border border-[#313244] bg-[#11111B] p-4">
-            <TabsContent value="create-space" className="mt-0">
-              <h3 className="text-sm font-medium mb-2">Create Quantum Geometric Space</h3>
-              <p className="text-xs text-[#A6ADC8] mb-3">
-                Initialize a new quantum geometric space with specified dimension, 
-                elements, and metric.
-              </p>
-              <div className="grid grid-cols-2 gap-2 mb-4 text-xs">
-                <div className="flex items-center">
-                  <span className="font-medium mr-2">Dimension:</span>
-                  <span>3</span>
-                </div>
-                <div className="flex items-center">
-                  <span className="font-medium mr-2">Metric:</span>
-                  <span>Minkowski</span>
-                </div>
-                <div className="flex items-center">
-                  <span className="font-medium mr-2">Elements:</span>
-                  <span>Point, Line, Plane</span>
-                </div>
-                <div className="flex items-center">
-                  <span className="font-medium mr-2">Properties:</span>
-                  <span>Connected, Compact</span>
-                </div>
-              </div>
-              <Button 
-                onClick={handleCreateSpace} 
-                disabled={isExecuting}
-                className="w-full bg-[#89B4FA] text-[#1E1E2E] hover:bg-[#89B4FA]/90"
-              >
-                <Atom className="h-3 w-3 mr-1" />
-                Create Space
-              </Button>
-            </TabsContent>
-            
-            <TabsContent value="embed-states" className="mt-0">
-              <h3 className="text-sm font-medium mb-2">Embed Quantum States</h3>
-              <p className="text-xs text-[#A6ADC8] mb-3">
-                Embed quantum states into the geometric space with specified coordinates.
-              </p>
-              <div className="mb-4 space-y-2">
-                <div className="text-xs bg-[#1E1E2E] p-2 rounded-md">
-                  <div className="font-mono mb-1">State: q1</div>
-                  <div className="flex space-x-2">
-                    <div className="bg-[#313244] rounded-md px-2 py-1 w-12 text-center">0.1</div>
-                    <div className="bg-[#313244] rounded-md px-2 py-1 w-12 text-center">0.2</div>
-                    <div className="bg-[#313244] rounded-md px-2 py-1 w-12 text-center">0.3</div>
-                  </div>
-                </div>
-                
-                <div className="text-xs bg-[#1E1E2E] p-2 rounded-md">
-                  <div className="font-mono mb-1">State: q2</div>
-                  <div className="flex space-x-2">
-                    <div className="bg-[#313244] rounded-md px-2 py-1 w-12 text-center">0.7</div>
-                    <div className="bg-[#313244] rounded-md px-2 py-1 w-12 text-center">0.8</div>
-                    <div className="bg-[#313244] rounded-md px-2 py-1 w-12 text-center">0.9</div>
-                  </div>
-                </div>
-              </div>
-              <Button 
-                onClick={handleEmbedStates} 
-                disabled={isExecuting}
-                className="w-full bg-[#89B4FA] text-[#1E1E2E] hover:bg-[#89B4FA]/90"
-              >
-                <Wand2 className="h-3 w-3 mr-1" />
-                Embed States
-              </Button>
-            </TabsContent>
-            
-            <TabsContent value="transform" className="mt-0">
-              <h3 className="text-sm font-medium mb-2">Transform Quantum States</h3>
-              <p className="text-xs text-[#A6ADC8] mb-3">
-                Apply geometric transformations to quantum states within the space.
-              </p>
-              <div className="bg-[#1E1E2E] p-3 rounded-md mb-4">
-                <h4 className="text-xs font-medium mb-2">Rotation Parameters</h4>
-                <div className="grid grid-cols-3 gap-2 text-xs">
-                  <div>
-                    <div className="mb-1">X-Angle:</div>
-                    <div className="bg-[#313244] rounded-md px-2 py-1 text-center">0.5</div>
-                  </div>
-                  <div>
-                    <div className="mb-1">Y-Angle:</div>
-                    <div className="bg-[#313244] rounded-md px-2 py-1 text-center">0.3</div>
-                  </div>
-                  <div>
-                    <div className="mb-1">Z-Angle:</div>
-                    <div className="bg-[#313244] rounded-md px-2 py-1 text-center">0.1</div>
-                  </div>
-                </div>
-              </div>
-              <Button 
-                onClick={handleTransform} 
-                disabled={isExecuting}
-                className="w-full bg-[#89B4FA] text-[#1E1E2E] hover:bg-[#89B4FA]/90"
-              >
-                <RotateCw className="h-3 w-3 mr-1" />
-                Apply Transformation
-              </Button>
-            </TabsContent>
-            
-            <TabsContent value="entangle" className="mt-0">
-              <h3 className="text-sm font-medium mb-2">Entangle Quantum States</h3>
-              <p className="text-xs text-[#A6ADC8] mb-3">
-                Create quantum entanglement between states based on geometric proximity.
-              </p>
-              <div className="space-y-3 mb-4">
-                <div className="grid grid-cols-2 gap-2 text-xs">
-                  <div>
-                    <div className="mb-1">State 1:</div>
-                    <div className="bg-[#313244] rounded-md px-2 py-1 text-center font-mono">q1</div>
-                  </div>
-                  <div>
-                    <div className="mb-1">State 2:</div>
-                    <div className="bg-[#313244] rounded-md px-2 py-1 text-center font-mono">q2</div>
-                  </div>
-                </div>
-                
-                <div className="text-xs">
-                  <div className="mb-1">Entanglement Strength:</div>
-                  <div className="bg-[#313244] rounded-md px-2 py-1 text-center">0.8</div>
-                </div>
-                
-                <div className="bg-[#1E1E2E] p-2 rounded-md text-xs">
-                  <div className="text-[#F5C2E7]">Expected Effects:</div>
-                  <div className="flex justify-between mt-1">
-                    <span>Information Preservation:</span>
-                    <span>~0.75</span>
-                  </div>
-                  <div className="flex justify-between mt-1">
-                    <span>Decoherence Resistance:</span>
-                    <span>~0.65</span>
-                  </div>
-                </div>
-              </div>
-              <Button 
-                onClick={handleEntangle} 
-                disabled={isExecuting}
-                className="w-full bg-[#89B4FA] text-[#1E1E2E] hover:bg-[#89B4FA]/90"
-              >
-                <Network className="h-3 w-3 mr-1" />
-                Entangle States
-              </Button>
-            </TabsContent>
-            
-            <TabsContent value="invariants" className="mt-0">
-              <h3 className="text-sm font-medium mb-2">Compute Topological Invariants</h3>
-              <p className="text-xs text-[#A6ADC8] mb-3">
-                Calculate topological invariants of the quantum space to extract meaningful properties.
-              </p>
-              <div className="bg-[#1E1E2E] p-3 rounded-md mb-4 text-xs">
-                <h4 className="font-medium mb-2">Invariants to Calculate</h4>
-                <div className="space-y-1">
-                  <div className="flex items-center">
-                    <div className="w-2 h-2 rounded-full bg-[#89B4FA] mr-2"></div>
-                    <div>Betti Numbers</div>
-                  </div>
-                  <div className="flex items-center">
-                    <div className="w-2 h-2 rounded-full bg-[#89B4FA] mr-2"></div>
-                    <div>Euler Characteristic</div>
-                  </div>
-                  <div className="flex items-center">
-                    <div className="w-2 h-2 rounded-full bg-[#89B4FA] mr-2"></div>
-                    <div>Curvature</div>
-                  </div>
-                  <div className="flex items-center">
-                    <div className="w-2 h-2 rounded-full bg-[#89B4FA] mr-2"></div>
-                    <div>Quantum Complexity</div>
-                  </div>
-                </div>
-              </div>
-              <Button 
-                onClick={handleComputeInvariants} 
-                disabled={isExecuting}
-                className="w-full bg-[#89B4FA] text-[#1E1E2E] hover:bg-[#89B4FA]/90"
-              >
-                <ScanFace className="h-3 w-3 mr-1" />
-                Compute Invariants
-              </Button>
-            </TabsContent>
-            
-            <TabsContent value="optimize" className="mt-0">
-              <h3 className="text-sm font-medium mb-2">AI-Optimized Quantum Circuit</h3>
-              <p className="text-xs text-[#A6ADC8] mb-3">
-                Apply AI optimization techniques to quantum circuits for improved efficiency and performance.
-              </p>
-              
-              <div className="space-y-3 mb-4">
-                <div className="text-xs">
-                  <div className="mb-1 font-medium">Optimization Goal:</div>
-                  <Select
-                    value={optimizationGoal}
-                    onValueChange={(value) => setOptimizationGoal(value as OptimizationGoal)}
+    <ScrollArea className="h-[calc(100vh-11rem)]">
+      <div className="p-4 space-y-4">
+        <div className="flex space-x-2 mb-4">
+          <Button 
+            variant={selectedCategory === "gates" ? "default" : "outline"} 
+            size="sm"
+            onClick={() => setSelectedCategory("gates")}
+            className="flex-1"
+          >
+            <Atom className="h-4 w-4 mr-2" />
+            Gates
+          </Button>
+          <Button 
+            variant={selectedCategory === "spaces" ? "default" : "outline"} 
+            size="sm"
+            onClick={() => setSelectedCategory("spaces")}
+            className="flex-1"
+          >
+            <Box className="h-4 w-4 mr-2" />
+            Spaces
+          </Button>
+          <Button 
+            variant={selectedCategory === "entanglement" ? "default" : "outline"} 
+            size="sm"
+            onClick={() => setSelectedCategory("entanglement")}
+            className="flex-1"
+          >
+            <GitMerge className="h-4 w-4 mr-2" />
+            Entangl.
+          </Button>
+        </div>
+
+        {selectedCategory === "gates" && (
+          <div className="space-y-4">
+            <Card>
+              <CardHeader className="pb-2">
+                <CardTitle className="text-sm">Single-Qubit Gates</CardTitle>
+                <CardDescription className="text-xs">
+                  Gates that operate on individual qubits
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="grid grid-cols-3 gap-2">
+                  <Button 
+                    variant="outline" 
+                    size="sm" 
+                    className="flex flex-col items-center py-3 h-auto"
+                    onClick={() => handleGateOperation("H")}
                   >
-                    <SelectTrigger className="w-full bg-[#313244]">
-                      <SelectValue placeholder="Select optimization goal" />
+                    <span className="text-lg font-bold">H</span>
+                    <span className="text-xs mt-1">Hadamard</span>
+                  </Button>
+                  <Button 
+                    variant="outline" 
+                    size="sm" 
+                    className="flex flex-col items-center py-3 h-auto"
+                    onClick={() => handleGateOperation("X")}
+                  >
+                    <span className="text-lg font-bold">X</span>
+                    <span className="text-xs mt-1">Pauli-X</span>
+                  </Button>
+                  <Button 
+                    variant="outline" 
+                    size="sm" 
+                    className="flex flex-col items-center py-3 h-auto"
+                    onClick={() => handleGateOperation("Y")}
+                  >
+                    <span className="text-lg font-bold">Y</span>
+                    <span className="text-xs mt-1">Pauli-Y</span>
+                  </Button>
+                  <Button 
+                    variant="outline" 
+                    size="sm" 
+                    className="flex flex-col items-center py-3 h-auto"
+                    onClick={() => handleGateOperation("Z")}
+                  >
+                    <span className="text-lg font-bold">Z</span>
+                    <span className="text-xs mt-1">Pauli-Z</span>
+                  </Button>
+                  <Button 
+                    variant="outline" 
+                    size="sm" 
+                    className="flex flex-col items-center py-3 h-auto"
+                    onClick={() => handleGateOperation("S")}
+                  >
+                    <span className="text-lg font-bold">S</span>
+                    <span className="text-xs mt-1">Phase</span>
+                  </Button>
+                  <Button 
+                    variant="outline" 
+                    size="sm" 
+                    className="flex flex-col items-center py-3 h-auto"
+                    onClick={() => handleGateOperation("T")}
+                  >
+                    <span className="text-lg font-bold">T</span>
+                    <span className="text-xs mt-1">π/8</span>
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader className="pb-2">
+                <CardTitle className="text-sm">Rotation Gates</CardTitle>
+                <CardDescription className="text-xs">
+                  Gates that rotate qubits by specified angles
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="grid grid-cols-3 gap-2">
+                  <Button 
+                    variant="outline" 
+                    size="sm" 
+                    className="flex flex-col items-center py-3 h-auto"
+                    onClick={() => handleGateOperation("RX")}
+                  >
+                    <span className="text-lg font-bold">RX</span>
+                    <span className="text-xs mt-1">X-Rotation</span>
+                  </Button>
+                  <Button 
+                    variant="outline" 
+                    size="sm" 
+                    className="flex flex-col items-center py-3 h-auto"
+                    onClick={() => handleGateOperation("RY")}
+                  >
+                    <span className="text-lg font-bold">RY</span>
+                    <span className="text-xs mt-1">Y-Rotation</span>
+                  </Button>
+                  <Button 
+                    variant="outline" 
+                    size="sm" 
+                    className="flex flex-col items-center py-3 h-auto"
+                    onClick={() => handleGateOperation("RZ")}
+                  >
+                    <span className="text-lg font-bold">RZ</span>
+                    <span className="text-xs mt-1">Z-Rotation</span>
+                  </Button>
+                </div>
+                
+                <div className="space-y-2">
+                  <div className="flex justify-between items-center">
+                    <Label htmlFor="angle" className="text-xs">Angle (degrees)</Label>
+                    <Badge variant="outline" className="text-xs">{gateParams.angle}°</Badge>
+                  </div>
+                  <Slider 
+                    id="angle"
+                    min={0} 
+                    max={360} 
+                    step={1}
+                    value={[gateParams.angle]} 
+                    onValueChange={(value) => setGateParams({...gateParams, angle: value[0]})}
+                  />
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader className="pb-2">
+                <CardTitle className="text-sm">Multi-Qubit Gates</CardTitle>
+                <CardDescription className="text-xs">
+                  Gates that operate on multiple qubits
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="grid grid-cols-3 gap-2">
+                  <Button 
+                    variant="outline" 
+                    size="sm" 
+                    className="flex flex-col items-center py-3 h-auto"
+                    onClick={() => handleGateOperation("CNOT")}
+                  >
+                    <span className="text-lg font-bold">CNOT</span>
+                    <span className="text-xs mt-1">Control-NOT</span>
+                  </Button>
+                  <Button 
+                    variant="outline" 
+                    size="sm" 
+                    className="flex flex-col items-center py-3 h-auto"
+                    onClick={() => handleGateOperation("CZ")}
+                  >
+                    <span className="text-lg font-bold">CZ</span>
+                    <span className="text-xs mt-1">Control-Z</span>
+                  </Button>
+                  <Button 
+                    variant="outline" 
+                    size="sm" 
+                    className="flex flex-col items-center py-3 h-auto"
+                    onClick={() => handleGateOperation("SWAP")}
+                  >
+                    <Shuffle className="h-4 w-4 mb-1" />
+                    <span className="text-xs">SWAP</span>
+                  </Button>
+                  <Button 
+                    variant="outline" 
+                    size="sm" 
+                    className="flex flex-col items-center py-3 h-auto"
+                    onClick={() => handleGateOperation("TOFF")}
+                  >
+                    <span className="text-lg font-bold">T</span>
+                    <span className="text-xs mt-1">Toffoli</span>
+                  </Button>
+                  <Button 
+                    variant="outline" 
+                    size="sm" 
+                    className="flex flex-col items-center py-3 h-auto"
+                    onClick={() => handleGateOperation("FRED")}
+                  >
+                    <span className="text-lg font-bold">F</span>
+                    <span className="text-xs mt-1">Fredkin</span>
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader className="pb-2">
+                <CardTitle className="text-sm">Settings</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="space-y-2">
+                  <div className="flex justify-between items-center">
+                    <Label htmlFor="fidelity" className="text-xs">Fidelity</Label>
+                    <Badge variant="outline" className="text-xs">{gateParams.fidelity.toFixed(2)}</Badge>
+                  </div>
+                  <Slider 
+                    id="fidelity"
+                    min={0} 
+                    max={1} 
+                    step={0.01}
+                    value={[gateParams.fidelity]} 
+                    onValueChange={(value) => setGateParams({...gateParams, fidelity: value[0]})}
+                  />
+                </div>
+
+                <div className="flex items-center justify-between">
+                  <div className="space-y-0.5">
+                    <Label htmlFor="errorCorrection" className="text-xs">Error Correction</Label>
+                    <p className="text-[10px] text-muted-foreground">Apply quantum error correction</p>
+                  </div>
+                  <Switch
+                    id="errorCorrection"
+                    checked={gateParams.errorCorrection}
+                    onCheckedChange={(checked) => setGateParams({...gateParams, errorCorrection: checked})}
+                  />
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+        )}
+
+        {selectedCategory === "spaces" && (
+          <div className="space-y-4">
+            <Card>
+              <CardHeader className="pb-2">
+                <CardTitle className="text-sm">Quantum Geometric Spaces</CardTitle>
+                <CardDescription className="text-xs">
+                  Define geometric spaces for quantum computation
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="space-y-2">
+                  <Label htmlFor="dimension" className="text-xs">Dimension</Label>
+                  <Select
+                    value={spaceParams.dimension.toString()}
+                    onValueChange={(value) => setSpaceParams({...spaceParams, dimension: parseInt(value)})}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select dimension" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="fidelity">Quantum Fidelity</SelectItem>
-                      <SelectItem value="gate_count">Gate Count</SelectItem>
-                      <SelectItem value="depth">Circuit Depth</SelectItem>
-                      <SelectItem value="error_mitigation">Error Mitigation</SelectItem>
-                      <SelectItem value="execution_time">Execution Time</SelectItem>
-                      <SelectItem value="explainability">Explainability</SelectItem>
+                      <SelectItem value="2">2D</SelectItem>
+                      <SelectItem value="3">3D</SelectItem>
+                      <SelectItem value="4">4D</SelectItem>
+                      <SelectItem value="5">5D</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
-                
-                <div className="bg-[#1E1E2E] p-3 rounded-md text-xs">
-                  <h4 className="font-medium mb-2">Circuit Gates</h4>
-                  <div className="font-mono bg-[#313244] p-2 rounded-md mb-2 text-[#CDD6F4]">
-                    H(q[0]) → X(q[1]) → CNOT(q[0],q[1]) → H(q[0]) → Z(q[1]) → H(q[1])
-                  </div>
-                  
-                  <div className="grid grid-cols-2 gap-2">
-                    <div>
-                      <div className="mb-1">Gate Count:</div>
-                      <div className="bg-[#313244] rounded-md px-2 py-1 text-center">6</div>
-                    </div>
-                    <div>
-                      <div className="mb-1">Circuit Depth:</div>
-                      <div className="bg-[#313244] rounded-md px-2 py-1 text-center">5</div>
-                    </div>
-                  </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="metric" className="text-xs">Metric</Label>
+                  <Select
+                    value={spaceParams.metric}
+                    onValueChange={(value) => setSpaceParams({...spaceParams, metric: value})}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select metric" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="euclidean">Euclidean</SelectItem>
+                      <SelectItem value="minkowski">Minkowski</SelectItem>
+                      <SelectItem value="hyperbolic">Hyperbolic</SelectItem>
+                      <SelectItem value="elliptic">Elliptic</SelectItem>
+                    </SelectContent>
+                  </Select>
                 </div>
-                
-                <div className="bg-[#1E1E2E] p-3 rounded-md text-xs">
-                  <div className="flex items-center mb-2">
-                    <Sparkles className="h-3 w-3 mr-1 text-[#F5C2E7]" />
-                    <h4 className="font-medium text-[#F5C2E7]">AI Optimization Preview</h4>
+
+                <div className="space-y-2">
+                  <div className="flex justify-between items-center">
+                    <Label htmlFor="energy" className="text-xs">Energy Density</Label>
+                    <Badge variant="outline" className="text-xs">{spaceParams.energy.toFixed(2)}</Badge>
                   </div>
-                  
-                  <div className="space-y-2">
-                    <div className="flex justify-between">
-                      <span>Expected Gate Reduction:</span>
-                      <span>~30%</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span>Expected Depth Reduction:</span>
-                      <span>~25%</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span>Explainability Score:</span>
-                      <span>~90%</span>
-                    </div>
-                  </div>
+                  <Slider 
+                    id="energy"
+                    min={0} 
+                    max={1} 
+                    step={0.01}
+                    value={[spaceParams.energy]} 
+                    onValueChange={(value) => setSpaceParams({...spaceParams, energy: value[0]})}
+                  />
                 </div>
-              </div>
-              
-              <Button 
-                onClick={handleOptimizeCircuit} 
-                disabled={isExecuting}
-                className="w-full bg-[#F5C2E7] text-[#1E1E2E] hover:bg-[#F5C2E7]/90"
-              >
-                <Cpu className="h-3 w-3 mr-1" />
-                Run AI Optimization
-              </Button>
-            </TabsContent>
-          </ScrollArea>
-        </Tabs>
-      </CardContent>
-    </Card>
+
+                <Button 
+                  className="w-full bg-gradient-to-r from-indigo-500 to-purple-600"
+                  onClick={handleCreateSpace}
+                >
+                  <Box className="h-4 w-4 mr-2" />
+                  Create Quantum Space
+                </Button>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader className="pb-2">
+                <CardTitle className="text-sm">Topological Properties</CardTitle>
+                <CardDescription className="text-xs">
+                  Topological features for quantum computation
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="grid grid-cols-2 gap-2">
+                  <Button 
+                    variant="outline" 
+                    size="sm" 
+                    className="justify-start"
+                    onClick={() => {}}
+                  >
+                    <Badge className="mr-2 bg-blue-500">C</Badge>
+                    Connected
+                  </Button>
+                  <Button 
+                    variant="outline" 
+                    size="sm" 
+                    className="justify-start"
+                    onClick={() => {}}
+                  >
+                    <Badge className="mr-2 bg-purple-500">C</Badge>
+                    Compact
+                  </Button>
+                  <Button 
+                    variant="outline" 
+                    size="sm" 
+                    className="justify-start"
+                    onClick={() => {}}
+                  >
+                    <Badge className="mr-2 bg-indigo-500">O</Badge>
+                    Orientable
+                  </Button>
+                  <Button 
+                    variant="outline" 
+                    size="sm" 
+                    className="justify-start"
+                    onClick={() => {}}
+                  >
+                    <Badge className="mr-2 bg-cyan-500">S</Badge>
+                    Simply-Connected
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+        )}
+
+        {selectedCategory === "entanglement" && (
+          <div className="space-y-4">
+            <Card>
+              <CardHeader className="pb-2">
+                <CardTitle className="text-sm">Entanglement Operations</CardTitle>
+                <CardDescription className="text-xs">
+                  Create and manipulate quantum entanglement
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="grid grid-cols-2 gap-2">
+                  <Button 
+                    variant="outline" 
+                    size="sm" 
+                    className="flex flex-col items-center py-3 h-auto"
+                    onClick={() => handleGateOperation("BELL")}
+                  >
+                    <GitMerge className="h-4 w-4 mb-1" />
+                    <span className="text-xs">Bell State</span>
+                  </Button>
+                  <Button 
+                    variant="outline" 
+                    size="sm" 
+                    className="flex flex-col items-center py-3 h-auto"
+                    onClick={() => handleGateOperation("GHZ")}
+                  >
+                    <GitBranch className="h-4 w-4 mb-1" />
+                    <span className="text-xs">GHZ State</span>
+                  </Button>
+                  <Button 
+                    variant="outline" 
+                    size="sm" 
+                    className="flex flex-col items-center py-3 h-auto"
+                    onClick={() => handleGateOperation("W")}
+                  >
+                    <span className="text-lg font-bold">W</span>
+                    <span className="text-xs mt-1">W State</span>
+                  </Button>
+                  <Button 
+                    variant="outline" 
+                    size="sm" 
+                    className="flex flex-col items-center py-3 h-auto"
+                    onClick={() => handleGateOperation("CLUSTER")}
+                  >
+                    <RotateCw className="h-4 w-4 mb-1" />
+                    <span className="text-xs">Cluster</span>
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader className="pb-2">
+                <CardTitle className="text-sm">Entanglement Protocols</CardTitle>
+                <CardDescription className="text-xs">
+                  Quantum communication protocols
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="grid grid-cols-1 gap-2">
+                  <Button 
+                    variant="outline" 
+                    size="sm" 
+                    className="justify-start"
+                    onClick={() => {}}
+                  >
+                    <Zap className="h-4 w-4 mr-2" />
+                    Quantum Teleportation
+                  </Button>
+                  <Button 
+                    variant="outline" 
+                    size="sm" 
+                    className="justify-start"
+                    onClick={() => {}}
+                  >
+                    <Shield className="h-4 w-4 mr-2" />
+                    Quantum Key Distribution
+                  </Button>
+                  <Button 
+                    variant="outline" 
+                    size="sm" 
+                    className="justify-start"
+                    onClick={() => {}}
+                  >
+                    <RotateCcw className="h-4 w-4 mr-2" />
+                    Dense Coding
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader className="pb-2">
+                <CardTitle className="text-sm">Topological Entanglement</CardTitle>
+                <CardDescription className="text-xs">
+                  Entanglement based on geometric proximity
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="space-y-2">
+                  <Label htmlFor="particle1" className="text-xs">Particle 1</Label>
+                  <Input id="particle1" placeholder="Enter qubit ID" className="text-xs" />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="particle2" className="text-xs">Particle 2</Label>
+                  <Input id="particle2" placeholder="Enter qubit ID" className="text-xs" />
+                </div>
+                <Button 
+                  className="w-full"
+                  variant="outline"
+                  onClick={() => {}}
+                >
+                  <GitMerge className="h-4 w-4 mr-2" />
+                  Entangle by Proximity
+                </Button>
+              </CardContent>
+            </Card>
+          </div>
+        )}
+      </div>
+    </ScrollArea>
   );
 }
