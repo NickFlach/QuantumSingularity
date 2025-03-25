@@ -287,34 +287,70 @@ export function CodeAnalysisVisualizer({ code, onBack }: CodeAnalysisVisualizerP
               {explainabilityScore !== null ? (
                 <div className="space-y-6">
                   <div className="flex flex-col items-center">
-                    <h3 className="font-semibold mb-2">Overall Explainability Score</h3>
+                    <h3 className="font-semibold mb-4 text-xl">Overall Explainability Score</h3>
+                    
+                    <div className="relative flex items-center justify-center mb-8">
+                      <div className="absolute text-5xl font-bold">
+                        {(explainabilityScore * 100).toFixed(1)}%
+                      </div>
+                      <svg width="180" height="180" viewBox="0 0 100 100">
+                        <circle 
+                          cx="50" 
+                          cy="50" 
+                          r="45" 
+                          fill="none" 
+                          stroke="#e5e7eb" 
+                          strokeWidth="10" 
+                        />
+                        <circle 
+                          cx="50" 
+                          cy="50" 
+                          r="45" 
+                          fill="none" 
+                          stroke={explainabilityScore >= 0.9 ? "#10b981" : 
+                                  explainabilityScore >= 0.8 ? "#3b82f6" : 
+                                  explainabilityScore >= 0.7 ? "#eab308" : 
+                                  explainabilityScore >= 0.6 ? "#f97316" : "#ef4444"} 
+                          strokeWidth="10" 
+                          strokeDasharray={`${2 * Math.PI * 45 * explainabilityScore} ${2 * Math.PI * 45 * (1 - explainabilityScore)}`}
+                          strokeDashoffset={(2 * Math.PI * 45) / 4}
+                          strokeLinecap="round"
+                        />
+                      </svg>
+                    </div>
+                    
+                    <Badge className={getExplainabilityCategory(explainabilityScore).color + " text-lg py-1 px-3 mb-4"}>
+                      {getExplainabilityCategory(explainabilityScore).label}
+                    </Badge>
+                    
                     <div className="w-full max-w-md">
-                      <Progress 
-                        value={explainabilityScore * 100} 
-                        className="h-3"
-                        style={{
-                          background: `linear-gradient(to right, 
-                            rgb(239, 68, 68) 0%, 
-                            rgb(239, 68, 68) 60%, 
-                            rgb(249, 115, 22) 60%, 
-                            rgb(249, 115, 22) 70%, 
-                            rgb(234, 179, 8) 70%, 
-                            rgb(234, 179, 8) 80%, 
-                            rgb(59, 130, 246) 80%, 
-                            rgb(59, 130, 246) 90%, 
-                            rgb(34, 197, 94) 90%, 
-                            rgb(34, 197, 94) 100%)`
-                        }}
-                      />
-                      <div className="flex justify-between text-xs mt-1">
-                        <span>0%</span>
-                        <span>50%</span>
-                        <span>100%</span>
+                      <div className="grid grid-cols-5 gap-1 mb-2">
+                        <div className="h-2 rounded bg-red-500" />
+                        <div className="h-2 rounded bg-orange-500" />
+                        <div className="h-2 rounded bg-yellow-500" />
+                        <div className="h-2 rounded bg-blue-500" />
+                        <div className="h-2 rounded bg-green-500" />
+                      </div>
+                      <div className="flex justify-between text-xs text-muted-foreground">
+                        <span>Needs Improvement</span>
+                        <span>Excellent</span>
                       </div>
                     </div>
-                    <Badge className={getExplainabilityCategory(explainabilityScore).color + " mt-4 text-lg py-1 px-3"}>
-                      {(explainabilityScore * 100).toFixed(1)}% - {getExplainabilityCategory(explainabilityScore).label}
-                    </Badge>
+                    
+                    <div className="mt-4 w-full max-w-md bg-muted/30 rounded-lg p-4 text-sm">
+                      <p className="text-center mb-2"><strong>What this means:</strong></p>
+                      <p>
+                        {explainabilityScore >= 0.9 ? 
+                          "This code is highly explainable and transparent. It includes comprehensive documentation, clear structure, and follows best practices for human auditing." : 
+                        explainabilityScore >= 0.8 ? 
+                          "This code has good explainability with clear documentation and structure. Some minor improvements could further enhance human auditability." :
+                        explainabilityScore >= 0.7 ? 
+                          "This code has moderate explainability. While key components are documented, there are several areas where transparency could be improved." :
+                        explainabilityScore >= 0.6 ? 
+                          "This code has fair explainability but lacks sufficient documentation and clarity in several critical areas that would help human auditors." :
+                          "This code needs significant improvement in explainability. It lacks adequate documentation, clear structure, and transparency for effective human auditing."}
+                      </p>
+                    </div>
                   </div>
                   
                   <Separator />
@@ -326,11 +362,84 @@ export function CodeAnalysisVisualizer({ code, onBack }: CodeAnalysisVisualizerP
                   
                   <Separator />
                   
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    {renderCategoryBadge("Quantum Security", explainabilityScore)}
-                    {renderCategoryBadge("AI Governance", explainabilityScore)}
-                    {renderCategoryBadge("Human Oversight", explainabilityScore)}
-                    {renderCategoryBadge("Interplanetary Comms", explainabilityScore)}
+                  <div>
+                    <h3 className="font-semibold mb-3">Explainability by Category</h3>
+                    <div className="bg-muted/30 rounded-lg p-4 mb-4 text-sm">
+                      <div className="flex items-center gap-2 mb-2">
+                        <BarChart className="h-4 w-4 text-muted-foreground" />
+                        <span className="font-medium">Comparative Analysis</span>
+                      </div>
+                      <p>
+                        This chart compares your code's explainability across key dimensions 
+                        against an ideal benchmark (80% threshold).
+                      </p>
+                    </div>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
+                      {renderCategoryBadge("Quantum Security", explainabilityScore)}
+                      {renderCategoryBadge("AI Governance", explainabilityScore)}
+                      {renderCategoryBadge("Human Oversight", explainabilityScore)}
+                      {renderCategoryBadge("Interplanetary Comms", explainabilityScore)}
+                    </div>
+                    
+                    <div className="mt-6 border rounded-lg p-4">
+                      <h4 className="text-sm font-medium mb-4">Explainability Spider Chart</h4>
+                      <div className="aspect-square relative max-w-xs mx-auto">
+                        {/* This is a placeholder for the radar chart - in a real app, we'd use a charting library */}
+                        <svg viewBox="0 0 200 200" className="w-full h-full">
+                          {/* Background pentagon */}
+                          <polygon 
+                            points="100,10 190,75 155,180 45,180 10,75" 
+                            fill="none" 
+                            stroke="#e5e7eb" 
+                            strokeWidth="1"
+                          />
+                          <polygon 
+                            points="100,50 150,90 130,150 70,150 50,90" 
+                            fill="none" 
+                            stroke="#e5e7eb" 
+                            strokeWidth="1"
+                          />
+                          <polygon 
+                            points="100,80 125,100 115,130 85,130 75,100" 
+                            fill="none" 
+                            stroke="#e5e7eb"
+                            strokeWidth="1" 
+                          />
+                          
+                          {/* Categories labels */}
+                          <text x="100" y="5" textAnchor="middle" fontSize="8" fill="currentColor">Quantum Security</text>
+                          <text x="195" y="75" textAnchor="start" fontSize="8" fill="currentColor">AI Governance</text>
+                          <text x="160" y="185" textAnchor="middle" fontSize="8" fill="currentColor">Human Oversight</text>
+                          <text x="40" y="185" textAnchor="middle" fontSize="8" fill="currentColor">Interplanetary Comms</text>
+                          <text x="5" y="75" textAnchor="end" fontSize="8" fill="currentColor">Code Structure</text>
+                          
+                          {/* Actual score polygon */}
+                          <polygon 
+                            points={`
+                              100,${10 + (1 - explainabilityScore) * 80}
+                              ${190 - (1 - explainabilityScore) * 80},${75 + (1 - explainabilityScore) * 15}
+                              ${155 - (1 - explainabilityScore) * 50},${180 - (1 - explainabilityScore) * 50}
+                              ${45 + (1 - explainabilityScore) * 50},${180 - (1 - explainabilityScore) * 50}
+                              ${10 + (1 - explainabilityScore) * 80},${75 + (1 - explainabilityScore) * 15}
+                            `}
+                            fill="rgba(59, 130, 246, 0.2)"
+                            stroke="#3b82f6"
+                            strokeWidth="2"
+                          />
+                          
+                          {/* Benchmark (80%) polygon */}
+                          <polygon 
+                            points="100,26 174,75 146,164 54,164 26,75"
+                            fill="none"
+                            stroke="#10b981"
+                            strokeWidth="1"
+                            strokeDasharray="2"
+                          />
+                          
+                          <text x="100" y="100" textAnchor="middle" fontSize="8" fill="#10b981">80% Benchmark</text>
+                        </svg>
+                      </div>
+                    </div>
                   </div>
                   
                   {explainabilityFactors.length > 0 && (
