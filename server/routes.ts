@@ -45,7 +45,15 @@ import passport from "passport";
 import { Strategy as LocalStrategy } from "passport-local";
 import { Strategy as GitHubStrategy } from "passport-github2";
 import MemoryStore from "memorystore";
-import { initGitHubService } from "./github-service";
+import { 
+  initGitHubService,
+  getUserRepositories,
+  getRepositoryContents,
+  getFileContent,
+  setupRepositoryWebhook,
+  findSingularisFiles,
+  analyzeRepository
+} from "./github-service";
 
 const SessionStore = MemoryStore(session);
 
@@ -701,6 +709,230 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       return res.status(500).json({ 
         message: "Failed to retrieve project",
+        error: error instanceof Error ? error.message : String(error)
+      });
+    }
+  });
+  
+  // GitHub Repository Integration Routes
+  
+  // Get user's GitHub repositories
+  app.get("/api/github/repositories", async (req: Request, res: Response) => {
+    if (!req.isAuthenticated() || !req.user) {
+      return res.status(401).json({ message: "Not authenticated" });
+    }
+    
+    try {
+      // Check if GitHub is initialized
+      if (!initGitHubService()) {
+        return res.status(503).json({ 
+          message: "GitHub service is not available. Please configure GitHub OAuth credentials."
+        });
+      }
+      
+      const repositories = await getUserRepositories(req);
+      
+      return res.json(repositories);
+    } catch (error) {
+      console.error("Error retrieving GitHub repositories:", error);
+      return res.status(500).json({ 
+        message: "Failed to retrieve GitHub repositories",
+        error: error instanceof Error ? error.message : String(error)
+      });
+    }
+  });
+  
+  // Get repository contents
+  app.get("/api/github/repositories/:owner/:repo/contents", async (req: Request, res: Response) => {
+    if (!req.isAuthenticated() || !req.user) {
+      return res.status(401).json({ message: "Not authenticated" });
+    }
+    
+    try {
+      const { owner, repo } = req.params;
+      const path = req.query.path as string || "";
+      
+      if (!owner || !repo) {
+        return res.status(400).json({ message: "Repository owner and name are required" });
+      }
+      
+      // Check if GitHub is initialized
+      if (!initGitHubService()) {
+        return res.status(503).json({ 
+          message: "GitHub service is not available. Please configure GitHub OAuth credentials."
+        });
+      }
+      
+      const contents = await getRepositoryContents(req, owner, repo, path);
+      
+      return res.json(contents);
+    } catch (error) {
+      console.error("Error retrieving repository contents:", error);
+      return res.status(500).json({ 
+        message: "Failed to retrieve repository contents",
+        error: error instanceof Error ? error.message : String(error)
+      });
+    }
+  });
+  
+  // Get file content
+  app.get("/api/github/repositories/:owner/:repo/content/:path(*)", async (req: Request, res: Response) => {
+    if (!req.isAuthenticated() || !req.user) {
+      return res.status(401).json({ message: "Not authenticated" });
+    }
+    
+    try {
+      const { owner, repo, path } = req.params;
+      
+      if (!owner || !repo || !path) {
+        return res.status(400).json({ message: "Repository owner, name, and file path are required" });
+      }
+      
+      // Check if GitHub is initialized
+      if (!initGitHubService()) {
+        return res.status(503).json({ 
+          message: "GitHub service is not available. Please configure GitHub OAuth credentials."
+        });
+      }
+      
+      const content = await getFileContent(req, owner, repo, path);
+      
+      return res.json(content);
+    } catch (error) {
+      console.error("Error retrieving file content:", error);
+      return res.status(500).json({ 
+        message: "Failed to retrieve file content",
+        error: error instanceof Error ? error.message : String(error)
+      });
+    }
+  });
+  
+  // Find SINGULARIS PRIME code files in repository
+  app.get("/api/github/repositories/:owner/:repo/singularis-files", async (req: Request, res: Response) => {
+    if (!req.isAuthenticated() || !req.user) {
+      return res.status(401).json({ message: "Not authenticated" });
+    }
+    
+    try {
+      const { owner, repo } = req.params;
+      
+      if (!owner || !repo) {
+        return res.status(400).json({ message: "Repository owner and name are required" });
+      }
+      
+      // Check if GitHub is initialized
+      if (!initGitHubService()) {
+        return res.status(503).json({ 
+          message: "GitHub service is not available. Please configure GitHub OAuth credentials."
+        });
+      }
+      
+      const files = await findSingularisFiles(req, owner, repo);
+      
+      return res.json(files);
+    } catch (error) {
+      console.error("Error finding SINGULARIS PRIME files:", error);
+      return res.status(500).json({ 
+        message: "Failed to find SINGULARIS PRIME files",
+        error: error instanceof Error ? error.message : String(error)
+      });
+    }
+  });
+  
+  // Analyze repository for CI/CD
+  app.post("/api/github/repositories/:owner/:repo/analyze", async (req: Request, res: Response) => {
+    if (!req.isAuthenticated() || !req.user) {
+      return res.status(401).json({ message: "Not authenticated" });
+    }
+    
+    try {
+      const { owner, repo } = req.params;
+      
+      if (!owner || !repo) {
+        return res.status(400).json({ message: "Repository owner and name are required" });
+      }
+      
+      // Check if GitHub is initialized
+      if (!initGitHubService()) {
+        return res.status(503).json({ 
+          message: "GitHub service is not available. Please configure GitHub OAuth credentials."
+        });
+      }
+      
+      const analysis = await analyzeRepository(req, owner, repo);
+      
+      // Store the analysis results in the database
+      const user = req.user as User;
+      const now = new Date().toISOString();
+      
+      // First, find or create the GitHub repository record
+      let repository = await storage.getGitHubRepositories(user.id)
+        .then(repos => repos.find(r => r.fullName === `${owner}/${repo}`));
+      
+      if (!repository) {
+        repository = await storage.createGitHubRepository({
+          userId: user.id,
+          name: repo,
+          fullName: `${owner}/${repo}`,
+          owner: owner,
+          description: analysis.repository.description || "",
+          url: analysis.repository.html_url,
+          createdAt: now
+        });
+      }
+      
+      // Then, store the CI/CD analysis
+      const cicdAnalysis = await storage.createCICDAnalysis({
+        repositoryId: repository.id,
+        explainabilityScore: analysis.explainability.score.toString(),
+        securityScore: analysis.security.score.toString(),
+        governanceScore: analysis.governance.score.toString(),
+        vulnerabilities: analysis.security.vulnerabilities,
+        findings: JSON.stringify(analysis.findings),
+        recommendations: JSON.stringify(analysis.recommendations),
+        timestamp: now
+      });
+      
+      return res.json({
+        analysis,
+        cicdAnalysis
+      });
+    } catch (error) {
+      console.error("Error analyzing repository:", error);
+      return res.status(500).json({ 
+        message: "Failed to analyze repository",
+        error: error instanceof Error ? error.message : String(error)
+      });
+    }
+  });
+  
+  // Setup webhook for repository
+  app.post("/api/github/repositories/:owner/:repo/webhook", async (req: Request, res: Response) => {
+    if (!req.isAuthenticated() || !req.user) {
+      return res.status(401).json({ message: "Not authenticated" });
+    }
+    
+    try {
+      const { owner, repo } = req.params;
+      
+      if (!owner || !repo) {
+        return res.status(400).json({ message: "Repository owner and name are required" });
+      }
+      
+      // Check if GitHub is initialized
+      if (!initGitHubService()) {
+        return res.status(503).json({ 
+          message: "GitHub service is not available. Please configure GitHub OAuth credentials."
+        });
+      }
+      
+      const webhook = await setupRepositoryWebhook(req, owner, repo);
+      
+      return res.json(webhook);
+    } catch (error) {
+      console.error("Error setting up webhook:", error);
+      return res.status(500).json({ 
+        message: "Failed to set up webhook",
         error: error instanceof Error ? error.message : String(error)
       });
     }
