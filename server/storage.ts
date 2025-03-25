@@ -4,7 +4,9 @@ import {
   singularisFiles, type File, type InsertFile,
   quantumSimulations, type QuantumSimulation, type InsertQuantumSimulation,
   aiNegotiations, type AINegotiation, type InsertAINegotiation,
-  notificationLogs, type NotificationLog, type InsertNotificationLog
+  notificationLogs, type NotificationLog, type InsertNotificationLog,
+  githubRepositories, type GithubRepository, type InsertGithubRepository,
+  cicdAnalyses, type CICDAnalysis, type InsertCICDAnalysis
 } from "@shared/schema";
 import { db } from "./db";
 import { eq } from "drizzle-orm";
@@ -21,6 +23,13 @@ export interface IStorage {
   getUserByUsername(username: string): Promise<User | undefined>;
   createUser(user: InsertUser): Promise<User>;
   updateUserProfile(id: number, updates: Partial<User>): Promise<User | undefined>;
+  updateUserGitHubToken(id: number, githubData: {
+    githubId: string;
+    githubUsername: string;
+    githubAccessToken: string;
+    githubRefreshToken?: string;
+    githubTokenExpiry?: Date;
+  }): Promise<User | undefined>;
 
   // Project operations
   getProject(id: number): Promise<Project | undefined>;
@@ -42,6 +51,18 @@ export interface IStorage {
   // Email notification operations
   createNotificationLog(notification: InsertNotificationLog): Promise<NotificationLog>;
   getNotificationLogs(userId: number): Promise<NotificationLog[]>;
+  
+  // GitHub repository operations
+  getGitHubRepositories(userId: number): Promise<GithubRepository[]>;
+  getGitHubRepository(id: number): Promise<GithubRepository | undefined>;
+  createGitHubRepository(repository: InsertGithubRepository & { createdAt: string }): Promise<GithubRepository>;
+  updateGitHubRepository(id: number, updates: Partial<GithubRepository>): Promise<GithubRepository | undefined>;
+  
+  // CI/CD analysis operations 
+  getCICDAnalyses(repositoryId: number): Promise<CICDAnalysis[]>;
+  getCICDAnalysis(id: number): Promise<CICDAnalysis | undefined>;
+  createCICDAnalysis(analysis: InsertCICDAnalysis): Promise<CICDAnalysis>;
+  updateCICDAnalysis(id: number, updates: Partial<CICDAnalysis>): Promise<CICDAnalysis | undefined>;
 }
 
 export class MemStorage implements IStorage {
@@ -51,12 +72,16 @@ export class MemStorage implements IStorage {
   private quantumSimulations: Map<number, QuantumSimulation>;
   private aiNegotiations: Map<number, AINegotiation>;
   private notificationLogs: Map<number, NotificationLog>;
+  private githubRepositories: Map<number, GithubRepository>;
+  private cicdAnalyses: Map<number, CICDAnalysis>;
   private userIdCounter: number;
   private projectIdCounter: number;
   private fileIdCounter: number;
   private simulationIdCounter: number;
   private negotiationIdCounter: number;
   private notificationIdCounter: number;
+  private repositoryIdCounter: number;
+  private analysisIdCounter: number;
   public sessionStore: session.Store;
 
   constructor() {
@@ -66,12 +91,16 @@ export class MemStorage implements IStorage {
     this.quantumSimulations = new Map();
     this.aiNegotiations = new Map();
     this.notificationLogs = new Map();
+    this.githubRepositories = new Map();
+    this.cicdAnalyses = new Map();
     this.userIdCounter = 1;
     this.projectIdCounter = 1;
     this.fileIdCounter = 1;
     this.simulationIdCounter = 1;
     this.negotiationIdCounter = 1;
     this.notificationIdCounter = 1;
+    this.repositoryIdCounter = 1;
+    this.analysisIdCounter = 1;
     
     const MemoryStore = require('memorystore')(session);
     this.sessionStore = new MemoryStore({
@@ -109,7 +138,13 @@ export class MemStorage implements IStorage {
       emailVerified: false,
       emailNotifications: true,
       profilePicture: insertUser.profilePicture || null,
-      lastNotificationSent: null
+      lastNotificationSent: null,
+      // GitHub fields
+      githubId: null,
+      githubUsername: null,
+      githubAccessToken: null,
+      githubRefreshToken: null,
+      githubTokenExpiry: null
     };
     this.users.set(id, user);
     return user;
@@ -230,6 +265,126 @@ export class MemStorage implements IStorage {
     return Array.from(this.notificationLogs.values()).filter(
       log => log.userId === userId
     );
+  }
+  
+  // GitHub user operations
+  async updateUserGitHubToken(id: number, githubData: {
+    githubId: string;
+    githubUsername: string;
+    githubAccessToken: string;
+    githubRefreshToken?: string;
+    githubTokenExpiry?: Date;
+  }): Promise<User | undefined> {
+    const user = this.users.get(id);
+    if (!user) return undefined;
+    
+    const updatedUser = { 
+      ...user, 
+      githubId: githubData.githubId,
+      githubUsername: githubData.githubUsername,
+      githubAccessToken: githubData.githubAccessToken,
+      githubRefreshToken: githubData.githubRefreshToken || null,
+      githubTokenExpiry: githubData.githubTokenExpiry || null,
+      lastActive: new Date().toISOString() 
+    };
+    
+    this.users.set(id, updatedUser);
+    return updatedUser;
+  }
+  
+  // GitHub repository operations
+  async getGitHubRepositories(userId: number): Promise<GithubRepository[]> {
+    return Array.from(this.githubRepositories.values()).filter(
+      repo => repo.userId === userId
+    );
+  }
+  
+  async getGitHubRepository(id: number): Promise<GithubRepository | undefined> {
+    return this.githubRepositories.get(id);
+  }
+  
+  async createGitHubRepository(repository: InsertGithubRepository & { createdAt: string }): Promise<GithubRepository> {
+    const id = this.repositoryIdCounter++;
+    const now = new Date();
+    
+    const newRepository: GithubRepository = {
+      id,
+      userId: repository.userId === undefined ? null : repository.userId,
+      githubId: repository.githubId,
+      name: repository.name,
+      fullName: repository.fullName,
+      description: repository.description || null,
+      htmlUrl: repository.htmlUrl,
+      defaultBranch: repository.defaultBranch,
+      ownerLogin: repository.ownerLogin,
+      ownerAvatarUrl: repository.ownerAvatarUrl || null,
+      createdAt: repository.createdAt,
+      connectedAt: now,
+      lastAnalyzedAt: null,
+      explainabilityScore: null,
+      securityScore: null,
+      governanceScore: null,
+      webhookId: null,
+      webhookSecret: null
+    };
+    
+    this.githubRepositories.set(id, newRepository);
+    return newRepository;
+  }
+  
+  async updateGitHubRepository(id: number, updates: Partial<GithubRepository>): Promise<GithubRepository | undefined> {
+    const repository = this.githubRepositories.get(id);
+    if (!repository) return undefined;
+    
+    const updatedRepository = { ...repository, ...updates };
+    this.githubRepositories.set(id, updatedRepository);
+    return updatedRepository;
+  }
+  
+  // CI/CD analysis operations
+  async getCICDAnalyses(repositoryId: number): Promise<CICDAnalysis[]> {
+    return Array.from(this.cicdAnalyses.values()).filter(
+      analysis => analysis.repositoryId === repositoryId
+    );
+  }
+  
+  async getCICDAnalysis(id: number): Promise<CICDAnalysis | undefined> {
+    return this.cicdAnalyses.get(id);
+  }
+  
+  async createCICDAnalysis(analysis: InsertCICDAnalysis): Promise<CICDAnalysis> {
+    const id = this.analysisIdCounter++;
+    const now = new Date();
+    
+    const newAnalysis: CICDAnalysis = {
+      id,
+      repositoryId: analysis.repositoryId === undefined ? null : analysis.repositoryId,
+      status: analysis.status,
+      branchName: analysis.branchName,
+      commitSha: analysis.commitSha,
+      explainabilityScore: null,
+      explainabilityFactors: [],
+      securityScore: null,
+      securityVulnerabilities: null,
+      governanceScore: null,
+      governanceCompliant: null,
+      humanOversight: null,
+      createdAt: now,
+      completedAt: null,
+      errorMessage: null
+    };
+    
+    this.cicdAnalyses.set(id, newAnalysis);
+    return newAnalysis;
+  }
+  
+  async updateCICDAnalysis(id: number, updates: Partial<CICDAnalysis>): Promise<CICDAnalysis | undefined> {
+    const analysis = this.cicdAnalyses.get(id);
+    if (!analysis) return undefined;
+    
+    const updatedAnalysis = { ...analysis, ...updates };
+    this.cicdAnalyses.set(id, updatedAnalysis);
+    return updatedAnalysis;
   }
 }
 
@@ -353,6 +508,100 @@ export class DatabaseStorage implements IStorage {
 
   async getNotificationLogs(userId: number): Promise<NotificationLog[]> {
     return await db.select().from(notificationLogs).where(eq(notificationLogs.userId, userId));
+  }
+  
+  // GitHub user operations
+  async updateUserGitHubToken(id: number, githubData: {
+    githubId: string;
+    githubUsername: string;
+    githubAccessToken: string;
+    githubRefreshToken?: string;
+    githubTokenExpiry?: Date;
+  }): Promise<User | undefined> {
+    const now = new Date().toISOString();
+    const [user] = await db.update(users)
+      .set({
+        githubId: githubData.githubId,
+        githubUsername: githubData.githubUsername,
+        githubAccessToken: githubData.githubAccessToken,
+        githubRefreshToken: githubData.githubRefreshToken || null,
+        githubTokenExpiry: githubData.githubTokenExpiry || null,
+        lastActive: now
+      })
+      .where(eq(users.id, id))
+      .returning();
+    return user;
+  }
+  
+  // GitHub repository operations
+  async getGitHubRepositories(userId: number): Promise<GithubRepository[]> {
+    return await db.select().from(githubRepositories).where(eq(githubRepositories.userId, userId));
+  }
+  
+  async getGitHubRepository(id: number): Promise<GithubRepository | undefined> {
+    const [repository] = await db.select().from(githubRepositories).where(eq(githubRepositories.id, id));
+    return repository;
+  }
+  
+  async createGitHubRepository(repository: InsertGithubRepository & { createdAt: string }): Promise<GithubRepository> {
+    const now = new Date();
+    const [newRepository] = await db.insert(githubRepositories).values({
+      ...repository,
+      description: repository.description || null,
+      ownerAvatarUrl: repository.ownerAvatarUrl || null,
+      connectedAt: now,
+      lastAnalyzedAt: null,
+      explainabilityScore: null,
+      securityScore: null,
+      governanceScore: null,
+      webhookId: null,
+      webhookSecret: null
+    }).returning();
+    return newRepository;
+  }
+  
+  async updateGitHubRepository(id: number, updates: Partial<GithubRepository>): Promise<GithubRepository | undefined> {
+    const [updatedRepository] = await db.update(githubRepositories)
+      .set(updates)
+      .where(eq(githubRepositories.id, id))
+      .returning();
+    return updatedRepository;
+  }
+  
+  // CI/CD analysis operations
+  async getCICDAnalyses(repositoryId: number): Promise<CICDAnalysis[]> {
+    return await db.select().from(cicdAnalyses).where(eq(cicdAnalyses.repositoryId, repositoryId));
+  }
+  
+  async getCICDAnalysis(id: number): Promise<CICDAnalysis | undefined> {
+    const [analysis] = await db.select().from(cicdAnalyses).where(eq(cicdAnalyses.id, id));
+    return analysis;
+  }
+  
+  async createCICDAnalysis(analysis: InsertCICDAnalysis): Promise<CICDAnalysis> {
+    const now = new Date();
+    const [newAnalysis] = await db.insert(cicdAnalyses).values({
+      ...analysis,
+      explainabilityScore: null,
+      explainabilityFactors: [],
+      securityScore: null,
+      securityVulnerabilities: null,
+      governanceScore: null,
+      governanceCompliant: null,
+      humanOversight: null,
+      createdAt: now,
+      completedAt: null,
+      errorMessage: null
+    }).returning();
+    return newAnalysis;
+  }
+  
+  async updateCICDAnalysis(id: number, updates: Partial<CICDAnalysis>): Promise<CICDAnalysis | undefined> {
+    const [updatedAnalysis] = await db.update(cicdAnalyses)
+      .set(updates)
+      .where(eq(cicdAnalyses.id, id))
+      .returning();
+    return updatedAnalysis;
   }
 }
 
