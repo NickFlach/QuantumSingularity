@@ -1228,6 +1228,65 @@ export async function registerRoutes(app: Express): Promise<Server> {
       });
     }
   });
+  
+  // GitHub Settings endpoints
+  
+  // Save GitHub settings
+  app.post("/api/settings/github", async (req: Request, res: Response) => {
+    try {
+      const { clientId, clientSecret, callbackUrl } = req.body;
+      
+      if (!clientId || !clientSecret || !callbackUrl) {
+        return res.status(400).json({ message: "Client ID, Client Secret, and Callback URL are required" });
+      }
+      
+      // In a production app, we would store these securely in a database
+      // For this demo, we'll use environment variables
+      
+      // Set the environment variables for the current session
+      process.env.GITHUB_CLIENT_ID = clientId;
+      process.env.GITHUB_CLIENT_SECRET = clientSecret;
+      process.env.GITHUB_CALLBACK_URL = callbackUrl;
+      
+      // Re-initialize the GitHub service
+      const initialized = initGitHubService();
+      
+      return res.json({ 
+        success: initialized,
+        message: initialized
+          ? "GitHub integration configured successfully"
+          : "GitHub configuration saved but service initialization failed"
+      });
+    } catch (error) {
+      console.error("Failed to save GitHub settings:", error);
+      return res.status(500).json({ 
+        message: "Failed to save GitHub settings",
+        error: error instanceof Error ? error.message : String(error)
+      });
+    }
+  });
+  
+  // Check GitHub configuration status
+  app.get("/api/settings/github/status", async (req: Request, res: Response) => {
+    try {
+      const clientId = process.env.GITHUB_CLIENT_ID;
+      const clientSecret = process.env.GITHUB_CLIENT_SECRET;
+      const callbackUrl = process.env.GITHUB_CALLBACK_URL;
+      
+      const configured = !!(clientId && clientSecret && callbackUrl);
+      
+      return res.json({
+        configured,
+        callbackUrl: configured ? callbackUrl : null
+      });
+    } catch (error) {
+      console.error("Failed to check GitHub settings:", error);
+      return res.status(500).json({ 
+        message: "Failed to check GitHub settings",
+        error: error instanceof Error ? error.message : String(error)
+      });
+    }
+  });
 
   // Quantum Geometry operations
   

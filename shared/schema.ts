@@ -196,6 +196,7 @@ export const insertGithubRepositorySchema = createInsertSchema(githubRepositorie
   ownerLogin: true,
   ownerAvatarUrl: true,
   createdAt: true,
+  connectedAt: true,
 });
 
 export const insertCICDAnalysisSchema = createInsertSchema(cicdAnalyses).pick({
