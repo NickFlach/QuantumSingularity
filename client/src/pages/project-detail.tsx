@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { useParams, useLocation, Link } from "wouter";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Editor } from "@monaco-editor/react";
-import { ChevronLeft, Save, Play, Code, FileText, Loader2, PlusCircle, Settings, Download } from "lucide-react";
+import { ChevronLeft, Save, Play, Code, FileText, Loader2, PlusCircle, Settings, Download, Atom } from "lucide-react";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { Project, File } from "@shared/schema";
@@ -23,6 +23,7 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 
 import { sampleQuantumCode, sampleAICode, sampleQuantumGeometryCode } from "@/lib/SingularisCompiler";
+import { QuantumIDE } from "@/components/QuantumIDE";
 
 // Define form schema for new file
 const fileSchema = z.object({
@@ -337,98 +338,118 @@ function ProjectDetail() {
           {/* Editor and Console */}
           <div className="col-span-12 lg:col-span-9 space-y-4">
             {activeFile ? (
-              <>
-                <Card>
-                  <CardHeader className="pb-3 flex flex-row items-center justify-between space-y-0">
-                    <div>
-                      <CardTitle className="text-lg">{activeFile.name}</CardTitle>
-                      <CardDescription>
-                        {activeFile.type === 'quantum_circuit' 
-                          ? 'Quantum Circuit Definition' 
-                          : activeFile.type === 'documentation' 
-                            ? 'Project Documentation' 
-                            : 'SINGULARIS PRIME Code'}
-                      </CardDescription>
+              <Tabs defaultValue="basic" className="w-full">
+                <div className="flex justify-between items-center mb-4">
+                  <TabsList>
+                    <TabsTrigger value="basic">Basic Editor</TabsTrigger>
+                    <TabsTrigger value="advanced">Advanced IDE</TabsTrigger>
+                  </TabsList>
+                  <div className="flex items-center gap-2">
+                    <div className="text-sm text-muted-foreground mr-2">
+                      Current File: <span className="font-semibold">{activeFile.name}</span>
                     </div>
-                    <div className="flex space-x-2">
-                      <Button 
-                        variant="outline" 
-                        size="sm"
-                        onClick={handleSaveFile}
-                        disabled={updateFileMutation.isPending}
-                      >
-                        {updateFileMutation.isPending ? (
-                          <>
-                            <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                            Saving...
-                          </>
-                        ) : (
-                          <>
-                            <Save className="h-4 w-4 mr-2" />
-                            Save
-                          </>
-                        )}
-                      </Button>
-                      <Button 
-                        variant="default" 
-                        size="sm"
-                        onClick={handleExecuteCode}
-                        disabled={isExecuting}
-                        className="bg-gradient-to-r from-blue-600 to-purple-600"
-                      >
-                        {isExecuting ? (
-                          <>
-                            <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                            Running...
-                          </>
-                        ) : (
-                          <>
-                            <Play className="h-4 w-4 mr-2" />
-                            Run
-                          </>
-                        )}
-                      </Button>
-                    </div>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="border rounded-md overflow-hidden">
-                      <Editor
-                        height="400px"
-                        language="typescript" // Using TypeScript for syntax highlighting
-                        value={editorContent}
-                        onChange={(value) => setEditorContent(value || "")}
-                        theme="vs-dark"
-                        options={{
-                          minimap: { enabled: false },
-                          scrollBeyondLastLine: false,
-                          fontFamily: 'JetBrains Mono, monospace',
-                          fontSize: 14,
-                          lineNumbers: 'on',
-                        }}
-                      />
-                    </div>
-                  </CardContent>
-                </Card>
+                  </div>
+                </div>
+                
+                <TabsContent value="basic" className="space-y-4">
+                  <Card>
+                    <CardHeader className="pb-3 flex flex-row items-center justify-between space-y-0">
+                      <div>
+                        <CardTitle className="text-lg">{activeFile.name}</CardTitle>
+                        <CardDescription>
+                          {activeFile.type === 'quantum_circuit' 
+                            ? 'Quantum Circuit Definition' 
+                            : activeFile.type === 'documentation' 
+                              ? 'Project Documentation' 
+                              : 'SINGULARIS PRIME Code'}
+                        </CardDescription>
+                      </div>
+                      <div className="flex space-x-2">
+                        <Button 
+                          variant="outline" 
+                          size="sm"
+                          onClick={handleSaveFile}
+                          disabled={updateFileMutation.isPending}
+                        >
+                          {updateFileMutation.isPending ? (
+                            <>
+                              <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                              Saving...
+                            </>
+                          ) : (
+                            <>
+                              <Save className="h-4 w-4 mr-2" />
+                              Save
+                            </>
+                          )}
+                        </Button>
+                        <Button 
+                          variant="default" 
+                          size="sm"
+                          onClick={handleExecuteCode}
+                          disabled={isExecuting}
+                          className="bg-gradient-to-r from-blue-600 to-purple-600"
+                        >
+                          {isExecuting ? (
+                            <>
+                              <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                              Running...
+                            </>
+                          ) : (
+                            <>
+                              <Play className="h-4 w-4 mr-2" />
+                              Run
+                            </>
+                          )}
+                        </Button>
+                      </div>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="border rounded-md overflow-hidden">
+                        <Editor
+                          height="400px"
+                          language="typescript" // Using TypeScript for syntax highlighting
+                          value={editorContent}
+                          onChange={(value) => setEditorContent(value || "")}
+                          theme="vs-dark"
+                          options={{
+                            minimap: { enabled: false },
+                            scrollBeyondLastLine: false,
+                            fontFamily: 'JetBrains Mono, monospace',
+                            fontSize: 14,
+                            lineNumbers: 'on',
+                          }}
+                        />
+                      </div>
+                    </CardContent>
+                  </Card>
 
-                <Card>
-                  <CardHeader className="pb-3">
-                    <CardTitle className="text-lg">Console Output</CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="bg-black rounded-md p-4 font-mono text-sm h-[200px] overflow-y-auto text-white">
-                      {executionResult.length > 0 ? (
-                        executionResult.map((line, index) => (
-                          <div key={index} className={line.startsWith('Error:') ? 'text-red-400' : 'text-green-400'}>
-                            {line}
-                          </div>
-                        ))
-                      ) : (
-                        <div className="text-gray-400 italic">Execute your code to see output here.</div>
-                      )}
-                    </div>
-                  </CardContent>
-                </Card>
-              </>
+                  <Card>
+                    <CardHeader className="pb-3">
+                      <CardTitle className="text-lg">Console Output</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="bg-black rounded-md p-4 font-mono text-sm h-[200px] overflow-y-auto text-white">
+                        {executionResult.length > 0 ? (
+                          executionResult.map((line, index) => (
+                            <div key={index} className={line.startsWith('Error:') ? 'text-red-400' : 'text-green-400'}>
+                              {line}
+                            </div>
+                          ))
+                        ) : (
+                          <div className="text-gray-400 italic">Execute your code to see output here.</div>
+                        )}
+                      </div>
+                    </CardContent>
+                  </Card>
+                </TabsContent>
+                
+                <TabsContent value="advanced" className="h-[calc(100vh-15rem)]">
+                  <div className="w-full h-full border rounded-md overflow-hidden">
+                    <QuantumIDE />
+                  </div>
+                </TabsContent>
+              </Tabs>
             ) : (
               <Card className="h-[600px] flex items-center justify-center">
                 <CardContent className="text-center">
