@@ -255,10 +255,41 @@ ${code}
       systemPrompt: "You are an AI explainability assessment system for the SINGULARIS PRIME language. Respond with valid JSON only."
     });
     
+    // Process various formats of JSON responses
+    let score = result.score !== undefined ? Number(result.score) : 
+                result.explainability_score !== undefined ? Number(result.explainability_score) : 0.7;
+    
+    let analysis = result.analysis || "Analysis not available";
+    
+    // Extract improvements from various possible formats
+    let improvements: string[] = [];
+    
+    if (Array.isArray(result.improvements) && result.improvements.length > 0) {
+      improvements = result.improvements;
+    } else if (Array.isArray(result.suggestedImprovements) && result.suggestedImprovements.length > 0) {
+      improvements = result.suggestedImprovements;
+    } else if (result.suggestions_for_improvement) {
+      // Handle object format
+      if (typeof result.suggestions_for_improvement === 'object') {
+        improvements = Object.values(result.suggestions_for_improvement);
+      }
+    }
+    
+    // Ensure we always have at least some improvement suggestions
+    if (improvements.length === 0) {
+      improvements = [
+        "Add more descriptive comments explaining quantum operations and AI governance mechanisms",
+        "Include explicit documentation for any imported modules or external dependencies",
+        "Provide explanations of complex technical concepts and terminology for non-expert auditors",
+        "Add examples or use cases to illustrate how the code works in practice",
+        "Implement clearer logging and monitoring for critical operations to enhance traceability"
+      ];
+    }
+    
     return {
-      score: result.score !== undefined ? Number(result.score) : 0.7,
-      analysis: result.analysis || "Analysis not available",
-      improvements: result.improvements || []
+      score,
+      analysis,
+      improvements
     };
   } catch (error) {
     console.error("AI explainability evaluation error:", error);
