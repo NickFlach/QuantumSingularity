@@ -43,7 +43,9 @@ import express from "express";
 import session from "express-session";
 import passport from "passport";
 import { Strategy as LocalStrategy } from "passport-local";
+import { Strategy as GitHubStrategy } from "passport-github2";
 import MemoryStore from "memorystore";
+import { initGitHubService } from "./github-service";
 
 const SessionStore = MemoryStore(session);
 
@@ -85,6 +87,63 @@ export function setupAuth(app: Express) {
       return done(error);
     }
   }));
+
+  // Configure GitHub strategy for passport
+  const githubClientId = process.env.GITHUB_CLIENT_ID;
+  const githubClientSecret = process.env.GITHUB_CLIENT_SECRET;
+  const callbackURL = process.env.GITHUB_CALLBACK_URL || 'http://localhost:5000/api/auth/github/callback';
+
+  if (githubClientId && githubClientSecret) {
+    passport.use(new GitHubStrategy({
+      clientID: githubClientId,
+      clientSecret: githubClientSecret,
+      callbackURL: callbackURL,
+      scope: ['repo', 'user:email', 'read:user']
+    },
+    async (accessToken: string, refreshToken: string, profile: any, done: (error: any, user?: any) => void) => {
+      try {
+        // Try to find user by GitHub ID
+        let user = await storage.getUserByUsername(profile.username);
+        
+        // If user exists, update GitHub tokens
+        if (user) {
+          user = await storage.updateUserGitHubToken(user.id, {
+            githubId: profile.id,
+            githubUsername: profile.username,
+            githubAccessToken: accessToken,
+            githubRefreshToken: refreshToken,
+            githubTokenExpiry: refreshToken ? new Date(Date.now() + 30 * 24 * 60 * 60 * 1000) : undefined // 30 days if refresh token exists
+          });
+        } else {
+          // Create new user from GitHub profile
+          user = await storage.createUser({
+            username: profile.username,
+            password: 'github-' + Math.random().toString(36).substring(2, 15), // generate random password
+            email: profile.emails && profile.emails[0] ? profile.emails[0].value : null,
+            profilePicture: profile.photos && profile.photos[0] ? profile.photos[0].value : null,
+            displayName: profile.displayName || profile.username,
+            createdAt: new Date().toISOString(),
+            lastActive: new Date().toISOString()
+          });
+          
+          // Update with GitHub token info
+          user = await storage.updateUserGitHubToken(user.id, {
+            githubId: profile.id,
+            githubUsername: profile.username,
+            githubAccessToken: accessToken,
+            githubRefreshToken: refreshToken,
+            githubTokenExpiry: refreshToken ? new Date(Date.now() + 30 * 24 * 60 * 60 * 1000) : undefined
+          });
+        }
+        
+        return done(null, user);
+      } catch (error) {
+        return done(error as Error);
+      }
+    }));
+  } else {
+    console.warn('GitHub OAuth credentials not found. GitHub authentication will not be available.');
+  }
 
   // Configure passport serialization
   passport.serializeUser((user: any, done) => {
@@ -188,6 +247,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.json({ message: "Logged out successfully" });
     });
   });
+  
+  // GitHub authentication routes
+  app.get("/api/auth/github", passport.authenticate("github", { session: false }));
+  
+  app.get(
+    "/api/auth/github/callback",
+    passport.authenticate("github", { 
+      failureRedirect: "/login",
+      failureMessage: true
+    }),
+    (req: Request, res: Response) => {
+      // Successful authentication, redirect home.
+      res.redirect("/");
+    }
+  );
   
   app.get("/api/auth/me", (req: Request, res: Response) => {
     if (!req.isAuthenticated() || !req.user) {
