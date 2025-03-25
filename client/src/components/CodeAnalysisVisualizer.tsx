@@ -18,7 +18,12 @@ import {
   BarChart,
   FileText,
   Sparkles,
-  Lightbulb
+  Lightbulb,
+  ThumbsUp,
+  ThumbsDown,
+  PlusCircle,
+  MinusCircle,
+  Code
 } from "lucide-react";
 
 interface CodeAnalysisVisualizerProps {
@@ -39,6 +44,20 @@ interface ExplainabilityResult {
     impact: string;
     details: string;
   }[];
+  // New format matching the JSON examples
+  factors_affecting_explainability?: {
+    positive_factors: string[];
+    negative_factors: string[];
+  };
+  suggestedImprovements?: string[];
+  // Alternate naming from different examples
+  explainabilityFactors?: {
+    positiveFactors: string[];
+    negativeFactors: string[];
+  };
+  suggestions_for_improvement?: {
+    [key: string]: string;
+  };
 }
 
 export function CodeAnalysisVisualizer({ code, onBack }: CodeAnalysisVisualizerProps) {
@@ -72,9 +91,50 @@ export function CodeAnalysisVisualizer({ code, onBack }: CodeAnalysisVisualizerP
       setExplainabilityAnalysis(explainabilityResult.analysis);
       setImprovementSuggestions(explainabilityResult.improvements);
       
-      // Set factors if they exist
+      // Process factors based on which format is available
       if (explainabilityResult.factors) {
         setExplainabilityFactors(explainabilityResult.factors);
+      } else if (explainabilityResult.factors_affecting_explainability) {
+        // Convert the new format to the display format
+        const positiveFactors = explainabilityResult.factors_affecting_explainability.positive_factors.map(factor => ({
+          factor: factor,
+          impact: 'positive',
+          details: factor
+        }));
+        
+        const negativeFactors = explainabilityResult.factors_affecting_explainability.negative_factors.map(factor => ({
+          factor: factor,
+          impact: 'negative',
+          details: factor
+        }));
+        
+        setExplainabilityFactors([...positiveFactors, ...negativeFactors]);
+      } else if (explainabilityResult.explainabilityFactors) {
+        // Handle alternate format
+        const positiveFactors = explainabilityResult.explainabilityFactors.positiveFactors.map(factor => ({
+          factor: factor,
+          impact: 'positive',
+          details: factor
+        }));
+        
+        const negativeFactors = explainabilityResult.explainabilityFactors.negativeFactors.map(factor => ({
+          factor: factor,
+          impact: 'negative',
+          details: factor
+        }));
+        
+        setExplainabilityFactors([...positiveFactors, ...negativeFactors]);
+      }
+      
+      // Process improvement suggestions if the newer format is used
+      if (explainabilityResult.suggestedImprovements && explainabilityResult.suggestedImprovements.length > 0) {
+        setImprovementSuggestions(explainabilityResult.suggestedImprovements);
+      } else if (explainabilityResult.suggestions_for_improvement) {
+        // Convert object format to array
+        const suggestions = Object.values(explainabilityResult.suggestions_for_improvement);
+        if (suggestions.length > 0) {
+          setImprovementSuggestions(suggestions);
+        }
       }
       
       toast({
@@ -278,18 +338,41 @@ export function CodeAnalysisVisualizer({ code, onBack }: CodeAnalysisVisualizerP
                       <Separator className="my-4" />
                       <div>
                         <h3 className="font-semibold mb-3">Factors Affecting Explainability</h3>
-                        <div className="space-y-4">
-                          {explainabilityFactors.map((factor, index) => (
-                            <div key={index} className="border rounded-md p-4">
-                              <div className="flex items-center gap-2 mb-2">
-                                <span className="font-medium">{factor.factor}</span>
-                                <Badge className={factor.impact === 'positive' ? 'bg-green-500' : factor.impact === 'negative' ? 'bg-red-500' : 'bg-blue-500'}>
-                                  {factor.impact.charAt(0).toUpperCase() + factor.impact.slice(1)}
-                                </Badge>
-                              </div>
-                              <p className="text-sm">{factor.details}</p>
+                        <div className="grid grid-cols-1 gap-4">
+                          {/* Group factors by positive/negative impact */}
+                          <div className="border rounded-md p-4 bg-green-50 dark:bg-green-950">
+                            <h4 className="text-sm font-medium flex items-center mb-3">
+                              <ThumbsUp className="h-4 w-4 mr-2 text-green-500" />
+                              Positive Factors
+                            </h4>
+                            <div className="space-y-3">
+                              {explainabilityFactors
+                                .filter(f => f.impact === 'positive')
+                                .map((factor, index) => (
+                                  <div key={index} className="flex items-start space-x-2 border-b pb-2 last:border-0 last:pb-0">
+                                    <PlusCircle className="h-4 w-4 text-green-500 mt-0.5" />
+                                    <div className="text-sm flex-1">{factor.details}</div>
+                                  </div>
+                              ))}
                             </div>
-                          ))}
+                          </div>
+                          
+                          <div className="border rounded-md p-4 bg-red-50 dark:bg-red-950">
+                            <h4 className="text-sm font-medium flex items-center mb-3">
+                              <ThumbsDown className="h-4 w-4 mr-2 text-red-500" />
+                              Negative Factors
+                            </h4>
+                            <div className="space-y-3">
+                              {explainabilityFactors
+                                .filter(f => f.impact === 'negative')
+                                .map((factor, index) => (
+                                  <div key={index} className="flex items-start space-x-2 border-b pb-2 last:border-0 last:pb-0">
+                                    <MinusCircle className="h-4 w-4 text-red-500 mt-0.5" />
+                                    <div className="text-sm flex-1">{factor.details}</div>
+                                  </div>
+                              ))}
+                            </div>
+                          </div>
                         </div>
                       </div>
                     </>
@@ -304,22 +387,45 @@ export function CodeAnalysisVisualizer({ code, onBack }: CodeAnalysisVisualizerP
             
             <TabsContent value="improvements" className="p-6">
               {improvementSuggestions.length > 0 ? (
-                <div className="space-y-4">
-                  <h3 className="font-semibold">Suggestions to Improve Explainability</h3>
-                  <ul className="space-y-3">
+                <div className="space-y-6">
+                  <div>
+                    <h3 className="font-semibold flex items-center mb-4">
+                      <Lightbulb className="h-5 w-5 mr-2 text-yellow-500" />
+                      Suggestions to Improve Explainability
+                    </h3>
+                    <div className="bg-amber-50 dark:bg-amber-950 border border-amber-200 dark:border-amber-800 rounded-lg p-4 mb-4">
+                      <p className="text-sm text-amber-800 dark:text-amber-300">
+                        Implementing these suggestions will help make your SINGULARIS PRIME code more understandable
+                        to human auditors and improve its governance capabilities.
+                      </p>
+                    </div>
+                  </div>
+                  <div className="divide-y">
                     {improvementSuggestions.map((suggestion, index) => (
-                      <li key={index} className="flex">
-                        <div className="mr-2 mt-1">
-                          <Lightbulb className="h-4 w-4 text-yellow-500" />
+                      <div key={index} className="py-4 first:pt-0 last:pb-0">
+                        <div className="flex items-start">
+                          <div className="mr-3 mt-1 flex-shrink-0">
+                            <span className="flex h-6 w-6 items-center justify-center rounded-full bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-300">
+                              {index + 1}
+                            </span>
+                          </div>
+                          <div>
+                            <p className="text-sm">{suggestion}</p>
+                          </div>
                         </div>
-                        <div className="text-sm">{suggestion}</div>
-                      </li>
+                      </div>
                     ))}
-                  </ul>
+                  </div>
                 </div>
               ) : (
                 <div className="text-center text-muted-foreground p-6">
-                  No improvement suggestions available. Please run analysis first.
+                  <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-muted">
+                    <Lightbulb className="h-6 w-6 text-muted-foreground" />
+                  </div>
+                  <h3 className="mt-4 text-lg font-medium">No improvement suggestions available</h3>
+                  <p className="mt-2 text-sm text-muted-foreground">
+                    Please run analysis first to get improvement suggestions for your code.
+                  </p>
                 </div>
               )}
             </TabsContent>
