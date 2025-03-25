@@ -1,6 +1,7 @@
 import React from "react";
 import { Container } from "@/components/ui/container";
 import AIProviderSettings from "@/components/AIProviderSettings";
+import GitHubIntegrationSettings from "@/components/GitHubIntegrationSettings";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Separator } from "@/components/ui/separator";
 import { Settings as SettingsIcon } from "lucide-react";
@@ -13,18 +14,25 @@ export default function Settings() {
         <h1 className="text-3xl font-bold">Settings</h1>
       </div>
       <p className="text-muted-foreground mb-8">
-        Configure SINGULARIS PRIME language settings and AI providers
+        Configure SINGULARIS PRIME language settings, AI providers, and integrations
       </p>
 
       <Tabs defaultValue="ai" className="w-full">
         <TabsList className="mb-8">
           <TabsTrigger value="ai">AI Providers</TabsTrigger>
+          <TabsTrigger value="integrations">Integrations</TabsTrigger>
           <TabsTrigger value="language">Language Settings</TabsTrigger>
           <TabsTrigger value="quantum">Quantum Settings</TabsTrigger>
         </TabsList>
         
         <TabsContent value="ai" className="mt-0">
           <AIProviderSettings />
+        </TabsContent>
+        
+        <TabsContent value="integrations" className="mt-0">
+          <div className="space-y-8">
+            <GitHubIntegrationSettings />
+          </div>
         </TabsContent>
         
         <TabsContent value="language" className="mt-0">
