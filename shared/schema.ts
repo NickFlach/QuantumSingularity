@@ -20,6 +20,12 @@ export const users = pgTable("users", {
   createdAt: text("created_at"),
   lastActive: text("last_active"),
   lastNotificationSent: timestamp("last_notification_sent"),
+  // GitHub integration fields
+  githubId: text("github_id"),
+  githubUsername: text("github_username"),
+  githubAccessToken: text("github_access_token"),
+  githubRefreshToken: text("github_refresh_token"),
+  githubTokenExpiry: timestamp("github_token_expiry"),
 });
 
 export const singularisProjects = pgTable("singularis_projects", {
@@ -60,6 +66,47 @@ export const aiNegotiations = pgTable("ai_negotiations", {
   explainabilityScore: text("explainability_score").notNull(),
   successful: boolean("successful").notNull(),
   createdAt: text("created_at").notNull(),
+});
+
+// GitHub connected repositories
+export const githubRepositories = pgTable("github_repositories", {
+  id: serial("id").primaryKey(),
+  userId: integer("user_id").references(() => users.id),
+  githubId: integer("github_id").notNull(),
+  name: text("name").notNull(),
+  fullName: text("full_name").notNull(),
+  description: text("description"),
+  htmlUrl: text("html_url").notNull(),
+  defaultBranch: text("default_branch").notNull(),
+  ownerLogin: text("owner_login").notNull(),
+  ownerAvatarUrl: text("owner_avatar_url"),
+  createdAt: text("created_at").notNull(),
+  connectedAt: timestamp("connected_at").notNull().defaultNow(),
+  lastAnalyzedAt: timestamp("last_analyzed_at"),
+  explainabilityScore: text("explainability_score"),
+  securityScore: text("security_score"),
+  governanceScore: text("governance_score"),
+  webhookId: text("webhook_id"),
+  webhookSecret: text("webhook_secret"),
+});
+
+// CI/CD analysis results
+export const cicdAnalyses = pgTable("cicd_analyses", {
+  id: serial("id").primaryKey(),
+  repositoryId: integer("repository_id").references(() => githubRepositories.id),
+  branch: text("branch").notNull(),
+  commitSha: text("commit_sha").notNull(),
+  explainabilityScore: text("explainability_score"),
+  explainabilityFactors: jsonb("explainability_factors"),
+  securityScore: text("security_score"),
+  securityVulnerabilities: integer("security_vulnerabilities"),
+  governanceScore: text("governance_score"),
+  governanceCompliant: boolean("governance_compliant"),
+  humanOversight: boolean("human_oversight"),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  completedAt: timestamp("completed_at"),
+  status: text("status").notNull(), // "running", "completed", "failed"
+  errorMessage: text("error_message"),
 });
 
 // Add a notification logs table
@@ -138,6 +185,26 @@ export const insertAINegotiationSchema = createInsertSchema(aiNegotiations).pick
   successful: true,
 });
 
+export const insertGithubRepositorySchema = createInsertSchema(githubRepositories).pick({
+  userId: true,
+  githubId: true,
+  name: true,
+  fullName: true,
+  description: true,
+  htmlUrl: true,
+  defaultBranch: true,
+  ownerLogin: true,
+  ownerAvatarUrl: true,
+  createdAt: true,
+});
+
+export const insertCICDAnalysisSchema = createInsertSchema(cicdAnalyses).pick({
+  repositoryId: true,
+  branch: true,
+  commitSha: true,
+  status: true,
+});
+
 // Types
 export type InsertUser = z.infer<typeof insertUserSchema>;
 export type UpdateUserProfile = z.infer<typeof updateUserProfileSchema>;
@@ -157,3 +224,9 @@ export type AINegotiation = typeof aiNegotiations.$inferSelect;
 
 export type InsertNotificationLog = z.infer<typeof insertNotificationLogSchema>;
 export type NotificationLog = typeof notificationLogs.$inferSelect;
+
+export type InsertGithubRepository = z.infer<typeof insertGithubRepositorySchema>;
+export type GithubRepository = typeof githubRepositories.$inferSelect;
+
+export type InsertCICDAnalysis = z.infer<typeof insertCICDAnalysisSchema>;
+export type CICDAnalysis = typeof cicdAnalyses.$inferSelect;
