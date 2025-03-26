@@ -889,7 +889,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           ownerLogin: repoInfo.owner.login,
           ownerAvatarUrl: repoInfo.owner.avatar_url,
           createdAt: now,
-          connectedAt: new Date().toISOString()
+          connectedAt: new Date()
         });
       }
       

@@ -25,8 +25,10 @@ import {
 } from '@/data/enhancedExampleCode';
 
 export default function CodeAnalysisPage() {
-  const [code, setCode] = useState<string>(exampleAIProtocolsCode);
-  const [activeTab, setActiveTab] = useState<string>("ai-protocols");
+  // Default to enhanced examples for better explainability
+  const [code, setCode] = useState<string>(enhancedAIProtocolsCode);
+  const [activeTab, setActiveTab] = useState<string>("ai-protocols-enhanced");
+  const [useEnhanced, setUseEnhanced] = useState<boolean>(true);
   const { toast } = useToast();
   
   const handleEditorChange = (value: string | undefined) => {
@@ -35,21 +37,40 @@ export default function CodeAnalysisPage() {
     }
   };
   
+  const toggleExampleType = () => {
+    const newState = !useEnhanced;
+    setUseEnhanced(newState);
+    
+    // Reload the current example with the new version (enhanced or basic)
+    const currentExample = activeTab.replace('-enhanced', '').replace('-basic', '');
+    loadExample(currentExample + (newState ? '-enhanced' : '-basic'));
+    
+    toast({
+      title: newState ? "Enhanced Examples Enabled" : "Basic Examples Enabled",
+      description: newState 
+        ? "Using examples with improved documentation and explainability" 
+        : "Using original code examples with basic documentation",
+    });
+  };
+  
   const loadExample = (example: string) => {
-    if (example === "ai-protocols") {
-      setCode(exampleAIProtocolsCode);
-      setActiveTab("ai-protocols");
-    } else if (example === "quantum-ops") {
-      setCode(exampleQuantumOpsCode);
-      setActiveTab("quantum-ops");
-    } else if (example === "quantum-geometry") {
-      setCode(exampleGeometryCode);
-      setActiveTab("quantum-geometry");
+    const isEnhanced = example.includes('-enhanced');
+    const baseExample = example.replace('-enhanced', '').replace('-basic', '');
+    
+    if (baseExample === "ai-protocols") {
+      setCode(isEnhanced ? enhancedAIProtocolsCode : exampleAIProtocolsCode);
+    } else if (baseExample === "quantum-ops") {
+      setCode(isEnhanced ? enhancedQuantumOpsCode : exampleQuantumOpsCode);
+    } else if (baseExample === "quantum-geometry") {
+      setCode(isEnhanced ? enhancedGeometryCode : exampleGeometryCode);
     }
     
+    setActiveTab(example);
+    setUseEnhanced(isEnhanced);
+    
     let description = "AI Protocols";
-    if (example === "quantum-ops") description = "Quantum Operations";
-    if (example === "quantum-geometry") description = "Quantum Geometry";
+    if (baseExample === "quantum-ops") description = "Quantum Operations";
+    if (baseExample === "quantum-geometry") description = "Quantum Geometry";
     
     toast({
       title: "Example Loaded",
@@ -80,29 +101,61 @@ export default function CodeAnalysisPage() {
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <div className="flex flex-wrap gap-4">
-            <Button 
-              variant={activeTab === "ai-protocols" ? "default" : "outline"}
-              onClick={() => loadExample("ai-protocols")}
-            >
-              <Brain className="h-4 w-4 mr-2" />
-              AI Protocols Example
-            </Button>
-            <Button 
-              variant={activeTab === "quantum-ops" ? "default" : "outline"}
-              onClick={() => loadExample("quantum-ops")}
-            >
-              <Code className="h-4 w-4 mr-2" />
-              Quantum Operations Example
-            </Button>
-            <Button 
-              variant={activeTab === "quantum-geometry" ? "default" : "outline"}
-              onClick={() => loadExample("quantum-geometry")}
-            >
-              <Globe className="h-4 w-4 mr-2" />
-              Quantum Geometry Example
-            </Button>
+          <div className="flex justify-between items-center mb-4">
+            <div className="flex flex-wrap gap-4">
+              <Button 
+                variant={activeTab.includes("ai-protocols") ? "default" : "outline"}
+                onClick={() => loadExample(useEnhanced ? "ai-protocols-enhanced" : "ai-protocols-basic")}
+              >
+                <Brain className="h-4 w-4 mr-2" />
+                AI Protocols
+              </Button>
+              <Button 
+                variant={activeTab.includes("quantum-ops") ? "default" : "outline"}
+                onClick={() => loadExample(useEnhanced ? "quantum-ops-enhanced" : "quantum-ops-basic")}
+              >
+                <Code className="h-4 w-4 mr-2" />
+                Quantum Operations
+              </Button>
+              <Button 
+                variant={activeTab.includes("quantum-geometry") ? "default" : "outline"}
+                onClick={() => loadExample(useEnhanced ? "quantum-geometry-enhanced" : "quantum-geometry-basic")}
+              >
+                <Globe className="h-4 w-4 mr-2" />
+                Quantum Geometry
+              </Button>
+            </div>
+            
+            <div className="flex items-center space-x-2">
+              <Button variant="ghost" size="sm" onClick={toggleExampleType} className="flex items-center gap-2">
+                {useEnhanced ? (
+                  <>
+                    <Lightbulb className="h-4 w-4 text-yellow-500" />
+                    <span className="text-xs">Using Enhanced Examples</span>
+                  </>
+                ) : (
+                  <>
+                    <AlertTriangle className="h-4 w-4 text-gray-400" />
+                    <span className="text-xs">Using Basic Examples</span>
+                  </>
+                )}
+              </Button>
+            </div>
           </div>
+          
+          {useEnhanced && (
+            <div className="bg-green-50 dark:bg-green-950 border border-green-200 dark:border-green-800 rounded-md p-3 mb-4">
+              <div className="flex items-start">
+                <Info className="h-5 w-5 text-green-600 dark:text-green-400 mt-0.5 mr-2" />
+                <div>
+                  <h4 className="font-medium text-sm text-green-800 dark:text-green-300">Enhanced Code Examples</h4>
+                  <p className="text-xs text-green-700 dark:text-green-400 mt-1">
+                    These examples include detailed documentation, descriptive comments, and comprehensive explanations of technical concepts to improve explainability.
+                  </p>
+                </div>
+              </div>
+            </div>
+          )}
         </CardContent>
       </Card>
       
