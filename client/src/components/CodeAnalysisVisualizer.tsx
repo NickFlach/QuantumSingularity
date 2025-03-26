@@ -55,7 +55,7 @@ interface ExplainabilityResult {
     positiveFactors: string[];
     negativeFactors: string[];
   };
-  suggestions_for_improvement?: Record<string, string> | string[];
+  suggestions_for_improvement?: Record<string, string | { suggestion?: string; description?: string }> | Array<string | { suggestion?: string; description?: string }>;
 }
 
 export function CodeAnalysisVisualizer({ code, onBack }: CodeAnalysisVisualizerProps) {
@@ -136,7 +136,7 @@ export function CodeAnalysisVisualizer({ code, onBack }: CodeAnalysisVisualizerP
           suggestions = explainabilityResult.suggestions_for_improvement.map(item => 
             typeof item === 'string' ? item : 
             typeof item === 'object' && item !== null ? 
-              (item.suggestion || item.description || JSON.stringify(item)) : 
+              ((item as any).suggestion || (item as any).description || JSON.stringify(item)) : 
               String(item)
           );
         } else {
@@ -144,7 +144,7 @@ export function CodeAnalysisVisualizer({ code, onBack }: CodeAnalysisVisualizerP
           suggestions = Object.values(explainabilityResult.suggestions_for_improvement).map(item => 
             typeof item === 'string' ? item : 
             typeof item === 'object' && item !== null ? 
-              (item.suggestion || item.description || JSON.stringify(item)) : 
+              ((item as any).suggestion || (item as any).description || JSON.stringify(item)) : 
               String(item)
           );
         }
