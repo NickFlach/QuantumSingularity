@@ -55,7 +55,7 @@ export default function CodeAnalysisPage() {
   
   const loadExample = (example: string) => {
     const isEnhanced = example.includes('-enhanced');
-    const baseExample = example.replace('-enhanced', '').replace('-basic', '');
+    const baseExample = example.replace('-enhanced', '');
     
     if (baseExample === "ai-protocols") {
       setCode(isEnhanced ? enhancedAIProtocolsCode : exampleAIProtocolsCode);
@@ -74,7 +74,7 @@ export default function CodeAnalysisPage() {
     
     toast({
       title: "Example Loaded",
-      description: `${description} example loaded successfully.`,
+      description: `${description} ${isEnhanced ? "(Enhanced)" : ""} example loaded successfully.`,
     });
   };
   
@@ -105,21 +105,21 @@ export default function CodeAnalysisPage() {
             <div className="flex flex-wrap gap-4">
               <Button 
                 variant={activeTab.includes("ai-protocols") ? "default" : "outline"}
-                onClick={() => loadExample(useEnhanced ? "ai-protocols-enhanced" : "ai-protocols-basic")}
+                onClick={() => loadExample("ai-protocols" + (useEnhanced ? "-enhanced" : ""))}
               >
                 <Brain className="h-4 w-4 mr-2" />
                 AI Protocols
               </Button>
               <Button 
                 variant={activeTab.includes("quantum-ops") ? "default" : "outline"}
-                onClick={() => loadExample(useEnhanced ? "quantum-ops-enhanced" : "quantum-ops-basic")}
+                onClick={() => loadExample("quantum-ops" + (useEnhanced ? "-enhanced" : ""))}
               >
                 <Code className="h-4 w-4 mr-2" />
                 Quantum Operations
               </Button>
               <Button 
                 variant={activeTab.includes("quantum-geometry") ? "default" : "outline"}
-                onClick={() => loadExample(useEnhanced ? "quantum-geometry-enhanced" : "quantum-geometry-basic")}
+                onClick={() => loadExample("quantum-geometry" + (useEnhanced ? "-enhanced" : ""))}
               >
                 <Globe className="h-4 w-4 mr-2" />
                 Quantum Geometry
