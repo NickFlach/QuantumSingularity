@@ -10,8 +10,19 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { useToast } from '@/hooks/use-toast';
 import { CodeAnalysisVisualizer } from '@/components/CodeAnalysisVisualizer';
-import { Brain, Code, FileText, Globe } from 'lucide-react';
-import { exampleAIProtocolsCode, exampleQuantumOpsCode, exampleGeometryCode } from '@/data/exampleCode';
+import { AlertTriangle, Brain, Code, FileText, Globe, Info, Lightbulb } from 'lucide-react';
+import { 
+  // Original examples (with limited documentation)
+  exampleAIProtocolsCode, 
+  exampleQuantumOpsCode, 
+  exampleGeometryCode 
+} from '@/data/exampleCode';
+import {
+  // Enhanced examples with improved documentation and explainability
+  enhancedAIProtocolsCode,
+  enhancedQuantumOpsCode,
+  enhancedGeometryCode
+} from '@/data/enhancedExampleCode';
 
 export default function CodeAnalysisPage() {
   const [code, setCode] = useState<string>(exampleAIProtocolsCode);
