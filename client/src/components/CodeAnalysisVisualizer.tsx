@@ -55,9 +55,7 @@ interface ExplainabilityResult {
     positiveFactors: string[];
     negativeFactors: string[];
   };
-  suggestions_for_improvement?: {
-    [key: string]: string;
-  };
+  suggestions_for_improvement?: Record<string, string> | string[];
 }
 
 export function CodeAnalysisVisualizer({ code, onBack }: CodeAnalysisVisualizerProps) {
@@ -130,8 +128,27 @@ export function CodeAnalysisVisualizer({ code, onBack }: CodeAnalysisVisualizerP
       if (explainabilityResult.suggestedImprovements && explainabilityResult.suggestedImprovements.length > 0) {
         setImprovementSuggestions(explainabilityResult.suggestedImprovements);
       } else if (explainabilityResult.suggestions_for_improvement) {
-        // Convert object format to array
-        const suggestions = Object.values(explainabilityResult.suggestions_for_improvement);
+        // Convert object format to array of strings
+        let suggestions: string[] = [];
+        
+        if (Array.isArray(explainabilityResult.suggestions_for_improvement)) {
+          // If it's already an array, map each item to a string
+          suggestions = explainabilityResult.suggestions_for_improvement.map(item => 
+            typeof item === 'string' ? item : 
+            typeof item === 'object' && item !== null ? 
+              (item.suggestion || item.description || JSON.stringify(item)) : 
+              String(item)
+          );
+        } else {
+          // If it's an object, convert values to strings
+          suggestions = Object.values(explainabilityResult.suggestions_for_improvement).map(item => 
+            typeof item === 'string' ? item : 
+            typeof item === 'object' && item !== null ? 
+              (item.suggestion || item.description || JSON.stringify(item)) : 
+              String(item)
+          );
+        }
+        
         if (suggestions.length > 0) {
           setImprovementSuggestions(suggestions);
         }
