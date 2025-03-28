@@ -12,7 +12,7 @@ import {
 import Header from '@/components/Header';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Code } from '@/components/ui/code';
+import { Code } from '../components/ui/code';
 
 export default function KashiwaraQuantumPage() {
   return (
