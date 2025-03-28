@@ -2,6 +2,16 @@ import { pgTable, text, serial, integer, boolean, jsonb, timestamp } from "drizz
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 
+// Kashiwara Genesis version types
+export enum SheafModuleType {
+  CATEGORY = "category",
+  FUNCTOR = "functor",
+  NATURAL_TRANSFORMATION = "natural_transformation",
+  D_MODULE = "d_module",
+  CRYSTAL = "crystal",
+  SINGULARITY = "singularity"
+}
+
 export const users = pgTable("users", {
   id: serial("id").primaryKey(),
   username: text("username").notNull().unique(),
@@ -120,6 +130,62 @@ export const notificationLogs = pgTable("notification_logs", {
   sentAt: timestamp("sent_at").notNull().defaultNow(),
   status: text("status").notNull(), // 'sent', 'failed', etc.
   errorMessage: text("error_message"), // Error message if status is 'failed'
+});
+
+// Kashiwara Genesis - Sheaf modules for local logic definition
+export const sheafModules = pgTable("sheaf_modules", {
+  id: serial("id").primaryKey(),
+  projectId: integer("project_id").references(() => singularisProjects.id),
+  name: text("name").notNull(),
+  type: text("type").notNull(), // SheafModuleType enum
+  definition: jsonb("definition").notNull(), // Structure defining the sheaf
+  localSection: jsonb("local_section"), // Local section definitions
+  globalSection: jsonb("global_section"), // Global properties derived from local
+  gluingConditions: jsonb("gluing_conditions"), // Rules for combining local sections
+  createdAt: text("created_at").notNull(),
+  updatedAt: text("updated_at").notNull(),
+});
+
+// Kashiwara Genesis - D-modules for differential operators
+export const dModules = pgTable("d_modules", {
+  id: serial("id").primaryKey(),
+  projectId: integer("project_id").references(() => singularisProjects.id),
+  name: text("name").notNull(),
+  baseManifold: text("base_manifold").notNull(), // The underlying space
+  differentialOperators: jsonb("differential_operators").notNull(), // Operator definitions
+  solutions: jsonb("solutions"), // Known solutions to the system
+  singularities: jsonb("singularities"), // Singularity points in the solution space
+  holonomicity: boolean("holonomicity"), // Whether the system is holonomic
+  createdAt: text("created_at").notNull(),
+  updatedAt: text("updated_at").notNull(),
+});
+
+// Kashiwara Genesis - Functorial transforms between model spaces
+export const functorialTransforms = pgTable("functorial_transforms", {
+  id: serial("id").primaryKey(),
+  projectId: integer("project_id").references(() => singularisProjects.id),
+  name: text("name").notNull(),
+  sourceCategory: text("source_category").notNull(), // Source category/space
+  targetCategory: text("target_category").notNull(), // Target category/space
+  transformDefinition: jsonb("transform_definition").notNull(), // How objects and morphisms map
+  preservedProperties: jsonb("preserved_properties"), // Invariants preserved by the transform
+  adjunctions: jsonb("adjunctions"), // Related adjoint functors if any
+  createdAt: text("created_at").notNull(),
+  updatedAt: text("updated_at").notNull(),
+});
+
+// Kashiwara Genesis - Crystal states (discrete abstractions)
+export const crystalStates = pgTable("crystal_states", {
+  id: serial("id").primaryKey(),
+  projectId: integer("project_id").references(() => singularisProjects.id),
+  name: text("name").notNull(),
+  baseSpace: text("base_space").notNull(), // Continuous space being discretized
+  latticeStructure: jsonb("lattice_structure").notNull(), // The discrete lattice
+  weightSystem: jsonb("weight_system"), // Weights/values assigned to lattice points
+  crystalOperators: jsonb("crystal_operators"), // Operations on the crystal
+  connections: jsonb("connections"), // Connections to other crystals
+  createdAt: text("created_at").notNull(),
+  updatedAt: text("updated_at").notNull(),
 });
 
 // Insert schemas
@@ -241,3 +307,65 @@ export type GithubRepository = typeof githubRepositories.$inferSelect;
 
 export type InsertCICDAnalysis = z.infer<typeof insertCICDAnalysisSchema>;
 export type CICDAnalysis = typeof cicdAnalyses.$inferSelect;
+
+// Kashiwara Genesis insert schemas
+export const insertSheafModuleSchema = createInsertSchema(sheafModules).pick({
+  projectId: true,
+  name: true,
+  type: true,
+  definition: true,
+  localSection: true,
+  globalSection: true,
+  gluingConditions: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export const insertDModuleSchema = createInsertSchema(dModules).pick({
+  projectId: true,
+  name: true,
+  baseManifold: true,
+  differentialOperators: true,
+  solutions: true,
+  singularities: true,
+  holonomicity: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export const insertFunctorialTransformSchema = createInsertSchema(functorialTransforms).pick({
+  projectId: true,
+  name: true,
+  sourceCategory: true,
+  targetCategory: true,
+  transformDefinition: true,
+  preservedProperties: true,
+  adjunctions: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export const insertCrystalStateSchema = createInsertSchema(crystalStates).pick({
+  projectId: true,
+  name: true,
+  baseSpace: true,
+  latticeStructure: true,
+  weightSystem: true,
+  crystalOperators: true,
+  connections: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+// Kashiwara Genesis types
+export type InsertSheafModule = z.infer<typeof insertSheafModuleSchema>;
+export type SheafModule = typeof sheafModules.$inferSelect;
+
+export type InsertDModule = z.infer<typeof insertDModuleSchema>;
+export type DModule = typeof dModules.$inferSelect;
+
+export type InsertFunctorialTransform = z.infer<typeof insertFunctorialTransformSchema>;
+export type FunctorialTransform = typeof functorialTransforms.$inferSelect;
+
+export type InsertCrystalState = z.infer<typeof insertCrystalStateSchema>;
+export type CrystalState = typeof crystalStates.$inferSelect;

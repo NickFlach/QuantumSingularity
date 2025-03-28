@@ -6,7 +6,11 @@ import {
   aiNegotiations, type AINegotiation, type InsertAINegotiation,
   notificationLogs, type NotificationLog, type InsertNotificationLog,
   githubRepositories, type GithubRepository, type InsertGithubRepository,
-  cicdAnalyses, type CICDAnalysis, type InsertCICDAnalysis
+  cicdAnalyses, type CICDAnalysis, type InsertCICDAnalysis,
+  sheafModules, type SheafModule, type InsertSheafModule,
+  dModules, type DModule, type InsertDModule,
+  functorialTransforms, type FunctorialTransform, type InsertFunctorialTransform,
+  crystalStates, type CrystalState, type InsertCrystalState
 } from "@shared/schema";
 import { db } from "./db";
 import { eq } from "drizzle-orm";
@@ -63,6 +67,12 @@ export interface IStorage {
   getCICDAnalysis(id: number): Promise<CICDAnalysis | undefined>;
   createCICDAnalysis(analysis: InsertCICDAnalysis): Promise<CICDAnalysis>;
   updateCICDAnalysis(id: number, updates: Partial<CICDAnalysis>): Promise<CICDAnalysis | undefined>;
+  
+  // Kashiwara Genesis operations
+  createSheafModule(module: InsertSheafModule): Promise<SheafModule>;
+  createDModule(module: InsertDModule): Promise<DModule>;
+  createFunctorialTransform(transform: InsertFunctorialTransform): Promise<FunctorialTransform>;
+  createCrystalState(crystal: InsertCrystalState): Promise<CrystalState>;
 }
 
 export class MemStorage implements IStorage {
@@ -74,6 +84,10 @@ export class MemStorage implements IStorage {
   private notificationLogs: Map<number, NotificationLog>;
   private githubRepositories: Map<number, GithubRepository>;
   private cicdAnalyses: Map<number, CICDAnalysis>;
+  private sheafModules: Map<number, SheafModule>;
+  private dModules: Map<number, DModule>;
+  private functorialTransforms: Map<number, FunctorialTransform>;
+  private crystalStates: Map<number, CrystalState>;
   private userIdCounter: number;
   private projectIdCounter: number;
   private fileIdCounter: number;
@@ -82,6 +96,10 @@ export class MemStorage implements IStorage {
   private notificationIdCounter: number;
   private repositoryIdCounter: number;
   private analysisIdCounter: number;
+  private sheafModuleIdCounter: number;
+  private dModuleIdCounter: number;
+  private functorialTransformIdCounter: number;
+  private crystalStateIdCounter: number;
   public sessionStore: session.Store;
 
   constructor() {
@@ -93,6 +111,10 @@ export class MemStorage implements IStorage {
     this.notificationLogs = new Map();
     this.githubRepositories = new Map();
     this.cicdAnalyses = new Map();
+    this.sheafModules = new Map();
+    this.dModules = new Map();
+    this.functorialTransforms = new Map();
+    this.crystalStates = new Map();
     this.userIdCounter = 1;
     this.projectIdCounter = 1;
     this.fileIdCounter = 1;
@@ -101,6 +123,10 @@ export class MemStorage implements IStorage {
     this.notificationIdCounter = 1;
     this.repositoryIdCounter = 1;
     this.analysisIdCounter = 1;
+    this.sheafModuleIdCounter = 1;
+    this.dModuleIdCounter = 1;
+    this.functorialTransformIdCounter = 1;
+    this.crystalStateIdCounter = 1;
     
     const MemoryStore = require('memorystore')(session);
     this.sessionStore = new MemoryStore({
@@ -386,6 +412,84 @@ export class MemStorage implements IStorage {
     this.cicdAnalyses.set(id, updatedAnalysis);
     return updatedAnalysis;
   }
+  
+  // Kashiwara Genesis operations
+  async createSheafModule(module: InsertSheafModule): Promise<SheafModule> {
+    const id = this.sheafModuleIdCounter++;
+    const now = new Date().toISOString();
+    
+    const newModule: SheafModule = {
+      id,
+      userId: module.userId === undefined ? null : module.userId,
+      name: module.name,
+      type: module.type,
+      topology: module.topology,
+      sections: module.sections,
+      gluingConditions: module.gluingConditions,
+      createdAt: module.createdAt || now
+    };
+    
+    this.sheafModules.set(id, newModule);
+    return newModule;
+  }
+  
+  async createDModule(module: InsertDModule): Promise<DModule> {
+    const id = this.dModuleIdCounter++;
+    const now = new Date().toISOString();
+    
+    const newModule: DModule = {
+      id,
+      userId: module.userId === undefined ? null : module.userId,
+      name: module.name,
+      baseManifold: module.baseManifold,
+      differentialOperators: module.differentialOperators,
+      coordinates: module.coordinates,
+      initialConditions: module.initialConditions,
+      createdAt: module.createdAt || now
+    };
+    
+    this.dModules.set(id, newModule);
+    return newModule;
+  }
+  
+  async createFunctorialTransform(transform: InsertFunctorialTransform): Promise<FunctorialTransform> {
+    const id = this.functorialTransformIdCounter++;
+    const now = new Date().toISOString();
+    
+    const newTransform: FunctorialTransform = {
+      id,
+      userId: transform.userId === undefined ? null : transform.userId,
+      name: transform.name,
+      sourceCategory: transform.sourceCategory,
+      targetCategory: transform.targetCategory,
+      objectMapping: transform.objectMapping,
+      morphismMapping: transform.morphismMapping,
+      preservedProperties: transform.preservedProperties,
+      createdAt: transform.createdAt || now
+    };
+    
+    this.functorialTransforms.set(id, newTransform);
+    return newTransform;
+  }
+  
+  async createCrystalState(crystal: InsertCrystalState): Promise<CrystalState> {
+    const id = this.crystalStateIdCounter++;
+    const now = new Date().toISOString();
+    
+    const newCrystal: CrystalState = {
+      id,
+      userId: crystal.userId === undefined ? null : crystal.userId,
+      name: crystal.name,
+      baseSpace: crystal.baseSpace,
+      latticeStructure: crystal.latticeStructure,
+      weightSystem: crystal.weightSystem,
+      operators: crystal.operators,
+      createdAt: crystal.createdAt || now
+    };
+    
+    this.crystalStates.set(id, newCrystal);
+    return newCrystal;
+  }
 }
 
 export class DatabaseStorage implements IStorage {
@@ -602,6 +706,71 @@ export class DatabaseStorage implements IStorage {
       .where(eq(cicdAnalyses.id, id))
       .returning();
     return updatedAnalysis;
+  }
+  
+  // Kashiwara Genesis operations
+  async createSheafModule(module: InsertSheafModule): Promise<SheafModule> {
+    const now = new Date().toISOString();
+    const [newModule] = await db.insert(sheafModules).values({
+      projectId: module.projectId,
+      name: module.name,
+      type: module.type,
+      definition: module.definition,
+      localSection: module.localSection,
+      globalSection: module.globalSection,
+      gluingConditions: module.gluingConditions,
+      createdAt: module.createdAt || now,
+      updatedAt: module.updatedAt || now
+    }).returning();
+    return newModule;
+  }
+  
+  async createDModule(module: InsertDModule): Promise<DModule> {
+    const now = new Date().toISOString();
+    const [newModule] = await db.insert(dModules).values({
+      projectId: module.projectId,
+      name: module.name,
+      baseManifold: module.baseManifold,
+      differentialOperators: module.differentialOperators,
+      solutions: module.solutions,
+      singularities: module.singularities,
+      holonomicity: module.holonomicity,
+      createdAt: module.createdAt || now,
+      updatedAt: module.updatedAt || now
+    }).returning();
+    return newModule;
+  }
+  
+  async createFunctorialTransform(transform: InsertFunctorialTransform): Promise<FunctorialTransform> {
+    const now = new Date().toISOString();
+    const [newTransform] = await db.insert(functorialTransforms).values({
+      projectId: transform.projectId,
+      name: transform.name,
+      sourceCategory: transform.sourceCategory,
+      targetCategory: transform.targetCategory,
+      transformDefinition: transform.transformDefinition,
+      preservedProperties: transform.preservedProperties,
+      adjunctions: transform.adjunctions,
+      createdAt: transform.createdAt || now,
+      updatedAt: transform.updatedAt || now
+    }).returning();
+    return newTransform;
+  }
+  
+  async createCrystalState(crystal: InsertCrystalState): Promise<CrystalState> {
+    const now = new Date().toISOString();
+    const [newCrystal] = await db.insert(crystalStates).values({
+      projectId: crystal.projectId,
+      name: crystal.name,
+      baseSpace: crystal.baseSpace,
+      latticeStructure: crystal.latticeStructure,
+      weightSystem: crystal.weightSystem,
+      crystalOperators: crystal.crystalOperators,
+      connections: crystal.connections,
+      createdAt: crystal.createdAt || now,
+      updatedAt: crystal.updatedAt || now
+    }).returning();
+    return newCrystal;
   }
 }
 

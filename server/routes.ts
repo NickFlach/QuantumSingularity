@@ -37,7 +37,23 @@ import {
 } from "./language/ai-service";
 import { sendTemplateEmail, sendCustomEmail, EmailTemplate } from "./email-service";
 
-import { insertFileSchema, insertProjectSchema, User } from "@shared/schema";
+import { 
+  insertFileSchema, 
+  insertProjectSchema, 
+  User, 
+  insertSheafModuleSchema,
+  insertDModuleSchema,
+  insertFunctorialTransformSchema,
+  insertCrystalStateSchema
+} from "@shared/schema";
+
+import {
+  createSheafModule,
+  createDModule,
+  createFunctorialTransform,
+  createCrystalState,
+  analyzeSingularities
+} from "./language/kashiwara";
 
 import express from "express";
 import session from "express-session";
@@ -1417,6 +1433,252 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       return res.status(500).json({ 
         message: "Failed to compute topological invariants",
+        error: error instanceof Error ? error.message : String(error)
+      });
+    }
+  });
+
+  // Kashiwara Genesis API routes
+  
+  // Create a sheaf module
+  app.post("/api/kashiwara/sheaf-module", async (req: Request, res: Response) => {
+    try {
+      const { name, type, topology, sections, gluingConditions, projectId } = req.body;
+      
+      if (!name || !type || !topology || !sections) {
+        return res.status(400).json({ 
+          message: "Invalid request, required parameters: name (string), type (SheafModuleType), topology (object), sections (array)" 
+        });
+      }
+      
+      // Use Kashiwara Genesis implementation to create sheaf module
+      const definition = {
+        type,
+        topology,
+        sections,
+        gluingConditions: gluingConditions || []
+      };
+      
+      const result = createSheafModule(name, definition);
+      
+      // Store in database if user is authenticated
+      if (req.isAuthenticated() && req.user) {
+        try {
+          const now = new Date().toISOString();
+          const sheafData = {
+            projectId: projectId || null,
+            name,
+            type,
+            definition: definition,
+            localSection: sections,
+            globalSection: result.globalSections || null,
+            gluingConditions: gluingConditions || null,
+            createdAt: now,
+            updatedAt: now
+          };
+          
+          await storage.createSheafModule(sheafData);
+        } catch (dbError) {
+          console.error("Failed to store sheaf module:", dbError);
+          // Continue even if database storage fails
+        }
+      }
+      
+      return res.json(result);
+    } catch (error) {
+      return res.status(500).json({ 
+        message: "Failed to create sheaf module",
+        error: error instanceof Error ? error.message : String(error)
+      });
+    }
+  });
+  
+  // Create a D-module (differential module)
+  app.post("/api/kashiwara/d-module", async (req: Request, res: Response) => {
+    try {
+      const { name, baseManifold, differentialOperators, coordinates, initialConditions, projectId } = req.body;
+      
+      if (!name || !baseManifold || !differentialOperators || !coordinates) {
+        return res.status(400).json({ 
+          message: "Invalid request, required parameters: name (string), baseManifold (string), differentialOperators (array), coordinates (array)" 
+        });
+      }
+      
+      // Use Kashiwara Genesis implementation to create D-module
+      const definition = {
+        baseManifold,
+        differentialOperators,
+        coordinates,
+        initialConditions
+      };
+      
+      const result = createDModule(name, definition);
+      
+      // Store in database if user is authenticated
+      if (req.isAuthenticated() && req.user) {
+        try {
+          const now = new Date().toISOString();
+          const dModuleData = {
+            projectId: projectId || null,
+            name,
+            baseManifold,
+            differentialOperators,
+            solutions: result.solutions || null,
+            singularities: result.singularities || null,
+            holonomicity: result.holonomic || null,
+            createdAt: now,
+            updatedAt: now
+          };
+          
+          await storage.createDModule(dModuleData);
+        } catch (dbError) {
+          console.error("Failed to store D-module:", dbError);
+          // Continue even if database storage fails
+        }
+      }
+      
+      return res.json(result);
+    } catch (error) {
+      return res.status(500).json({ 
+        message: "Failed to create D-module",
+        error: error instanceof Error ? error.message : String(error)
+      });
+    }
+  });
+  
+  // Create a functorial transform
+  app.post("/api/kashiwara/functorial-transform", async (req: Request, res: Response) => {
+    try {
+      const { name, sourceCategory, targetCategory, objectMapping, morphismMapping, preservedProperties, projectId } = req.body;
+      
+      if (!name || !sourceCategory || !targetCategory || !objectMapping) {
+        return res.status(400).json({ 
+          message: "Invalid request, required parameters: name (string), sourceCategory (string), targetCategory (string), objectMapping (array)" 
+        });
+      }
+      
+      // Use Kashiwara Genesis implementation to create functorial transform
+      const transformDefinition = {
+        sourceCategory,
+        targetCategory,
+        objectMapping,
+        morphismMapping: morphismMapping || [],
+        preservedProperties
+      };
+      
+      const result = createFunctorialTransform(name, transformDefinition);
+      
+      // Store in database if user is authenticated
+      if (req.isAuthenticated() && req.user) {
+        try {
+          const now = new Date().toISOString();
+          const transformData = {
+            projectId: projectId || null,
+            name,
+            sourceCategory,
+            targetCategory,
+            transformDefinition,
+            preservedProperties: result.preservedProperties || null,
+            adjunctions: result.adjunctions || null,
+            createdAt: now,
+            updatedAt: now
+          };
+          
+          await storage.createFunctorialTransform(transformData);
+        } catch (dbError) {
+          console.error("Failed to store functorial transform:", dbError);
+          // Continue even if database storage fails
+        }
+      }
+      
+      return res.json(result);
+    } catch (error) {
+      return res.status(500).json({ 
+        message: "Failed to create functorial transform",
+        error: error instanceof Error ? error.message : String(error)
+      });
+    }
+  });
+  
+  // Create a crystal state
+  app.post("/api/kashiwara/crystal-state", async (req: Request, res: Response) => {
+    try {
+      const { name, baseSpace, latticeStructure, weightSystem, operators, projectId } = req.body;
+      
+      if (!name || !baseSpace || !latticeStructure) {
+        return res.status(400).json({ 
+          message: "Invalid request, required parameters: name (string), baseSpace (string), latticeStructure (object)" 
+        });
+      }
+      
+      // Use Kashiwara Genesis implementation to create crystal state
+      const definition = {
+        baseSpace,
+        latticeStructure,
+        weightSystem,
+        operators
+      };
+      
+      const result = createCrystalState(name, definition);
+      
+      // Store in database if user is authenticated
+      if (req.isAuthenticated() && req.user) {
+        try {
+          const now = new Date().toISOString();
+          const crystalData = {
+            projectId: projectId || null,
+            name,
+            baseSpace,
+            latticeStructure,
+            weightSystem: weightSystem || null,
+            crystalOperators: operators || null,
+            connections: result.connections || null,
+            createdAt: now,
+            updatedAt: now
+          };
+          
+          await storage.createCrystalState(crystalData);
+        } catch (dbError) {
+          console.error("Failed to store crystal state:", dbError);
+          // Continue even if database storage fails
+        }
+      }
+      
+      return res.json(result);
+    } catch (error) {
+      return res.status(500).json({ 
+        message: "Failed to create crystal state",
+        error: error instanceof Error ? error.message : String(error)
+      });
+    }
+  });
+  
+  // Analyze singularities in mathematical system
+  app.post("/api/kashiwara/analyze-singularities", async (req: Request, res: Response) => {
+    try {
+      const { code, type } = req.body;
+      
+      if (!code || !type) {
+        return res.status(400).json({ 
+          message: "Invalid request, required parameters: code (string), type (string)" 
+        });
+      }
+      
+      // Validate singularity analysis type
+      const validTypes = ['differential_equation', 'algebraic_variety', 'discrete_system'];
+      if (!validTypes.includes(type)) {
+        return res.status(400).json({
+          message: `Invalid type: ${type}. Must be one of: ${validTypes.join(', ')}`
+        });
+      }
+      
+      // Use Kashiwara Genesis implementation to analyze singularities
+      const result = analyzeSingularities(code, type as any);
+      
+      return res.json(result);
+    } catch (error) {
+      return res.status(500).json({ 
+        message: "Failed to analyze singularities",
         error: error instanceof Error ? error.message : String(error)
       });
     }
