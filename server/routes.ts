@@ -44,7 +44,8 @@ import {
   insertSheafModuleSchema,
   insertDModuleSchema,
   insertFunctorialTransformSchema,
-  insertCrystalStateSchema
+  insertCrystalStateSchema,
+  SheafModuleType
 } from "@shared/schema";
 
 import {
@@ -1706,7 +1707,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Add sheaf component if requested
       if (components.includes('sheaf')) {
         const sheafDef = {
-          type: "DIFFERENTIAL_SHEAF" as const,
+          type: SheafModuleType.D_MODULE, // Using D_MODULE from SheafModuleType enum
           definition: {
             openSets: ["U1", "U2", "U3"],
             relations: [

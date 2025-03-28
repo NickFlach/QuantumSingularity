@@ -103,6 +103,9 @@ const Sidebar: FC<SidebarProps> = ({ activeTab, setActiveTab }) => {
           <div className="flex items-center text-gray-300 hover:text-[#00b4d8] cursor-pointer">
             <i className="ri-terminal-box-line mr-1"></i> Quantum Simulator
           </div>
+          <div className="flex items-center text-gray-300 hover:text-[#00b4d8] cursor-pointer" onClick={() => window.location.href = '/kashiwara-quantum'}>
+            <i className="ri-function-line mr-1"></i> Kashiwara Genesis
+          </div>
         </div>
       </div>
     </div>

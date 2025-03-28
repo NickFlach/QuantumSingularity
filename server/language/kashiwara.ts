@@ -11,6 +11,12 @@
 
 import { SheafModuleType } from '@shared/schema';
 
+// Define the QuantumData interface
+interface QuantumData {
+  stateVector: number[];
+  phase: number;
+}
+
 // Sheaf Module implementation
 export interface SheafModuleDefinition {
   type: SheafModuleType;
@@ -81,12 +87,12 @@ export function createSheafModule(
 /**
  * Compute global sections from local sections using gluing conditions
  */
-function computeGlobalSections(definition: SheafModuleDefinition): any[] {
+function computeGlobalSections(definition: SheafModuleDefinition): {domain: string, data: QuantumData}[] {
   // In a real implementation, this would use actual category theory to
   // compute the glued sections according to the gluing conditions
   
-  // Mock implementation for prototype
-  const globalSections = [];
+  // Implementation for prototype
+  const globalSections: {domain: string, data: QuantumData}[] = [];
   
   // Early return if no local sections
   if (!definition.localSection || definition.localSection.length === 0) {
