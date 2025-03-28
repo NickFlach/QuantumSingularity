@@ -1445,17 +1445,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const { name, type, topology, sections, gluingConditions, projectId } = req.body;
       
-      if (!name || !type || !topology || !sections) {
+      if (!name || !type || !topology) {
         return res.status(400).json({ 
-          message: "Invalid request, required parameters: name (string), type (SheafModuleType), topology (object), sections (array)" 
+          message: "Invalid request, required parameters: name (string), type (SheafModuleType), topology (object)" 
         });
       }
       
       // Use Kashiwara Genesis implementation to create sheaf module
       const definition = {
         type,
-        topology,
-        sections,
+        definition: topology,
+        localSection: sections || [],
         gluingConditions: gluingConditions || []
       };
       
@@ -1469,9 +1469,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
             projectId: projectId || null,
             name,
             type,
-            definition: definition,
-            localSection: sections,
-            globalSection: result.globalSections || null,
+            definition: topology,
+            localSection: sections || [],
+            globalSection: result.module?.globalSection || null,
             gluingConditions: gluingConditions || null,
             createdAt: now,
             updatedAt: now
@@ -1523,9 +1523,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
             name,
             baseManifold,
             differentialOperators,
-            solutions: result.solutions || null,
-            singularities: result.singularities || null,
-            holonomicity: result.holonomic || null,
+            solutions: result.module?.solutions || null,
+            singularities: result.module?.singularities || null,
+            holonomicity: result.module?.holonomic || null,
             createdAt: now,
             updatedAt: now
           };
@@ -1578,8 +1578,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
             sourceCategory,
             targetCategory,
             transformDefinition,
-            preservedProperties: result.preservedProperties || null,
-            adjunctions: result.adjunctions || null,
+            preservedProperties: result.transform?.preservedProperties || null,
+            adjunctions: result.transform?.adjunctions || null,
             createdAt: now,
             updatedAt: now
           };
@@ -1632,7 +1632,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
             latticeStructure,
             weightSystem: weightSystem || null,
             crystalOperators: operators || null,
-            connections: result.connections || null,
+            connections: result.crystal?.connections || null,
             createdAt: now,
             updatedAt: now
           };
@@ -1679,6 +1679,134 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       return res.status(500).json({ 
         message: "Failed to analyze singularities",
+        error: error instanceof Error ? error.message : String(error)
+      });
+    }
+  });
+  
+  // Integrated Kashiwara Genesis endpoint
+  app.post("/api/kashiwara/integrated", async (req: Request, res: Response) => {
+    try {
+      const { components, integration } = req.body;
+      
+      if (!components || !Array.isArray(components) || components.length === 0) {
+        return res.status(400).json({ 
+          message: "Invalid request, required parameters: components (array of string)" 
+        });
+      }
+      
+      // Create mock response for integrated Kashiwara Genesis components
+      const response: any = {
+        id: `integrated-${Date.now()}-${Math.floor(Math.random() * 1000)}`,
+        status: "success",
+        integration: integration || "full",
+        components: {}
+      };
+      
+      // Add sheaf component if requested
+      if (components.includes('sheaf')) {
+        const sheafDef = {
+          type: "DIFFERENTIAL_SHEAF" as const,
+          definition: {
+            openSets: ["U1", "U2", "U3"],
+            relations: [
+              { base: "U1", target: "U2" },
+              { base: "U2", target: "U3" },
+              { base: "U1", target: "U3" }
+            ]
+          },
+          localSection: [
+            { domain: "U1", data: { stateVector: [1, 0, 0], phase: Math.PI/4 } },
+            { domain: "U2", data: { stateVector: [0, 1, 0], phase: Math.PI/2 } },
+            { domain: "U3", data: { stateVector: [0, 0, 1], phase: 0 } }
+          ]
+        };
+        
+        const sheafResult = createSheafModule("IntegratedQuantumSheaf", sheafDef);
+        response.components.sheaf = sheafResult;
+      }
+      
+      // Add D-module component if requested
+      if (components.includes('dmodule')) {
+        const dmoduleDef = {
+          baseManifold: "ComplexProjectiveSpace",
+          differentialOperators: [
+            {
+              name: "Hamiltonian",
+              order: 1,
+              coefficients: [0.5, -0.5, 0.1]
+            }
+          ],
+          coordinates: ["t", "x", "y"]
+        };
+        
+        const dmoduleResult = createDModule("IntegratedQuantumDModule", dmoduleDef);
+        response.components.dmodule = dmoduleResult;
+      }
+      
+      // Add functorial transform component if requested
+      if (components.includes('functor')) {
+        const functorDef = {
+          sourceCategory: "StandardQuantum",
+          targetCategory: "TopologicalQuantum",
+          objectMapping: [
+            {
+              sourceName: "qubit",
+              targetName: "anyon_pair",
+              mappingFunction: "standardToTopological"
+            }
+          ],
+          morphismMapping: [
+            {
+              sourceMorphism: "gate",
+              targetMorphism: "braiding",
+              mappingFunction: "gateTobraiding"
+            }
+          ]
+        };
+        
+        const functorResult = createFunctorialTransform("StandardToTopological", functorDef);
+        response.components.functor = functorResult;
+      }
+      
+      // Add crystal state component if requested
+      if (components.includes('crystal')) {
+        const crystalDef = {
+          baseSpace: "LieAlgebra_A1",
+          latticeStructure: {
+            dimensions: 2,
+            latticeType: "hexagonal",
+            latticeConstants: [1.0, 1.0]
+          },
+          weightSystem: {
+            weights: [
+              { name: "w1", value: 1.0 },
+              { name: "w2", value: 0.5 }
+            ],
+            dominance: "partial"
+          }
+        };
+        
+        const crystalResult = createCrystalState("IntegratedQuantumCrystal", crystalDef);
+        response.components.crystal = crystalResult;
+      }
+      
+      // Calculate integration metrics (mock data for demonstration)
+      response.metrics = {
+        coherence: 0.92,
+        entanglement: 0.87,
+        topologicalInvariants: ["Chern number: 1", "Euler characteristic: 2"],
+        quantumLogic: {
+          completeness: true,
+          consistency: true,
+          decidability: "partial"
+        }
+      };
+      
+      return res.json(response);
+    } catch (error) {
+      return res.status(500).json({ 
+        message: "Failed to process integrated Kashiwara Genesis components",
         error: error instanceof Error ? error.message : String(error)
       });
     }

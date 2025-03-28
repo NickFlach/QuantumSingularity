@@ -14,15 +14,16 @@ import { SheafModuleType } from '@shared/schema';
 // Sheaf Module implementation
 export interface SheafModuleDefinition {
   type: SheafModuleType;
-  topology: { 
+  definition: { 
     openSets: string[]; 
     relations: { base: string; target: string }[];
   };
-  sections: {
+  localSection?: {
     domain: string; // open set
     data: any;     // local data
   }[];
-  gluingConditions: {
+  globalSection?: any;
+  gluingConditions?: {
     set1: string;
     set2: string;
     condition: string;
@@ -40,20 +41,18 @@ export function createSheafModule(
   // to define and validate the sheaf structure
   
   try {
-    // Validate the topology first
-    if (!definition.topology || !definition.topology.openSets || !definition.topology.openSets.length) {
-      throw new Error("Sheaf requires a valid topology with at least one open set");
+    // Validate the definition first
+    if (!definition.definition || !definition.definition.openSets || !definition.definition.openSets.length) {
+      throw new Error("Sheaf requires a valid definition with at least one open set");
     }
     
-    // Validate sections
-    if (!definition.sections || !definition.sections.length) {
-      throw new Error("Sheaf requires at least one section");
-    }
-    
-    // Check that each section is defined over an open set in the topology
-    for (const section of definition.sections) {
-      if (!definition.topology.openSets.includes(section.domain)) {
-        throw new Error(`Section domain ${section.domain} is not in the topology`);
+    // Validate sections if provided
+    if (definition.localSection && definition.localSection.length) {
+      // Check that each section is defined over an open set in the definition
+      for (const section of definition.localSection) {
+        if (!definition.definition.openSets.includes(section.domain)) {
+          throw new Error(`Section domain ${section.domain} is not in the topology`);
+        }
       }
     }
     
@@ -68,9 +67,9 @@ export function createSheafModule(
       module: {
         name,
         type: definition.type,
-        topology: definition.topology,
-        localSections: definition.sections,
-        globalSections,
+        definition: definition.definition,
+        localSection: definition.localSection,
+        globalSection: globalSections,
         gluingConditions: definition.gluingConditions
       }
     };
@@ -89,38 +88,45 @@ function computeGlobalSections(definition: SheafModuleDefinition): any[] {
   // Mock implementation for prototype
   const globalSections = [];
   
+  // Early return if no local sections
+  if (!definition.localSection || definition.localSection.length === 0) {
+    return globalSections;
+  }
+  
   // Simple case: if we have sections for all open sets and they satisfy gluing conditions,
   // we can create a global section
-  const coveredSets = new Set(definition.sections.map(s => s.domain));
-  const allSets = new Set(definition.topology.openSets);
+  const coveredSets = new Set(definition.localSection.map((s: any) => s.domain));
+  const allSets = new Set(definition.definition.openSets);
   
   if (coveredSets.size === allSets.size) {
     // Check gluing conditions
     let allConditionsSatisfied = true;
     
-    for (const condition of definition.gluingConditions) {
-      // Mock check - in a real implementation this would validate the 
-      // actual mathematical conditions
-      const section1 = definition.sections.find(s => s.domain === condition.set1);
-      const section2 = definition.sections.find(s => s.domain === condition.set2);
-      
-      if (!section1 || !section2) {
-        allConditionsSatisfied = false;
-        break;
-      }
-      
-      // Simple consistency check
-      if (JSON.stringify(section1.data) !== JSON.stringify(section2.data)) {
-        // In a real implementation, we'd use the condition logic here
-        allConditionsSatisfied = false;
-        break;
+    if (definition.gluingConditions && definition.gluingConditions.length > 0) {
+      for (const condition of definition.gluingConditions) {
+        // Mock check - in a real implementation this would validate the 
+        // actual mathematical conditions
+        const section1 = definition.localSection.find((s: any) => s.domain === condition.set1);
+        const section2 = definition.localSection.find((s: any) => s.domain === condition.set2);
+        
+        if (!section1 || !section2) {
+          allConditionsSatisfied = false;
+          break;
+        }
+        
+        // Simple consistency check
+        if (JSON.stringify(section1.data) !== JSON.stringify(section2.data)) {
+          // In a real implementation, we'd use the condition logic here
+          allConditionsSatisfied = false;
+          break;
+        }
       }
     }
     
     if (allConditionsSatisfied) {
       globalSections.push({
         domain: "global",
-        data: definition.sections[0].data // Simplified - would actually merge data according to gluing
+        data: definition.localSection[0].data // Simplified - would actually merge data according to gluing
       });
     }
   }

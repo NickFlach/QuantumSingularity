@@ -420,13 +420,15 @@ export class MemStorage implements IStorage {
     
     const newModule: SheafModule = {
       id,
-      userId: module.userId === undefined ? null : module.userId,
+      projectId: module.projectId || null,
       name: module.name,
       type: module.type,
-      topology: module.topology,
-      sections: module.sections,
+      definition: module.definition,
+      localSection: module.localSection,
+      globalSection: module.globalSection,
       gluingConditions: module.gluingConditions,
-      createdAt: module.createdAt || now
+      createdAt: module.createdAt || now,
+      updatedAt: module.updatedAt || now
     };
     
     this.sheafModules.set(id, newModule);
@@ -439,13 +441,15 @@ export class MemStorage implements IStorage {
     
     const newModule: DModule = {
       id,
-      userId: module.userId === undefined ? null : module.userId,
+      projectId: module.projectId || null,
       name: module.name,
       baseManifold: module.baseManifold,
       differentialOperators: module.differentialOperators,
-      coordinates: module.coordinates,
-      initialConditions: module.initialConditions,
-      createdAt: module.createdAt || now
+      solutions: module.solutions || null,
+      singularities: module.singularities || null,
+      holonomicity: module.holonomicity || null,
+      createdAt: module.createdAt || now,
+      updatedAt: module.updatedAt || now
     };
     
     this.dModules.set(id, newModule);
@@ -458,14 +462,15 @@ export class MemStorage implements IStorage {
     
     const newTransform: FunctorialTransform = {
       id,
-      userId: transform.userId === undefined ? null : transform.userId,
+      projectId: transform.projectId || null,
       name: transform.name,
       sourceCategory: transform.sourceCategory,
       targetCategory: transform.targetCategory,
-      objectMapping: transform.objectMapping,
-      morphismMapping: transform.morphismMapping,
+      transformDefinition: transform.transformDefinition,
       preservedProperties: transform.preservedProperties,
-      createdAt: transform.createdAt || now
+      adjunctions: transform.adjunctions,
+      createdAt: transform.createdAt || now,
+      updatedAt: transform.updatedAt || now
     };
     
     this.functorialTransforms.set(id, newTransform);
@@ -478,13 +483,15 @@ export class MemStorage implements IStorage {
     
     const newCrystal: CrystalState = {
       id,
-      userId: crystal.userId === undefined ? null : crystal.userId,
+      projectId: crystal.projectId || null,
       name: crystal.name,
       baseSpace: crystal.baseSpace,
       latticeStructure: crystal.latticeStructure,
       weightSystem: crystal.weightSystem,
-      operators: crystal.operators,
-      createdAt: crystal.createdAt || now
+      crystalOperators: crystal.crystalOperators,
+      connections: crystal.connections,
+      createdAt: crystal.createdAt || now,
+      updatedAt: crystal.updatedAt || now
     };
     
     this.crystalStates.set(id, newCrystal);
