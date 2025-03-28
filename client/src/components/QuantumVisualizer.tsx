@@ -213,11 +213,24 @@ export function QuantumVisualizer({
 // Visualization components
 
 function QuantumSpaceVisualization({ space }: { space: any }) {
+  // Handle the case where space is null or undefined
+  if (!space) {
+    return (
+      <div className="flex items-center justify-center h-full w-full text-muted-foreground">
+        No quantum space data available
+      </div>
+    );
+  }
+  
   // Get dimension directly or from params, if available
-  const dimension = space?.dimension || space?.params?.dimension || 3;
+  const dimension = space.dimension || (space.params && space.params.dimension) || 3;
+  
   // Get metric from spaceProperties or use space id or fallback to minkowski
-  const metric = space?.spaceProperties?.metric || (space?.id ? space.id.replace('space-', '') : 'minkowski');
-  const energy = space?.params?.energy || 0.75;
+  const metric = space.spaceProperties && space.spaceProperties.metric 
+    ? space.spaceProperties.metric 
+    : (space.id ? space.id.replace('space-', '') : 'minkowski');
+  
+  const energy = space.params && space.params.energy ? space.params.energy : 0.75;
   
   const getMetricColor = () => {
     switch(metric) {
@@ -231,6 +244,10 @@ function QuantumSpaceVisualization({ space }: { space: any }) {
   
   const gridSize = 10;
   const pointSize = 5;
+  
+  // Safely get entanglements and states
+  const entanglements = space.entanglements || [];
+  const states = space.states || [];
   
   return (
     <div className="relative w-full h-full">
@@ -276,7 +293,7 @@ function QuantumSpaceVisualization({ space }: { space: any }) {
           />
           
           {/* Entanglement lines */}
-          {space.entanglements && space.entanglements.map((entanglement: any, index: number) => (
+          {entanglements.map((entanglement: any, index: number) => (
             <motion.div
               key={index}
               className="absolute"
@@ -299,10 +316,11 @@ function QuantumSpaceVisualization({ space }: { space: any }) {
           ))}
           
           {/* Quantum states */}
-          {space.states && space.states.map((state: any, index: number) => {
-            // Calculate position based on coordinates
-            const x = state.coordinates && state.coordinates[0] ? state.coordinates[0] * 10 : (Math.random() * 80 - 40);
-            const y = state.coordinates && state.coordinates[1] ? state.coordinates[1] * 10 : (Math.random() * 80 - 40);
+          {states.map((state: any, index: number) => {
+            // Calculate position based on coordinates, with safe access
+            const coords = state.coordinates || [];
+            const x = coords[0] ? coords[0] * 10 : (Math.random() * 80 - 40);
+            const y = coords[1] ? coords[1] * 10 : (Math.random() * 80 - 40);
             
             return (
               <motion.div
@@ -338,6 +356,15 @@ function QuantumSpaceVisualization({ space }: { space: any }) {
 }
 
 function BlochSphereVisualization({ space }: { space: any }) {
+  // Handle null space
+  if (!space) {
+    return (
+      <div className="flex items-center justify-center h-full w-full text-muted-foreground">
+        No Bloch sphere data available
+      </div>
+    );
+  }
+  
   return (
     <div className="w-full h-full flex items-center justify-center relative">
       <motion.div
@@ -409,6 +436,15 @@ function BlochSphereVisualization({ space }: { space: any }) {
 }
 
 function MatrixVisualization({ space }: { space: any }) {
+  // Handle null space
+  if (!space) {
+    return (
+      <div className="flex items-center justify-center h-full w-full text-muted-foreground">
+        No matrix data available
+      </div>
+    );
+  }
+  
   const matrixSize = 4; // 4x4 matrix
   const cellSize = 30;
   
@@ -482,6 +518,15 @@ function MatrixVisualization({ space }: { space: any }) {
 }
 
 function CircuitVisualization({ space }: { space: any }) {
+  // Handle null space
+  if (!space) {
+    return (
+      <div className="flex items-center justify-center h-full w-full text-muted-foreground">
+        No circuit data available
+      </div>
+    );
+  }
+  
   // Generate a sample circuit based on space properties
   const qubits = 3;
   const steps = 5;
