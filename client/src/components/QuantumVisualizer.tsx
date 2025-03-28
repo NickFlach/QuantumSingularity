@@ -213,8 +213,10 @@ export function QuantumVisualizer({
 // Visualization components
 
 function QuantumSpaceVisualization({ space }: { space: any }) {
-  const dimension = space?.params?.dimension || 3;
-  const metric = space?.params?.metric || "minkowski";
+  // Get dimension directly or from params, if available
+  const dimension = space?.dimension || space?.params?.dimension || 3;
+  // Get metric from spaceProperties or use space id or fallback to minkowski
+  const metric = space?.spaceProperties?.metric || (space?.id ? space.id.replace('space-', '') : 'minkowski');
   const energy = space?.params?.energy || 0.75;
   
   const getMetricColor = () => {

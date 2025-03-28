@@ -13,11 +13,15 @@ import {
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Slider } from "@/components/ui/slider";
-import { ChevronLeft, Atom, Cpu, Sigma, Grid3X3 } from "lucide-react";
+import { ChevronLeft, Atom, Cpu, Sigma, Grid3X3, Zap, Braces } from "lucide-react";
 import { QuantumVisualizer } from "@/components/QuantumVisualizer";
+import { KashiwaraExampleCard } from "@/components/KashiwaraExampleCard";
 
 // Import quantum types
 import { QuantumSpace, QuantumState, QuantumInvariant } from "@/types/quantum";
+
+// Import Kashiwara examples
+import { integratedQuantumExample, apiExamples } from "@/data/kashiwaraExamples";
 
 // Sample quantum spaces for demo
 const sampleQuantumSpaces: QuantumSpace[] = [
@@ -314,7 +318,7 @@ export default function QuantumGeometryDemo() {
                  "Minkowski"} Space Visualization
               </CardTitle>
               <Tabs value={selectedView} onValueChange={setSelectedView} className="w-full">
-                <TabsList className="grid grid-cols-3">
+                <TabsList className="grid grid-cols-4">
                   <TabsTrigger value="states" className="flex items-center gap-1">
                     <Atom className="h-4 w-4" /> States
                   </TabsTrigger>
@@ -323,6 +327,9 @@ export default function QuantumGeometryDemo() {
                   </TabsTrigger>
                   <TabsTrigger value="invariants" className="flex items-center gap-1">
                     <Sigma className="h-4 w-4" /> Invariants
+                  </TabsTrigger>
+                  <TabsTrigger value="kashiwara" className="flex items-center gap-1">
+                    <Braces className="h-4 w-4" /> Kashiwara
                   </TabsTrigger>
                 </TabsList>
                 
@@ -336,7 +343,7 @@ export default function QuantumGeometryDemo() {
                           
                           {/* Quantum visualization component */}
                           <div className="flex justify-center py-2">
-                            <QuantumVisualizer space={currentSpace} />
+                            <QuantumVisualizer spaces={[currentSpace]} selectedSpace={currentSpace.id} />
                           </div>
                           
                           <p className="text-xs text-center text-muted-foreground mt-2">
@@ -430,6 +437,42 @@ export default function QuantumGeometryDemo() {
                           </div>
                         </div>
                       ))}
+                    </div>
+                  </div>
+                </TabsContent>
+                
+                <TabsContent value="kashiwara" className="mt-2">
+                  <div className="rounded-md bg-muted p-4 min-h-[320px]">
+                    <h3 className="text-lg font-medium mb-4">Kashiwara Genesis Integration</h3>
+                    <p className="text-sm text-muted-foreground mb-4">
+                      The Kashiwara Genesis framework provides advanced mathematical tools for working with quantum spaces.
+                      This integration demonstrates how sheaf theory, D-modules, and functorial transforms enhance quantum geometry.
+                    </p>
+                    
+                    <div className="border rounded-md p-4 bg-background">
+                      <h4 className="text-md font-medium mb-2">Integrated Quantum Framework</h4>
+                      <p className="text-sm text-muted-foreground mb-4">
+                        This example demonstrates how sheaves, D-modules, functors, and crystals combine into a unified 
+                        mathematical framework for quantum programming in {currentSpace.id.replace('space-', '')} space.
+                      </p>
+                      
+                      <KashiwaraExampleCard
+                        title="Kashiwara Genesis × Quantum Geometry"
+                        description={`Integration of Kashiwara mathematical structures with ${currentSpace.id.replace('space-', '')} quantum geometric space.`}
+                        code={integratedQuantumExample}
+                        endpoint="/api/kashiwara/integrated"
+                        payload={{
+                          components: [
+                            "sheaf",
+                            "dmodule",
+                            "functor",
+                            "crystal"
+                          ],
+                          integration: "full",
+                          geometryType: currentSpace.id.replace('space-', ''),
+                          dimension: currentSpace.dimension
+                        }}
+                      />
                     </div>
                   </div>
                 </TabsContent>
