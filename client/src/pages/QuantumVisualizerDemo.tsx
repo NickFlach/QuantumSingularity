@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { EntanglementMap } from '@/components/quantum/EntanglementMap';
+import { ResearchPanel } from '@/components/quantum/ResearchPanel';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
@@ -13,7 +14,10 @@ import {
   Zap, 
   FlaskConical,
   Flower,
-  Magnet
+  Magnet,
+  Calculator,
+  FileText,
+  FileJson
 } from 'lucide-react';
 
 // Demo nodes for different quantum systems
@@ -314,6 +318,15 @@ export function QuantumVisualizerDemo() {
   const [selectedSystem, setSelectedSystem] = useState('system1');
   const [selectedNode, setSelectedNode] = useState<string | null>(null);
   const [showInfo, setShowInfo] = useState(true);
+  
+  // Simulation parameters
+  const [simulationParameters, setSimulationParameters] = useState({
+    temperature: 0.5,
+    fieldStrength: 0.75,
+    dimensions: 37,
+    interactionStrength: 0.2,
+    decoherenceRate: 1e-4
+  });
 
   // Helper to get the current system data
   const getCurrentSystem = () => {
@@ -357,6 +370,52 @@ export function QuantumVisualizerDemo() {
   };
   
   const selectedNodeDetails = getSelectedNodeDetails();
+  
+  // Handle parameter changes
+  const handleParameterChange = (param: string, value: number) => {
+    setSimulationParameters(prev => ({
+      ...prev,
+      [param]: value
+    }));
+  };
+  
+  // Handle export data
+  const handleExportData = (format: string) => {
+    const system = getCurrentSystem();
+    const data = {
+      system: system.title,
+      nodes: system.nodes,
+      parameters: simulationParameters,
+      timestamp: new Date().toISOString(),
+      selectedNode: selectedNodeDetails || null
+    };
+    
+    let exportContent = '';
+    let filename = '';
+    
+    if (format === 'json') {
+      exportContent = JSON.stringify(data, null, 2);
+      filename = `quantum-data-${selectedSystem}-${new Date().getTime()}.json`;
+    } else if (format === 'csv') {
+      // Simple CSV conversion for nodes
+      exportContent = 'id,type,dimensions,entanglementStrength,partnerCount,magneticField\n';
+      system.nodes.forEach(node => {
+        exportContent += `${node.id},${node.type},${node.dimensions},${node.entanglementStrength},${node.entanglementPartners.length},${node.magneticProperties ? node.magneticProperties.field : 'N/A'}\n`;
+      });
+      filename = `quantum-data-${selectedSystem}-${new Date().getTime()}.csv`;
+    }
+    
+    // Create a download link and trigger it
+    const blob = new Blob([exportContent], { type: format === 'json' ? 'application/json' : 'text/csv' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  };
 
   return (
     <div className="container mx-auto px-4 py-8">
@@ -591,35 +650,135 @@ export function QuantumVisualizerDemo() {
           </TabsContent>
           
           <TabsContent value="magnetism">
-            <Card>
-              <CardHeader>
-                <CardTitle>Quantum Magnetism Visualization</CardTitle>
-                <CardDescription>This feature is currently in development</CardDescription>
-              </CardHeader>
-              <CardContent className="flex flex-col items-center justify-center py-12">
-                <RefreshCw className="h-12 w-12 text-muted-foreground animate-spin mb-4" />
-                <p className="text-muted-foreground mb-2">
-                  Our team is working on advanced quantum magnetism models
-                </p>
-                <Button variant="outline" disabled>Coming Soon</Button>
-              </CardContent>
-            </Card>
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+              <div className="md:col-span-3">
+                <Card>
+                  <CardHeader>
+                    <CardTitle>Quantum Magnetism Simulation</CardTitle>
+                    <CardDescription>Explore quantum magnetic behaviors in high-dimensional systems</CardDescription>
+                  </CardHeader>
+                  <CardContent className="p-6">
+                    <EntanglementMap 
+                      nodes={getCurrentSystem().nodes}
+                      title="Magnetic Field Visualization"
+                      description="Visualizing quantum magnetic fields and phase transitions"
+                      onNodeSelected={handleNodeSelected}
+                      showMagneticFields={true}
+                    />
+                  </CardContent>
+                </Card>
+              </div>
+              
+              <div>
+                <ResearchPanel 
+                  nodes={getCurrentSystem().nodes}
+                  selectedNode={selectedNodeDetails || null}
+                  simulationParameters={simulationParameters}
+                  onParameterChange={handleParameterChange}
+                  onExportData={handleExportData}
+                />
+              </div>
+            </div>
           </TabsContent>
           
           <TabsContent value="experiments">
-            <Card>
-              <CardHeader>
-                <CardTitle>Quantum Experiments Laboratory</CardTitle>
-                <CardDescription>This feature is currently in development</CardDescription>
-              </CardHeader>
-              <CardContent className="flex flex-col items-center justify-center py-12">
-                <FlaskConical className="h-12 w-12 text-muted-foreground mb-4" />
-                <p className="text-muted-foreground mb-2">
-                  Interactive quantum experiments will be available in a future update
-                </p>
-                <Button variant="outline" disabled>Coming Soon</Button>
-              </CardContent>
-            </Card>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <Card>
+                <CardHeader>
+                  <CardTitle>Research Data Export</CardTitle>
+                  <CardDescription>Export quantum simulation data for further analysis</CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <p className="text-sm text-muted-foreground">
+                    Export simulation data in various formats for use in research papers, further analysis, or collaboration with other researchers.
+                  </p>
+                  
+                  <div className="space-y-2 mt-4">
+                    <div className="flex justify-between items-center">
+                      <div>
+                        <p className="font-medium">JSON Data Export</p>
+                        <p className="text-xs text-muted-foreground">Complete structured data for computational analysis</p>
+                      </div>
+                      <Button 
+                        variant="outline" 
+                        size="sm"
+                        onClick={() => handleExportData('json')}
+                      >
+                        <FileJson className="mr-1 h-4 w-4" />
+                        Export
+                      </Button>
+                    </div>
+                    
+                    <Separator />
+                    
+                    <div className="flex justify-between items-center">
+                      <div>
+                        <p className="font-medium">CSV Data Export</p>
+                        <p className="text-xs text-muted-foreground">Tabular data for spreadsheet analysis</p>
+                      </div>
+                      <Button 
+                        variant="outline" 
+                        size="sm"
+                        onClick={() => handleExportData('csv')}
+                      >
+                        <FileText className="mr-1 h-4 w-4" />
+                        Export
+                      </Button>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+              
+              <Card>
+                <CardHeader>
+                  <CardTitle>Parameter Space Exploration</CardTitle>
+                  <CardDescription>Visualize effects of different parameter combinations</CardDescription>
+                </CardHeader>
+                <CardContent className="flex flex-col items-center justify-center py-8">
+                  <Network className="h-16 w-16 text-primary/20 mb-4" />
+                  <p className="text-center text-muted-foreground mb-2">
+                    Use the Research Panel to modify quantum system parameters and observe the effects
+                  </p>
+                  <Button 
+                    variant="outline" 
+                    onClick={() => document.querySelector('[value="magnetism"]')?.dispatchEvent(new Event('click', { bubbles: true }))}
+                  >
+                    <Calculator className="mr-2 h-4 w-4" />
+                    Open Research Panel
+                  </Button>
+                </CardContent>
+              </Card>
+              
+              <Card>
+                <CardHeader>
+                  <CardTitle>Mathematical Formalism</CardTitle>
+                  <CardDescription>Explore the mathematical foundation of quantum systems</CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="rounded-md border p-4 bg-muted/30">
+                    <h3 className="text-sm font-medium mb-2">High-Dimensional Qudit States</h3>
+                    <p className="text-sm mb-2">The state of a 37-dimensional qudit can be written as:</p>
+                    <div className="text-center py-3">
+                      |ψ⟩ = ∑<sub>i=0</sub><sup>36</sup> c<sub>i</sub>|i⟩
+                    </div>
+                    <p className="text-xs text-muted-foreground mt-2">
+                      Coefficients c<sub>i</sub> are complex amplitudes satisfying ∑|c<sub>i</sub>|<sup>2</sup> = 1
+                    </p>
+                  </div>
+                  
+                  <div className="rounded-md border p-4 bg-muted/30">
+                    <h3 className="text-sm font-medium mb-2">Quantum Magnetism Model</h3>
+                    <p className="text-sm mb-2">The Hamiltonian for our quantum magnetic system:</p>
+                    <div className="text-center py-3">
+                      H = -J∑<sub>i,j</sub>S<sub>i</sub>·S<sub>j</sub> - h∑<sub>i</sub>S<sub>i</sub><sup>z</sup>
+                    </div>
+                    <p className="text-xs text-muted-foreground mt-2">
+                      J is the coupling constant, h is the external field strength
+                    </p>
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
           </TabsContent>
         </Tabs>
       </div>
