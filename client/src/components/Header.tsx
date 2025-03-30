@@ -44,6 +44,11 @@ const Header = () => {
             <i className="ri-blaze-line mr-1"></i> Kashiwara Genesis
           </div>
         </Link>
+        <Link href="/examples">
+          <div className="px-3 py-1.5 rounded-md bg-gradient-to-r from-amber-500 to-yellow-400 text-white cursor-pointer hover:opacity-90 transition">
+            <i className="ri-rocket-line mr-1"></i> Examples
+          </div>
+        </Link>
         <Link href="/settings">
           <div className="px-3 py-1.5 rounded-md bg-[#6a0dad]/20 hover:bg-[#6a0dad]/40 transition text-white cursor-pointer">
             <i className="ri-settings-4-line mr-1"></i> Settings
