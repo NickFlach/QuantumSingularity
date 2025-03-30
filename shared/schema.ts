@@ -12,6 +12,44 @@ export enum SheafModuleType {
   SINGULARITY = "singularity"
 }
 
+// Quantum System Dimensions
+export enum QuantumDimension {
+  QUBIT = 2,       // Standard 2-level system (qubit)
+  QUTRIT = 3,      // 3-level system (qutrit)
+  QUQUAD = 4,      // 4-level system
+  QUQUINT = 5,     // 5-level system
+  QOCTIT = 8,      // 8-level system
+  QUDECIT = 10,    // 10-level system
+  HIGH_DIM_16 = 16,// 16-level system
+  HIGH_DIM_32 = 32,// 32-level system
+  HIGH_DIM_37 = 37,// 37-level system (from light experiment)
+  HIGH_DIM_50 = 50,// 50-level system
+  HIGH_DIM_64 = 64,// 64-level system
+  HIGH_DIM_100 = 100// 100-level system
+}
+
+// Quantum Operation Types
+export enum QuantumOperationType {
+  GATE = "gate",                 // Single or multi-qudit gate
+  MEASUREMENT = "measurement",   // Quantum measurement
+  EVOLUTION = "evolution",       // Hamiltonian evolution
+  ENTANGLEMENT = "entanglement", // Create entangled state
+  RESET = "reset",               // Reset to basis state
+  ERROR_CORRECTION = "error_correction", // Error correction
+  ERROR_MITIGATION = "error_mitigation"  // Error mitigation
+}
+
+// Hamiltonian Types
+export enum HamiltonianType {
+  ISING = "ising",               // Transverse field Ising model
+  HEISENBERG = "heisenberg",     // Heisenberg model
+  XY = "xy",                     // XY model
+  XXZ = "xxz",                   // XXZ model
+  KITAEV = "kitaev",             // Kitaev honeycomb model
+  HUBBARD = "hubbard",           // Hubbard model
+  CUSTOM = "custom"              // Custom Hamiltonian
+}
+
 export const users = pgTable("users", {
   id: serial("id").primaryKey(),
   username: text("username").notNull().unique(),
@@ -186,6 +224,48 @@ export const crystalStates = pgTable("crystal_states", {
   connections: jsonb("connections"), // Connections to other crystals
   createdAt: text("created_at").notNull(),
   updatedAt: text("updated_at").notNull(),
+});
+
+// High-Dimensional Quantum States (Qudits)
+export const highDimensionalQudits = pgTable("high_dimensional_qudits", {
+  id: serial("id").primaryKey(),
+  projectId: integer("project_id").references(() => singularisProjects.id),
+  name: text("name").notNull(),
+  dimension: integer("dimension").notNull(), // Dimension of the quantum system (2=qubit, 3=qutrit, 37=37-dim, etc)
+  stateVector: jsonb("state_vector"), // Complex amplitudes of the quantum state
+  isEntangled: boolean("is_entangled").default(false), // Whether this qudit is entangled with others
+  entangledWith: jsonb("entangled_with"), // IDs of qudits this one is entangled with
+  createdAt: text("created_at").notNull(),
+  updatedAt: text("updated_at").notNull(),
+});
+
+// Quantum Hamiltonian Models
+export const hamiltonians = pgTable("hamiltonians", {
+  id: serial("id").primaryKey(),
+  projectId: integer("project_id").references(() => singularisProjects.id),
+  name: text("name").notNull(),
+  type: text("type").notNull(), // HamiltonianType enum
+  systemSize: integer("system_size").notNull(), // Number of quantum sites
+  dimension: integer("dimension").default(2), // Dimension of each site (default=qubit)
+  terms: jsonb("terms").notNull(), // Interaction and field terms in the Hamiltonian
+  description: text("description"),
+  createdAt: text("created_at").notNull(),
+  updatedAt: text("updated_at").notNull(),
+});
+
+// Quantum Magnetism Simulations
+export const magnetismSimulations = pgTable("magnetism_simulations", {
+  id: serial("id").primaryKey(),
+  projectId: integer("project_id").references(() => singularisProjects.id),
+  hamiltonianId: integer("hamiltonian_id").references(() => hamiltonians.id),
+  parameters: jsonb("parameters").notNull(), // Simulation parameters
+  results: jsonb("results").notNull(), // Simulation results
+  evolutionData: jsonb("evolution_data"), // Time evolution data
+  finalState: jsonb("final_state"), // Final system state
+  resourcesUsed: jsonb("resources_used"), // Computational resources used
+  errorMitigation: text("error_mitigation"), // Error mitigation strategy used
+  createdAt: text("created_at").notNull(),
+  completedAt: timestamp("completed_at"),
 });
 
 // Insert schemas
@@ -369,3 +449,51 @@ export type FunctorialTransform = typeof functorialTransforms.$inferSelect;
 
 export type InsertCrystalState = z.infer<typeof insertCrystalStateSchema>;
 export type CrystalState = typeof crystalStates.$inferSelect;
+
+// High-Dimensional Quantum States (Qudits) schemas and types
+export const insertQuditSchema = createInsertSchema(highDimensionalQudits).pick({
+  projectId: true,
+  name: true,
+  dimension: true,
+  stateVector: true,
+  isEntangled: true,
+  entangledWith: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export type InsertQudit = z.infer<typeof insertQuditSchema>;
+export type Qudit = typeof highDimensionalQudits.$inferSelect;
+
+// Quantum Hamiltonian schemas and types
+export const insertHamiltonianSchema = createInsertSchema(hamiltonians).pick({
+  projectId: true,
+  name: true,
+  type: true,
+  systemSize: true,
+  dimension: true,
+  terms: true,
+  description: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export type InsertHamiltonian = z.infer<typeof insertHamiltonianSchema>;
+export type Hamiltonian = typeof hamiltonians.$inferSelect;
+
+// Quantum Magnetism Simulation schemas and types
+export const insertMagnetismSimulationSchema = createInsertSchema(magnetismSimulations).pick({
+  projectId: true,
+  hamiltonianId: true,
+  parameters: true,
+  results: true,
+  evolutionData: true,
+  finalState: true,
+  resourcesUsed: true,
+  errorMitigation: true,
+  createdAt: true,
+  completedAt: true,
+});
+
+export type InsertMagnetismSimulation = z.infer<typeof insertMagnetismSimulationSchema>;
+export type MagnetismSimulation = typeof magnetismSimulations.$inferSelect;

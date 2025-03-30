@@ -10,7 +10,10 @@ import {
   sheafModules, type SheafModule, type InsertSheafModule,
   dModules, type DModule, type InsertDModule,
   functorialTransforms, type FunctorialTransform, type InsertFunctorialTransform,
-  crystalStates, type CrystalState, type InsertCrystalState
+  crystalStates, type CrystalState, type InsertCrystalState,
+  highDimensionalQudits, type Qudit, type InsertQudit,
+  hamiltonians, type Hamiltonian, type InsertHamiltonian,
+  magnetismSimulations, type MagnetismSimulation, type InsertMagnetismSimulation
 } from "@shared/schema";
 import { db } from "./db";
 import { eq } from "drizzle-orm";
@@ -73,6 +76,18 @@ export interface IStorage {
   createDModule(module: InsertDModule): Promise<DModule>;
   createFunctorialTransform(transform: InsertFunctorialTransform): Promise<FunctorialTransform>;
   createCrystalState(crystal: InsertCrystalState): Promise<CrystalState>;
+  
+  // High-dimensional quantum operations
+  createQudit(qudit: InsertQudit): Promise<Qudit>;
+  getQudit(id: number): Promise<Qudit | undefined>;
+  getQudits(projectId: number): Promise<Qudit[]>;
+  updateQudit(id: number, updates: Partial<Qudit>): Promise<Qudit | undefined>;
+  
+  // Quantum magnetism operations
+  createHamiltonian(hamiltonian: InsertHamiltonian): Promise<Hamiltonian>;
+  getHamiltonian(id: number): Promise<Hamiltonian | undefined>;
+  getHamiltonians(projectId: number): Promise<Hamiltonian[]>;
+  createMagnetismSimulation(simulation: InsertMagnetismSimulation): Promise<MagnetismSimulation>;
 }
 
 export class MemStorage implements IStorage {
@@ -88,6 +103,9 @@ export class MemStorage implements IStorage {
   private dModules: Map<number, DModule>;
   private functorialTransforms: Map<number, FunctorialTransform>;
   private crystalStates: Map<number, CrystalState>;
+  private highDimensionalQudits: Map<number, Qudit>;
+  private hamiltonians: Map<number, Hamiltonian>;
+  private magnetismSimulations: Map<number, MagnetismSimulation>;
   private userIdCounter: number;
   private projectIdCounter: number;
   private fileIdCounter: number;
@@ -100,6 +118,9 @@ export class MemStorage implements IStorage {
   private dModuleIdCounter: number;
   private functorialTransformIdCounter: number;
   private crystalStateIdCounter: number;
+  private quditIdCounter: number;
+  private hamiltonianIdCounter: number;
+  private magnetismSimulationIdCounter: number;
   public sessionStore: session.Store;
 
   constructor() {
@@ -115,6 +136,9 @@ export class MemStorage implements IStorage {
     this.dModules = new Map();
     this.functorialTransforms = new Map();
     this.crystalStates = new Map();
+    this.highDimensionalQudits = new Map();
+    this.hamiltonians = new Map();
+    this.magnetismSimulations = new Map();
     this.userIdCounter = 1;
     this.projectIdCounter = 1;
     this.fileIdCounter = 1;
@@ -127,6 +151,9 @@ export class MemStorage implements IStorage {
     this.dModuleIdCounter = 1;
     this.functorialTransformIdCounter = 1;
     this.crystalStateIdCounter = 1;
+    this.quditIdCounter = 1;
+    this.hamiltonianIdCounter = 1;
+    this.magnetismSimulationIdCounter = 1;
     
     const MemoryStore = require('memorystore')(session);
     this.sessionStore = new MemoryStore({
@@ -497,6 +524,105 @@ export class MemStorage implements IStorage {
     this.crystalStates.set(id, newCrystal);
     return newCrystal;
   }
+  
+  // High-dimensional quantum operations
+  async createQudit(qudit: InsertQudit): Promise<Qudit> {
+    const id = this.quditIdCounter++;
+    const now = new Date().toISOString();
+    
+    const newQudit: Qudit = {
+      id,
+      projectId: qudit.projectId || null,
+      name: qudit.name,
+      dimension: qudit.dimension,
+      stateVector: qudit.stateVector,
+      isEntangled: qudit.isEntangled || false,
+      entangledWith: qudit.entangledWith || null,
+      createdAt: qudit.createdAt || now,
+      updatedAt: qudit.updatedAt || now
+    };
+    
+    this.highDimensionalQudits.set(id, newQudit);
+    return newQudit;
+  }
+  
+  async getQudit(id: number): Promise<Qudit | undefined> {
+    return this.highDimensionalQudits.get(id);
+  }
+  
+  async getQudits(projectId: number): Promise<Qudit[]> {
+    return Array.from(this.highDimensionalQudits.values()).filter(
+      qudit => qudit.projectId === projectId
+    );
+  }
+  
+  async updateQudit(id: number, updates: Partial<Qudit>): Promise<Qudit | undefined> {
+    const qudit = this.highDimensionalQudits.get(id);
+    if (!qudit) return undefined;
+    
+    const updatedQudit = { 
+      ...qudit,
+      ...updates,
+      updatedAt: updates.updatedAt || new Date().toISOString()
+    };
+    
+    this.highDimensionalQudits.set(id, updatedQudit);
+    return updatedQudit;
+  }
+  
+  // Quantum magnetism operations
+  async createHamiltonian(hamiltonian: InsertHamiltonian): Promise<Hamiltonian> {
+    const id = this.hamiltonianIdCounter++;
+    const now = new Date().toISOString();
+    
+    const newHamiltonian: Hamiltonian = {
+      id,
+      projectId: hamiltonian.projectId || null,
+      name: hamiltonian.name,
+      type: hamiltonian.type,
+      systemSize: hamiltonian.systemSize,
+      dimension: hamiltonian.dimension || 2,
+      terms: hamiltonian.terms,
+      description: hamiltonian.description || null,
+      createdAt: hamiltonian.createdAt || now,
+      updatedAt: hamiltonian.updatedAt || now
+    };
+    
+    this.hamiltonians.set(id, newHamiltonian);
+    return newHamiltonian;
+  }
+  
+  async getHamiltonian(id: number): Promise<Hamiltonian | undefined> {
+    return this.hamiltonians.get(id);
+  }
+  
+  async getHamiltonians(projectId: number): Promise<Hamiltonian[]> {
+    return Array.from(this.hamiltonians.values()).filter(
+      hamiltonian => hamiltonian.projectId === projectId
+    );
+  }
+  
+  async createMagnetismSimulation(simulation: InsertMagnetismSimulation): Promise<MagnetismSimulation> {
+    const id = this.magnetismSimulationIdCounter++;
+    const now = new Date().toISOString();
+    
+    const newSimulation: MagnetismSimulation = {
+      id,
+      projectId: simulation.projectId || null,
+      hamiltonianId: simulation.hamiltonianId,
+      parameters: simulation.parameters,
+      results: simulation.results,
+      evolutionData: simulation.evolutionData || null,
+      finalState: simulation.finalState || null,
+      resourcesUsed: simulation.resourcesUsed || null,
+      errorMitigation: simulation.errorMitigation || null,
+      createdAt: simulation.createdAt || now,
+      completedAt: simulation.completedAt || null
+    };
+    
+    this.magnetismSimulations.set(id, newSimulation);
+    return newSimulation;
+  }
 }
 
 export class DatabaseStorage implements IStorage {
@@ -578,13 +704,19 @@ export class DatabaseStorage implements IStorage {
   }
 
   async createFile(file: InsertFile & { createdAt: string; updatedAt: string }): Promise<File> {
-    const [newFile] = await db.insert(singularisFiles).values(file).returning();
+    const [newFile] = await db.insert(singularisFiles).values({
+      ...file,
+      projectId: file.projectId || null
+    }).returning();
     return newFile;
   }
 
   async updateFile(id: number, updates: Partial<File>): Promise<File | undefined> {
     const [updatedFile] = await db.update(singularisFiles)
-      .set({ ...updates, updatedAt: new Date().toISOString() })
+      .set({ 
+        ...updates, 
+        updatedAt: new Date().toISOString() 
+      })
       .where(eq(singularisFiles.id, id))
       .returning();
     return updatedFile;
@@ -735,13 +867,13 @@ export class DatabaseStorage implements IStorage {
   async createDModule(module: InsertDModule): Promise<DModule> {
     const now = new Date().toISOString();
     const [newModule] = await db.insert(dModules).values({
-      projectId: module.projectId,
+      projectId: module.projectId || null,
       name: module.name,
       baseManifold: module.baseManifold,
       differentialOperators: module.differentialOperators,
-      solutions: module.solutions,
-      singularities: module.singularities,
-      holonomicity: module.holonomicity,
+      solutions: module.solutions || null,
+      singularities: module.singularities || null,
+      holonomicity: module.holonomicity || null,
       createdAt: module.createdAt || now,
       updatedAt: module.updatedAt || now
     }).returning();
@@ -751,13 +883,13 @@ export class DatabaseStorage implements IStorage {
   async createFunctorialTransform(transform: InsertFunctorialTransform): Promise<FunctorialTransform> {
     const now = new Date().toISOString();
     const [newTransform] = await db.insert(functorialTransforms).values({
-      projectId: transform.projectId,
+      projectId: transform.projectId || null,
       name: transform.name,
       sourceCategory: transform.sourceCategory,
       targetCategory: transform.targetCategory,
       transformDefinition: transform.transformDefinition,
-      preservedProperties: transform.preservedProperties,
-      adjunctions: transform.adjunctions,
+      preservedProperties: transform.preservedProperties || null,
+      adjunctions: transform.adjunctions || null,
       createdAt: transform.createdAt || now,
       updatedAt: transform.updatedAt || now
     }).returning();
@@ -767,17 +899,99 @@ export class DatabaseStorage implements IStorage {
   async createCrystalState(crystal: InsertCrystalState): Promise<CrystalState> {
     const now = new Date().toISOString();
     const [newCrystal] = await db.insert(crystalStates).values({
-      projectId: crystal.projectId,
+      projectId: crystal.projectId || null,
       name: crystal.name,
       baseSpace: crystal.baseSpace,
       latticeStructure: crystal.latticeStructure,
-      weightSystem: crystal.weightSystem,
-      crystalOperators: crystal.crystalOperators,
-      connections: crystal.connections,
+      weightSystem: crystal.weightSystem || null,
+      crystalOperators: crystal.crystalOperators || null,
+      connections: crystal.connections || null,
       createdAt: crystal.createdAt || now,
       updatedAt: crystal.updatedAt || now
     }).returning();
     return newCrystal;
+  }
+  
+  // High-dimensional quantum operations
+  async createQudit(qudit: InsertQudit): Promise<Qudit> {
+    const now = new Date().toISOString();
+    const [newQudit] = await db.insert(highDimensionalQudits).values({
+      projectId: qudit.projectId || null,
+      name: qudit.name,
+      dimension: qudit.dimension,
+      stateVector: qudit.stateVector,
+      isEntangled: qudit.isEntangled || false,
+      entangledWith: qudit.entangledWith || null,
+      createdAt: qudit.createdAt || now,
+      updatedAt: qudit.updatedAt || now
+    }).returning();
+    return newQudit;
+  }
+  
+  async getQudit(id: number): Promise<Qudit | undefined> {
+    const [qudit] = await db.select().from(highDimensionalQudits).where(eq(highDimensionalQudits.id, id));
+    return qudit;
+  }
+  
+  async getQudits(projectId: number): Promise<Qudit[]> {
+    return await db.select().from(highDimensionalQudits)
+      .where(eq(highDimensionalQudits.projectId, projectId));
+  }
+  
+  async updateQudit(id: number, updates: Partial<Qudit>): Promise<Qudit | undefined> {
+    const now = new Date().toISOString();
+    const [updatedQudit] = await db.update(highDimensionalQudits)
+      .set({ 
+        ...updates,
+        updatedAt: updates.updatedAt || now
+      })
+      .where(eq(highDimensionalQudits.id, id))
+      .returning();
+    return updatedQudit;
+  }
+  
+  // Quantum magnetism operations
+  async createHamiltonian(hamiltonian: InsertHamiltonian): Promise<Hamiltonian> {
+    const now = new Date().toISOString();
+    const [newHamiltonian] = await db.insert(hamiltonians).values({
+      projectId: hamiltonian.projectId || null,
+      name: hamiltonian.name,
+      type: hamiltonian.type,
+      systemSize: hamiltonian.systemSize,
+      dimension: hamiltonian.dimension || 2,
+      terms: hamiltonian.terms,
+      description: hamiltonian.description || null,
+      createdAt: hamiltonian.createdAt || now,
+      updatedAt: hamiltonian.updatedAt || now
+    }).returning();
+    return newHamiltonian;
+  }
+  
+  async getHamiltonian(id: number): Promise<Hamiltonian | undefined> {
+    const [hamiltonian] = await db.select().from(hamiltonians).where(eq(hamiltonians.id, id));
+    return hamiltonian;
+  }
+  
+  async getHamiltonians(projectId: number): Promise<Hamiltonian[]> {
+    return await db.select().from(hamiltonians)
+      .where(eq(hamiltonians.projectId, projectId));
+  }
+  
+  async createMagnetismSimulation(simulation: InsertMagnetismSimulation): Promise<MagnetismSimulation> {
+    const now = new Date().toISOString();
+    const [newSimulation] = await db.insert(magnetismSimulations).values({
+      projectId: simulation.projectId || null,
+      hamiltonianId: simulation.hamiltonianId,
+      parameters: simulation.parameters,
+      results: simulation.results,
+      evolutionData: simulation.evolutionData || null,
+      finalState: simulation.finalState || null,
+      resourcesUsed: simulation.resourcesUsed || null,
+      errorMitigation: simulation.errorMitigation || null,
+      createdAt: simulation.createdAt || now,
+      completedAt: simulation.completedAt || null
+    }).returning();
+    return newSimulation;
   }
 }
 

@@ -14,6 +14,10 @@ import {
   simulateQuantumGeometricEntanglement,
   computeQuantumTopologicalInvariants
 } from "./language/quantum";
+import {
+  simulateQuantumMagnetism,
+  analyzeQuantumPhases
+} from "./language/quantum-simulation";
 import { simulateAINegotiation } from "./language/ai";
 import {
   processAssistantChat,
@@ -45,7 +49,12 @@ import {
   insertDModuleSchema,
   insertFunctorialTransformSchema,
   insertCrystalStateSchema,
-  SheafModuleType
+  insertQuditSchema,
+  insertHamiltonianSchema,
+  insertMagnetismSimulationSchema,
+  SheafModuleType,
+  QuantumDimension,
+  HamiltonianType
 } from "@shared/schema";
 
 import {
@@ -1434,6 +1443,428 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       return res.status(500).json({ 
         message: "Failed to compute topological invariants",
+        error: error instanceof Error ? error.message : String(error)
+      });
+    }
+  });
+
+  // High-dimensional quantum state routes (qudits)
+  
+  // Create a high-dimensional qudit with specified dimension
+  app.post("/api/quantum/qudits", async (req: Request, res: Response) => {
+    try {
+      const { projectId, name, dimension, initialState } = req.body;
+      
+      if (!projectId || !name || !dimension) {
+        return res.status(400).json({ 
+          message: "Invalid request, required parameters: projectId, name, dimension" 
+        });
+      }
+      
+      // Validate dimension is a valid enum value or number
+      let validDimension: number;
+      if (typeof dimension === 'string' && dimension in QuantumDimension) {
+        validDimension = QuantumDimension[dimension as keyof typeof QuantumDimension];
+      } else if (typeof dimension === 'number' && dimension >= 2) {
+        validDimension = dimension;
+      } else {
+        return res.status(400).json({
+          message: "Invalid dimension value. Must be a valid QuantumDimension enum or number >= 2."
+        });
+      }
+      
+      // Create qudit state vector (basis state |0⟩ or custom initialState)
+      const stateVector = initialState || Array(validDimension).fill({ real: 0, imag: 0 }).map((_, i) => 
+        i === 0 ? { real: 1, imag: 0 } : { real: 0, imag: 0 }
+      );
+      
+      // Get current timestamp
+      const now = new Date().toISOString();
+      
+      // Create qudit in database
+      const qudit = await storage.createQudit({
+        projectId,
+        name,
+        dimension: validDimension,
+        stateVector,
+        isEntangled: false,
+        createdAt: now,
+        updatedAt: now
+      });
+      
+      return res.status(201).json({
+        message: `Created ${validDimension}-dimensional quantum state '${name}'`,
+        qudit
+      });
+    } catch (error) {
+      console.error("Error creating high-dimensional qudit:", error);
+      return res.status(500).json({ 
+        message: "Failed to create high-dimensional quantum state",
+        error: error instanceof Error ? error.message : String(error)
+      });
+    }
+  });
+  
+  // Get all qudits for a project
+  app.get("/api/quantum/qudits", async (req: Request, res: Response) => {
+    try {
+      const projectId = req.query.projectId ? Number(req.query.projectId) : undefined;
+      
+      if (!projectId) {
+        return res.status(400).json({ message: "Project ID is required" });
+      }
+      
+      const qudits = await storage.getQudits(projectId);
+      
+      return res.json({ qudits });
+    } catch (error) {
+      console.error("Error fetching qudits:", error);
+      return res.status(500).json({ 
+        message: "Failed to fetch quantum states",
+        error: error instanceof Error ? error.message : String(error)
+      });
+    }
+  });
+  
+  // Create equal superposition of a qudit
+  app.post("/api/quantum/qudits/:id/superposition", async (req: Request, res: Response) => {
+    try {
+      const id = Number(req.params.id);
+      
+      // Get the qudit from database
+      const qudit = await storage.getQudit(id);
+        
+      if (!qudit) {
+        return res.status(404).json({ message: "Quantum state not found" });
+      }
+      
+      // Calculate equal superposition
+      const amplitude = 1 / Math.sqrt(qudit.dimension);
+      const superpositionState = Array(qudit.dimension).fill({ real: amplitude, imag: 0 });
+      
+      // Update the qudit state in database
+      const updatedQudit = await storage.updateQudit(id, { 
+        stateVector: superpositionState,
+        updatedAt: new Date().toISOString()
+      });
+      
+      return res.json({
+        message: `Created equal superposition of ${qudit.dimension}-dimensional state '${qudit.name}'`,
+        qudit: updatedQudit
+      });
+    } catch (error) {
+      console.error("Error creating superposition:", error);
+      return res.status(500).json({ 
+        message: "Failed to create superposition state",
+        error: error instanceof Error ? error.message : String(error)
+      });
+    }
+  });
+  
+  // Entangle multiple qudits
+  app.post("/api/quantum/qudits/entangle", async (req: Request, res: Response) => {
+    try {
+      const { quditIds, entanglementType = "HIGH_DIM_GHZ" } = req.body;
+      
+      if (!quditIds || !Array.isArray(quditIds) || quditIds.length < 2) {
+        return res.status(400).json({ 
+          message: "At least two qudit IDs are required for entanglement" 
+        });
+      }
+      
+      // Get all qudits from database
+      const qudits = await Promise.all(
+        quditIds.map(id => storage.getQudit(Number(id)))
+      );
+      
+      const validQudits = qudits.filter(q => q !== null);
+      
+      if (validQudits.length !== quditIds.length) {
+        return res.status(404).json({ 
+          message: "One or more quantum states not found" 
+        });
+      }
+      
+      // Check that all qudits have the same dimension
+      const dimensions = new Set(validQudits.map(q => q!.dimension));
+      if (dimensions.size !== 1) {
+        return res.status(400).json({ 
+          message: "All quantum states must have the same dimension for entanglement" 
+        });
+      }
+      
+      // Update all qudits as entangled with each other
+      const updatedQudits = await Promise.all(
+        validQudits.map(qudit => 
+          storage.updateQudit(qudit!.id, { 
+            isEntangled: true,
+            entangledWith: quditIds.filter(id => Number(id) !== qudit!.id),
+            updatedAt: new Date().toISOString()
+          })
+        )
+      );
+      
+      return res.json({
+        message: `Created ${entanglementType} entangled state with ${validQudits.length} ${validQudits[0]!.dimension}-dimensional quantum states`,
+        qudits: updatedQudits
+      });
+    } catch (error) {
+      console.error("Error entangling qudits:", error);
+      return res.status(500).json({ 
+        message: "Failed to create entangled state",
+        error: error instanceof Error ? error.message : String(error)
+      });
+    }
+  });
+  
+  // Measure a qudit
+  app.post("/api/quantum/qudits/:id/measure", async (req: Request, res: Response) => {
+    try {
+      const id = Number(req.params.id);
+      
+      // Get the qudit from database
+      const qudit = await storage.getQudit(id);
+        
+      if (!qudit) {
+        return res.status(404).json({ message: "Quantum state not found" });
+      }
+      
+      // Simulate a measurement outcome
+      const result = Math.floor(Math.random() * qudit.dimension);
+      
+      // Create collapsed state - all zeros except the measured basis state
+      const collapsedState = Array(qudit.dimension).fill({ real: 0, imag: 0 });
+      collapsedState[result] = { real: 1, imag: 0 };
+      
+      // If qudit was entangled, collect IDs of all entangled qudits
+      let entangledQuditIds: number[] = [];
+      if (qudit.isEntangled && qudit.entangledWith) {
+        entangledQuditIds = qudit.entangledWith as number[];
+      }
+      
+      // Update the qudit state in database
+      const updatedQudit = await storage.updateQudit(id, { 
+        stateVector: collapsedState,
+        isEntangled: false,
+        entangledWith: null,
+        updatedAt: new Date().toISOString()
+      });
+      
+      // If qudit was entangled, collapse all entangled qudits consistently
+      if (entangledQuditIds.length > 0) {
+        await Promise.all(
+          entangledQuditIds.map(async (entangledId) => {
+            const entangledQudit = await storage.getQudit(entangledId);
+            
+            if (entangledQudit) {
+              // Create collapsed state for the entangled qudit
+              // In a real quantum system with GHZ state, the outcomes would be correlated
+              const entangledCollapsedState = Array(entangledQudit.dimension).fill({ real: 0, imag: 0 });
+              entangledCollapsedState[result] = { real: 1, imag: 0 };
+              
+              // Update the entangled qudit
+              await storage.updateQudit(entangledId, { 
+                stateVector: entangledCollapsedState,
+                isEntangled: false,
+                entangledWith: null,
+                updatedAt: new Date().toISOString()
+              });
+            }
+          })
+        );
+      }
+      
+      return res.json({
+        message: `Measured ${qudit.dimension}-dimensional state '${qudit.name}', got result: ${result}`,
+        result,
+        qudit: updatedQudit
+      });
+    } catch (error) {
+      console.error("Error measuring qudit:", error);
+      return res.status(500).json({ 
+        message: "Failed to measure quantum state",
+        error: error instanceof Error ? error.message : String(error)
+      });
+    }
+  });
+  
+  // Quantum Magnetism Routes
+  
+  // Create a quantum Hamiltonian
+  app.post("/api/quantum/hamiltonians", async (req: Request, res: Response) => {
+    try {
+      const { projectId, name, type, systemSize, dimension, terms, description } = req.body;
+      
+      if (!projectId || !name || !type || !systemSize || !terms) {
+        return res.status(400).json({ 
+          message: "Required parameters: projectId, name, type, systemSize, terms" 
+        });
+      }
+      
+      // Validate type is a valid HamiltonianType
+      if (!(type in HamiltonianType)) {
+        return res.status(400).json({
+          message: "Invalid Hamiltonian type. Must be one of the HamiltonianType enum values."
+        });
+      }
+      
+      // Get current timestamp
+      const now = new Date().toISOString();
+      
+      // Create Hamiltonian in database
+      const hamiltonian = await storage.createHamiltonian({
+        projectId,
+        name,
+        type,
+        systemSize,
+        dimension: dimension || 2, // Default to qubits (dimension 2)
+        terms,
+        description,
+        createdAt: now,
+        updatedAt: now
+      });
+      
+      return res.status(201).json({
+        message: `Created ${type} Hamiltonian '${name}' with ${systemSize} ${dimension || 2}-dimensional sites`,
+        hamiltonian
+      });
+    } catch (error) {
+      console.error("Error creating Hamiltonian:", error);
+      return res.status(500).json({ 
+        message: "Failed to create quantum Hamiltonian",
+        error: error instanceof Error ? error.message : String(error)
+      });
+    }
+  });
+  
+  // Get all Hamiltonians for a project
+  app.get("/api/quantum/hamiltonians", async (req: Request, res: Response) => {
+    try {
+      const projectId = req.query.projectId ? Number(req.query.projectId) : undefined;
+      
+      if (!projectId) {
+        return res.status(400).json({ message: "Project ID is required" });
+      }
+      
+      const hamiltonians = await storage.getHamiltonians(projectId);
+      
+      return res.json({ hamiltonians });
+    } catch (error) {
+      console.error("Error fetching Hamiltonians:", error);
+      return res.status(500).json({ 
+        message: "Failed to fetch quantum Hamiltonians",
+        error: error instanceof Error ? error.message : String(error)
+      });
+    }
+  });
+  
+  // Run a quantum magnetism simulation
+  app.post("/api/quantum/magnetism/simulate", async (req: Request, res: Response) => {
+    try {
+      const { projectId, hamiltonianId, parameters, errorMitigation } = req.body;
+      
+      if (!projectId || !hamiltonianId || !parameters) {
+        return res.status(400).json({ 
+          message: "Required parameters: projectId, hamiltonianId, parameters" 
+        });
+      }
+      
+      // Get the Hamiltonian
+      const hamiltonian = await storage.getHamiltonian(Number(hamiltonianId));
+      
+      if (!hamiltonian) {
+        return res.status(404).json({ message: "Hamiltonian not found" });
+      }
+      
+      // Set up simulation options
+      const options = {
+        time: parameters.time || 10,
+        timeStep: parameters.timeStep || 0.1,
+        evolutionMethod: parameters.evolutionMethod || "trotter",
+        errorMitigation: errorMitigation || "none",
+        errorMitigationStrength: parameters.errorMitigationStrength || 0.5,
+        observables: parameters.observables || ["magnetization", "correlation"],
+        shots: parameters.shots || 1000,
+        includeEntanglementMetrics: parameters.includeEntanglementMetrics || true
+      };
+      
+      // Run the simulation - in a real app, this would run on a quantum simulator or device
+      const simulationResults = simulateQuantumMagnetism(hamiltonian, options);
+      
+      // Get current timestamp
+      const now = new Date().toISOString();
+      
+      // Create simulation record in database
+      const simulation = await storage.createMagnetismSimulation({
+        projectId,
+        hamiltonianId: Number(hamiltonianId),
+        parameters: options,
+        results: { success: true },
+        evolutionData: simulationResults.evolution,
+        finalState: simulationResults.finalState,
+        resourcesUsed: simulationResults.resourcesUsed,
+        errorMitigation: options.errorMitigation,
+        createdAt: now,
+        completedAt: now
+      });
+      
+      return res.status(201).json({
+        message: `Completed quantum magnetism simulation for Hamiltonian '${hamiltonian.name}'`,
+        simulation: {
+          ...simulation,
+          simulationResults
+        }
+      });
+    } catch (error) {
+      console.error("Error simulating quantum magnetism:", error);
+      return res.status(500).json({ 
+        message: "Failed to run quantum magnetism simulation",
+        error: error instanceof Error ? error.message : String(error)
+      });
+    }
+  });
+  
+  // Analyze phases in a quantum magnetic system
+  app.post("/api/quantum/magnetism/phases", async (req: Request, res: Response) => {
+    try {
+      const { hamiltonianId, paramRange, paramName } = req.body;
+      
+      if (!hamiltonianId || !paramRange) {
+        return res.status(400).json({ 
+          message: "Required parameters: hamiltonianId, paramRange" 
+        });
+      }
+      
+      // Get the Hamiltonian
+      const hamiltonian = await storage.getHamiltonian(Number(hamiltonianId));
+      
+      if (!hamiltonian) {
+        return res.status(404).json({ message: "Hamiltonian not found" });
+      }
+      
+      // Validate paramRange
+      if (!paramRange.start || !paramRange.end || !paramRange.steps) {
+        return res.status(400).json({ 
+          message: "paramRange must include start, end, and steps" 
+        });
+      }
+      
+      // Run the phase analysis
+      const phaseAnalysis = analyzeQuantumPhases(
+        hamiltonian,
+        paramRange,
+        paramName || 'h'
+      );
+      
+      return res.json({
+        message: `Analyzed quantum phases for Hamiltonian '${hamiltonian.name}'`,
+        hamiltonian: hamiltonian,
+        phaseAnalysis
+      });
+    } catch (error) {
+      console.error("Error analyzing quantum phases:", error);
+      return res.status(500).json({ 
+        message: "Failed to analyze quantum phases",
         error: error instanceof Error ? error.message : String(error)
       });
     }
