@@ -19,6 +19,7 @@ import KashiwaraQuantumPage from "@/pages/KashiwaraQuantumPage";
 import { ExamplesPage } from "@/pages/ExamplesPage";
 import { QuantumVisualizerDemo } from "@/pages/QuantumVisualizerDemo";
 import StellarRoseControl from "@/pages/StellarRoseControl";
+import GlyphEditor from "@/pages/GlyphEditor";
 import Header from "@/components/Header";
 import { AuthProvider } from "./lib/AuthContext";
 import { ProtectedRoute } from "./lib/ProtectedRoute";
@@ -39,6 +40,7 @@ function Router() {
       <ProtectedRoute path="/examples" component={ExamplesPage} />
       <PublicRoute path="/quantum-visualizer" component={QuantumVisualizerDemo} />
       <Route path="/control" component={StellarRoseControl} />
+      <ProtectedRoute path="/glyph-editor" component={GlyphEditor} />
       <ProtectedRoute path="/projects" component={ProjectsPage} />
       <ProtectedRoute path="/projects/:id" component={ProjectDetail} />
       <ProtectedRoute path="/profile" component={ProfilePage} />
