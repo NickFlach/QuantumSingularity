@@ -1792,7 +1792,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const simulationResults = simulateQuantumMagnetism(hamiltonian, options);
       
       // Get current timestamp
-      const now = new Date().toISOString();
+      const dateNow = new Date();
+      const now = dateNow.toISOString();
       
       // Create simulation record in database
       const simulation = await storage.createMagnetismSimulation({
@@ -1805,7 +1806,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         resourcesUsed: simulationResults.resourcesUsed,
         errorMitigation: options.errorMitigation,
         createdAt: now,
-        completedAt: now
+        completedAt: dateNow
       });
       
       return res.status(201).json({

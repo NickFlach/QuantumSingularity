@@ -609,7 +609,7 @@ export class MemStorage implements IStorage {
     const newSimulation: MagnetismSimulation = {
       id,
       projectId: simulation.projectId || null,
-      hamiltonianId: simulation.hamiltonianId,
+      hamiltonianId: Number(simulation.hamiltonianId),
       parameters: simulation.parameters,
       results: simulation.results,
       evolutionData: simulation.evolutionData || null,
