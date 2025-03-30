@@ -1231,7 +1231,7 @@ export function generateLocalDocumentation(code: string): string {
     
     if (fn.params.length > 0) {
       documentation += `#### Parameters\n\n`;
-      fn.params.forEach(param => {
+      fn.params.forEach((param: { name: string; description: string }) => {
         documentation += `- \`${param.name}\`: ${param.description}\n`;
       });
       documentation += `\n`;
@@ -1253,12 +1253,15 @@ function extractFunctions(code: string): any[] {
   const functions: any[] = [];
   const functionMatches = code.matchAll(/export\s+function\s+(\w+)\s*\(([^)]*)\)[^{]*{/g);
   
-  for (const match of functionMatches) {
+  // Convert iterator to array for compatibility with target settings
+  const matchesArray = Array.from(functionMatches);
+  
+  for (const match of matchesArray) {
     const name = match[1];
     const params = match[2].split(',')
-      .map(param => param.trim())
-      .filter(param => param)
-      .map(param => {
+      .map((param: string) => param.trim())
+      .filter((param: string) => param)
+      .map((param: string) => {
         const [paramName, ...rest] = param.split(':');
         return {
           name: paramName.trim(),

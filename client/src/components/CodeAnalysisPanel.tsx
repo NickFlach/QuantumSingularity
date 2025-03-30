@@ -56,13 +56,22 @@ export function CodeAnalysisPanel() {
   const [filterType, setFilterType] = useState<string>('all');
   const { toast } = useToast();
 
+  // Define types for API responses
+  type FilesResponse = {
+    files: CodeFile[];
+  };
+  
+  type AnalysisResponse = {
+    analysis: any;
+  };
+
   // Fetch all code files
   const { 
     data: filesData, 
     isLoading: isLoadingFiles, 
     error: filesError,
     refetch: refetchFiles
-  } = useQuery({
+  } = useQuery<FilesResponse>({
     queryKey: ['/api/code/analysis/files'],
     retry: 1
   });
@@ -73,7 +82,7 @@ export function CodeAnalysisPanel() {
     isLoading: isLoadingAnalysis,
     error: analysisError,
     refetch: refetchAnalysis
-  } = useQuery({
+  } = useQuery<AnalysisResponse>({
     queryKey: ['/api/code/analysis/analyze', selectedFileId],
     enabled: !!selectedFileId,
     retry: 1
@@ -399,7 +408,7 @@ export function CodeAnalysisPanel() {
                           {analysis.quantumFeatures.length === 0 ? (
                             <p className="text-sm text-muted-foreground">No quantum features detected</p>
                           ) : (
-                            analysis.quantumFeatures.map((feature, index) => (
+                            analysis.quantumFeatures.map((feature: string, index: number) => (
                               <Badge key={index} variant="outline" className="bg-blue-50">
                                 {feature}
                               </Badge>
@@ -414,7 +423,7 @@ export function CodeAnalysisPanel() {
                           {analysis.aiIntegrationPoints.length === 0 ? (
                             <p className="text-sm text-muted-foreground">No AI integration points detected</p>
                           ) : (
-                            analysis.aiIntegrationPoints.map((point, index) => (
+                            analysis.aiIntegrationPoints.map((point: string, index: number) => (
                               <Badge key={index} variant="outline" className="bg-amber-50">
                                 {point}
                               </Badge>
@@ -432,7 +441,7 @@ export function CodeAnalysisPanel() {
                         {analysis.improvements.length === 0 ? (
                           <p className="text-sm text-muted-foreground">No improvements suggested</p>
                         ) : (
-                          analysis.improvements.map((improvement, index) => (
+                          analysis.improvements.map((improvement: string, index: number) => (
                             <li key={index} className="flex items-start gap-2 text-sm">
                               <Check className="h-4 w-4 text-green-500 mt-0.5" />
                               <span>{improvement}</span>
@@ -480,7 +489,7 @@ export function CodeAnalysisPanel() {
                           .replace(/^- (.*$)/gim, '<ul><li>$1</li></ul>')
                           .replace(/\n\n/gim, '<br />')
                           .replace(/`([^`]+)`/gim, '<code>$1</code>')
-                          .replace(/```(.+?)```/gims, '<pre><code>$1</code></pre>')
+                          .replace(/```([\s\S]+?)```/gim, '<pre><code>$1</code></pre>')
                       }} />
                     </div>
                   </div>
