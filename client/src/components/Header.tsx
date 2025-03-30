@@ -54,6 +54,16 @@ const Header = () => {
             <i className="ri-rocket-line mr-1"></i> Examples
           </div>
         </Link>
+        <Link href="/control">
+          <div className="px-3 py-1.5 rounded-md bg-gradient-to-r from-amber-600 to-red-500 text-white cursor-pointer hover:opacity-90 transition">
+            <i className="ri-dashboard-line mr-1"></i> StellarRose
+          </div>
+        </Link>
+        <Link href="/glyph-editor">
+          <div className="px-3 py-1.5 rounded-md bg-gradient-to-r from-amber-700 to-orange-600 text-white cursor-pointer hover:opacity-90 transition">
+            <i className="ri-magic-line mr-1"></i> G.L.Y.P.H.
+          </div>
+        </Link>
         <Link href="/settings">
           <div className="px-3 py-1.5 rounded-md bg-[#6a0dad]/20 hover:bg-[#6a0dad]/40 transition text-white cursor-pointer">
             <i className="ri-settings-4-line mr-1"></i> Settings
