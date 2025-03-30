@@ -25,31 +25,27 @@ export function Qudit37DDemo() {
   const runEntanglement = async () => {
     setIsLoading(true);
     try {
-      const response = await apiRequest('/api/quantum/high-dimensional/entangle', 'POST', {
+      // Using async/await style with error handling
+      const data = await apiRequest('/api/quantum/high-dimensional/entangle', 'POST', {
         dimension: dimensions,
         qudits: 2,
         entanglementType: 'GHZ'
       });
       
-      if (response.ok) {
-        const result = await response.json();
-        setSimulationResults(prev => [...prev, {
-          id: Math.random(),
-          name: `${dimensions}D Entanglement`,
-          dimension: dimensions,
-          state: result.state || [],
-          isEntangled: true,
-          entangledWith: result.entangledWith || [],
-          created: new Date().toISOString()
-        }]);
-        
-        toast({
-          title: 'Entanglement Simulation Complete',
-          description: `${dimensions}-dimensional entanglement simulation complete!`,
-        });
-      } else {
-        throw new Error('Failed to simulate entanglement');
-      }
+      setSimulationResults(prev => [...prev, {
+        id: Math.floor(Math.random() * 10000),
+        name: `${dimensions}D Entanglement`,
+        dimension: dimensions,
+        state: data.state || [],
+        isEntangled: true,
+        entangledWith: data.quditIds || [],
+        created: new Date().toISOString()
+      }]);
+      
+      toast({
+        title: 'Entanglement Simulation Complete',
+        description: `${dimensions}-dimensional entanglement simulation complete!`,
+      });
     } catch (error) {
       toast({
         title: 'Simulation Failed',
