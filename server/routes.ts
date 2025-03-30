@@ -32,6 +32,18 @@ import {
 } from "./language/high-dimensional-quantum";
 import { simulateAINegotiation } from "./language/ai";
 import {
+  createQuantumState,
+  createEntangledState,
+  createMagneticHamiltonian,
+  runUnifiedSimulation,
+  measureQudit,
+  transformQudit,
+  analyzeQuantumPhaseTransitions,
+  calculateEntanglementMagnetismCorrelation,
+  generateSingularisPrimeCode,
+  ErrorMitigationType
+} from './language/singularis-prime-unified';
+import {
   processAssistantChat,
   analyzeCode as assistantAnalyzeCode,
   generateCodeSuggestions,
@@ -2825,6 +2837,177 @@ export async function registerRoutes(app: Express): Promise<Server> {
       console.error("Error measuring high-dimensional state:", error);
       return res.status(500).json({ 
         message: "Failed to measure quantum state",
+        error: error instanceof Error ? error.message : String(error)
+      });
+    }
+  });
+
+  // SINGULARIS PRIME Unified Quantum Architecture API
+  
+  // Create a quantum state with SINGULARIS PRIME
+  app.post("/api/singularis/quantum/state", async (req: Request, res: Response) => {
+    try {
+      const { name, dimension, initialState } = req.body;
+      
+      if (!name) {
+        return res.status(400).json({ 
+          message: "Required parameter: name (string)" 
+        });
+      }
+      
+      // Create a quantum state with the specified dimension
+      const qudit = createQuantumState(
+        name,
+        dimension || 37,
+        initialState
+      );
+      
+      return res.status(201).json({
+        message: `Created ${qudit.dimension}-dimensional quantum state '${name}'`,
+        qudit,
+        code: generateSingularisPrimeCode('create_qudit', { 
+          name, 
+          dimension: qudit.dimension 
+        })
+      });
+    } catch (error) {
+      console.error("Error creating SINGULARIS PRIME quantum state:", error);
+      return res.status(500).json({ 
+        message: "Failed to create quantum state",
+        error: error instanceof Error ? error.message : String(error)
+      });
+    }
+  });
+  
+  // Create entangled states with SINGULARIS PRIME
+  app.post("/api/singularis/quantum/entangle", async (req: Request, res: Response) => {
+    try {
+      const { name, dimension, numQudits, entanglementType } = req.body;
+      
+      // Create entangled quantum states
+      const entangledQudits = createEntangledState(
+        name || "Entangled State",
+        dimension || 37,
+        numQudits || 2,
+        entanglementType || 'GHZ'
+      );
+      
+      return res.status(201).json({
+        message: `Created ${entangledQudits.length} entangled qudits in ${dimension || 37} dimensions`,
+        qudits: entangledQudits,
+        entanglementType: entanglementType || 'GHZ',
+        code: generateSingularisPrimeCode('entangle', { 
+          dimension: dimension || 37,
+          numQudits: numQudits || 2,
+          type: entanglementType || 'GHZ'
+        })
+      });
+    } catch (error) {
+      console.error("Error creating SINGULARIS PRIME entangled states:", error);
+      return res.status(500).json({ 
+        message: "Failed to create entangled states",
+        error: error instanceof Error ? error.message : String(error)
+      });
+    }
+  });
+  
+  // Create a magnetism Hamiltonian with SINGULARIS PRIME
+  app.post("/api/singularis/quantum/hamiltonian", async (req: Request, res: Response) => {
+    try {
+      const { name, dimension, latticeType, temperature, numSites } = req.body;
+      
+      if (!name) {
+        return res.status(400).json({ 
+          message: "Required parameter: name (string)" 
+        });
+      }
+      
+      // Create a quantum magnetism Hamiltonian
+      const hamiltonian = createMagneticHamiltonian(
+        name,
+        dimension || 37,
+        latticeType || 'HIGHD_HYPERCUBIC',
+        temperature || 1.0,
+        numSites || 10
+      );
+      
+      return res.status(201).json({
+        message: `Created ${dimension || 37}-dimensional quantum magnetism Hamiltonian '${name}'`,
+        hamiltonian,
+        code: generateSingularisPrimeCode('magnetism', { 
+          dimension: dimension || 37,
+          latticeType: latticeType || 'HIGHD_HYPERCUBIC',
+          temperature: temperature || 1.0
+        })
+      });
+    } catch (error) {
+      console.error("Error creating SINGULARIS PRIME Hamiltonian:", error);
+      return res.status(500).json({ 
+        message: "Failed to create Hamiltonian",
+        error: error instanceof Error ? error.message : String(error)
+      });
+    }
+  });
+  
+  // Run unified simulation combining quantum states and magnetism
+  app.post("/api/singularis/quantum/unified-simulation", async (req: Request, res: Response) => {
+    try {
+      const { states, hamiltonian, errorMitigation } = req.body;
+      
+      if (!states || !hamiltonian) {
+        return res.status(400).json({ 
+          message: "Required parameters: states (array), hamiltonian (object)" 
+        });
+      }
+      
+      // Run the unified simulation
+      const result = runUnifiedSimulation(
+        states,
+        hamiltonian,
+        errorMitigation
+      );
+      
+      return res.json({
+        message: `Completed unified ${result.states?.[0]?.dimension || 37}D quantum simulation`,
+        result,
+        code: generateSingularisPrimeCode('unified', {})
+      });
+    } catch (error) {
+      console.error("Error running SINGULARIS PRIME unified simulation:", error);
+      return res.status(500).json({ 
+        message: "Failed to run unified simulation",
+        error: error instanceof Error ? error.message : String(error)
+      });
+    }
+  });
+  
+  // Get SINGULARIS PRIME code for a specific quantum operation
+  app.post("/api/singularis/code/generate", async (req: Request, res: Response) => {
+    try {
+      const { operation, params } = req.body;
+      
+      if (!operation) {
+        return res.status(400).json({ 
+          message: "Required parameter: operation (string)" 
+        });
+      }
+      
+      // Generate SINGULARIS PRIME code for the specified operation
+      const code = generateSingularisPrimeCode(
+        operation,
+        params || {}
+      );
+      
+      return res.json({
+        message: `Generated SINGULARIS PRIME code for ${operation}`,
+        code,
+        operation,
+        params: params || {}
+      });
+    } catch (error) {
+      console.error("Error generating SINGULARIS PRIME code:", error);
+      return res.status(500).json({ 
+        message: "Failed to generate code",
         error: error instanceof Error ? error.message : String(error)
       });
     }

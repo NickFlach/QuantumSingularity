@@ -193,6 +193,110 @@ export function QuantumUnifiedDemo() {
     }
   };
 
+  // Run unified simulation combining quantum states with magnetism
+  const runUnifiedSimulation = async () => {
+    // First, ensure we have at least one of each type
+    if (!simulationResults.some(result => result.type === 'quantum-entanglement')) {
+      await runEntanglement();
+    }
+    
+    if (!simulationResults.some(result => result.type === 'quantum-magnetism')) {
+      await createHamiltonian();
+    }
+    
+    // Find the most recent entangled state and hamiltonian
+    const latestEntanglement = [...simulationResults]
+      .filter(result => result.type === 'quantum-entanglement')
+      .sort((a, b) => new Date(b.created).getTime() - new Date(a.created).getTime())[0];
+    
+    const latestHamiltonian = [...simulationResults]
+      .filter(result => result.type === 'quantum-magnetism')
+      .sort((a, b) => new Date(b.created).getTime() - new Date(a.created).getTime())[0];
+    
+    if (!latestEntanglement || !latestHamiltonian) {
+      toast({
+        title: 'Unified Simulation Failed',
+        description: 'Need both quantum entanglement and magnetism results',
+        variant: 'destructive'
+      });
+      return;
+    }
+    
+    setIsLoading(true);
+    try {
+      // Create states array with the entangled state
+      const states = [{
+        id: latestEntanglement.id,
+        dimension: latestEntanglement.dimension,
+        state: latestEntanglement.state || [],
+        isEntangled: true,
+        entangledWith: latestEntanglement.entangledWith
+      }];
+
+      // Create a hamiltonian object if we don't have one yet
+      let hamiltonianObj;
+      if (latestHamiltonian.id) {
+        hamiltonianObj = {
+          id: latestHamiltonian.id,
+          name: latestHamiltonian.name,
+          latticeType: hamiltonian, // Use the current selected lattice type
+          dimension: dimensions,
+          numSites: 10,
+          interactions: [],
+          temperature: temperature,
+          created: latestHamiltonian.created
+        };
+      } else {
+        // If no hamiltonian exists yet, create one
+        const hamiltonianResponse = await apiRequest('/api/singularis/quantum/hamiltonian', 'POST', {
+          name: `${dimensions}D ${hamiltonian} Hamiltonian`,
+          dimension: dimensions,
+          latticeType: hamiltonian,
+          temperature: temperature
+        });
+        hamiltonianObj = hamiltonianResponse.hamiltonian;
+      }
+      
+      // Run the unified simulation with our SINGULARIS PRIME unified API
+      const unifiedResponse = await apiRequest('/api/singularis/quantum/unified-simulation', 'POST', {
+        states,
+        hamiltonian: hamiltonianObj,
+        errorMitigation: 'NONE'
+      });
+      
+      // Add the result to our list
+      setSimulationResults(prev => [...prev, {
+        id: unifiedResponse.result.id || Math.floor(Math.random() * 10000),
+        name: unifiedResponse.result.name || `Unified ${dimensions}D Quantum Simulation`,
+        dimension: dimensions,
+        type: 'quantum-entanglement', // Maintain compatibility with our UI
+        state: latestEntanglement.state,
+        isEntangled: true,
+        entangledWith: latestEntanglement.entangledWith,
+        magnetization: unifiedResponse.result.magnetism?.magnetization || [],
+        created: unifiedResponse.result.timestamp || new Date().toISOString()
+      }]);
+      
+      // If code is available, log it to the console for developers
+      if (unifiedResponse.code) {
+        console.log("Generated SINGULARIS PRIME Code:", unifiedResponse.code);
+      }
+      
+      toast({
+        title: 'Unified Simulation Complete',
+        description: `Successfully integrated quantum entanglement with magnetism in ${dimensions}D space`,
+      });
+    } catch (error) {
+      toast({
+        title: 'Unified Simulation Failed',
+        description: error instanceof Error ? error.message : 'An error occurred',
+        variant: 'destructive'
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   const clearResults = () => {
     setSimulationResults([]);
   };
@@ -207,9 +311,10 @@ export function QuantumUnifiedDemo() {
       </CardHeader>
       <CardContent>
         <Tabs defaultValue="37d-quantum" onValueChange={setActiveTab} className="w-full">
-          <TabsList className="grid w-full grid-cols-2">
+          <TabsList className="grid w-full grid-cols-3">
             <TabsTrigger value="37d-quantum">37D Quantum States</TabsTrigger>
             <TabsTrigger value="quantum-magnetism">Quantum Magnetism</TabsTrigger>
+            <TabsTrigger value="unified-framework">Unified Framework</TabsTrigger>
           </TabsList>
           
           <TabsContent value="37d-quantum">
@@ -320,6 +425,98 @@ export function QuantumUnifiedDemo() {
                 >
                   {isLoading ? 'Processing...' : 'Run Magnetism Simulation'}
                 </Button>
+              </div>
+            </div>
+          </TabsContent>
+
+          <TabsContent value="unified-framework">
+            <div className="space-y-6">
+              <div className="p-4 border rounded-md bg-muted/30">
+                <h3 className="text-lg font-semibold mb-2">SINGULARIS PRIME Unified Framework</h3>
+                <p className="text-sm mb-4">
+                  This revolutionary framework combines 37-dimensional quantum states with quantum magnetism simulations in a unified architecture, enabling unprecedented insights into complex quantum systems.
+                </p>
+                
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                  <div>
+                    <h4 className="text-sm font-medium mb-1">High-Dimensional States</h4>
+                    <p className="text-xs text-muted-foreground">
+                      Implements 37-dimensional light states with full entanglement support
+                    </p>
+                  </div>
+                  <div>
+                    <h4 className="text-sm font-medium mb-1">Quantum Magnetism</h4>
+                    <p className="text-xs text-muted-foreground">
+                      Simulates complex magnetic systems across multiple dimensions
+                    </p>
+                  </div>
+                </div>
+              </div>
+              
+              <div className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <label htmlFor="dimensions-unified" className="text-sm font-medium">
+                    Unified Dimensions: {dimensions}
+                  </label>
+                  <span className="text-xs text-muted-foreground">
+                    {dimensions === 37 ? 'Optimal' : dimensions < 37 ? 'Below optimal' : 'Above optimal'}
+                  </span>
+                </div>
+                <Slider
+                  id="dimensions-unified"
+                  min={2}
+                  max={50}
+                  step={1}
+                  value={[dimensions]}
+                  onValueChange={(value) => setDimensions(value[0])}
+                />
+              </div>
+              
+              <div className="space-y-2">
+                <label htmlFor="hamiltonian-type-unified" className="text-sm font-medium">
+                  Lattice Configuration
+                </label>
+                <Select 
+                  value={hamiltonian} 
+                  onValueChange={setHamiltonian}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select lattice type" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="HIGHD_HYPERCUBIC">High-D Hypercubic</SelectItem>
+                    <SelectItem value="HIGHD_SIMPLICIAL">High-D Simplicial</SelectItem>
+                    <SelectItem value="HIGHD_RANDOM">High-D Random</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              
+              <div className="flex flex-wrap gap-3">
+                <Button 
+                  onClick={runUnifiedSimulation} 
+                  disabled={isLoading}
+                  variant="default"
+                  className="bg-gradient-to-r from-blue-600 to-purple-600 text-white"
+                >
+                  {isLoading ? 'Running Unified Simulation...' : 'Run Unified Simulation'}
+                </Button>
+                <Button 
+                  onClick={() => {
+                    runEntanglement();
+                    createHamiltonian();
+                  }} 
+                  disabled={isLoading}
+                  variant="outline"
+                >
+                  {isLoading ? 'Preparing...' : 'Prepare Components'}
+                </Button>
+              </div>
+              
+              <div className="mt-2">
+                <p className="text-xs text-muted-foreground">
+                  Note: A unified simulation requires both quantum entanglement and magnetism components. 
+                  Use "Prepare Components" to generate both automatically.
+                </p>
               </div>
             </div>
           </TabsContent>
