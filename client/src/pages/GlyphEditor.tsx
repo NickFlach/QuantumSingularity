@@ -7,12 +7,14 @@ import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Separator } from '@/components/ui/separator';
 import { exampleGlyphicSpell } from '@/lib/GlyphInterpreter';
 import { useToast } from '@/hooks/use-toast';
-import { InfoIcon, Book, Wand, Sparkles, AlertTriangle, Braces } from 'lucide-react';
+import { InfoIcon, Book, Wand, Sparkles, AlertTriangle, Braces, CheckCircle, XCircle } from 'lucide-react';
 
 export default function GlyphEditor() {
   const [activeTab, setActiveTab] = useState<string>('editor');
   const [spellConfig, setSpellConfig] = useState<any>(null);
   const [isConfiguring, setIsConfiguring] = useState<boolean>(false);
+  const [isDeploying, setIsDeploying] = useState<boolean>(false);
+  const [deploymentResult, setDeploymentResult] = useState<any>(null);
   const { toast } = useToast();
   
   // Example spells for different purposes
@@ -43,6 +45,9 @@ export default function GlyphEditor() {
     setSpellConfig(config);
     setIsConfiguring(true);
     
+    // Reset deployment result
+    setDeploymentResult(null);
+    
     // Simulate configuration process
     setTimeout(() => {
       setIsConfiguring(false);
@@ -56,6 +61,53 @@ export default function GlyphEditor() {
       // Optionally navigate to the deployed interface
       // history.push(config.deployPath);
     }, 2000);
+  };
+
+  // Handle deployment to the endpoint
+  const handleDeployGlyph = async () => {
+    if (!activeSpell) return;
+    
+    setIsDeploying(true);
+    setDeploymentResult(null);
+    
+    try {
+      const response = await fetch('/glyph', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ glyphPrompt: activeSpell }),
+      });
+      
+      const result = await response.json();
+      
+      setDeploymentResult(result);
+      
+      if (response.ok) {
+        toast({
+          title: "G.L.Y.P.H. Ritual Executed",
+          description: `The ritual '${result.ritualName}' has been successfully executed with ${result.actions.length} actions.`,
+          duration: 5000,
+        });
+      } else {
+        toast({
+          title: "Ritual Execution Failed",
+          description: result.message || "The G.L.Y.P.H. ritual could not be executed. Please check the spell syntax.",
+          variant: "destructive",
+          duration: 7000,
+        });
+      }
+    } catch (error) {
+      console.error("Error deploying G.L.Y.P.H. spell:", error);
+      toast({
+        title: "Deployment Error",
+        description: "Something went wrong while communicating with the quantum core.",
+        variant: "destructive",
+        duration: 7000,
+      });
+    } finally {
+      setIsDeploying(false);
+    }
   };
   
   return (
@@ -190,17 +242,65 @@ export default function GlyphEditor() {
                         <div className="pt-2">
                           <Button 
                             className="w-full bg-amber-900 hover:bg-amber-800 text-amber-100"
-                            onClick={() => {
-                              toast({
-                                title: "Deployment Ready",
-                                description: "The G.L.Y.P.H. configuration is ready to be deployed to the target environment.",
-                              });
-                            }}
+                            onClick={handleDeployGlyph}
+                            disabled={isDeploying}
                           >
-                            <Sparkles className="h-4 w-4 mr-2" />
-                            Deploy Configuration
+                            {isDeploying ? (
+                              <>
+                                <div className="animate-spin mr-2 h-4 w-4 border-2 border-amber-100 border-t-transparent rounded-full"></div>
+                                Deploying G.L.Y.P.H....
+                              </>
+                            ) : (
+                              <>
+                                <Sparkles className="h-4 w-4 mr-2" />
+                                Deploy to Quantum Core
+                              </>
+                            )}
                           </Button>
                         </div>
+                        
+                        {deploymentResult && (
+                          <div className="mt-4 bg-black/40 p-3 rounded border border-amber-600/30">
+                            <div className="flex items-center mb-2">
+                              {deploymentResult.status === "Executed" ? (
+                                <CheckCircle className="h-5 w-5 text-green-500 mr-2" />
+                              ) : (
+                                <XCircle className="h-5 w-5 text-red-500 mr-2" />
+                              )}
+                              <h3 className="text-sm font-medium text-amber-300">Ritual Execution Result</h3>
+                            </div>
+                            
+                            <div className="space-y-2 text-sm">
+                              {deploymentResult.status === "Executed" && (
+                                <>
+                                  <div className="flex justify-between">
+                                    <span className="text-gray-400">Ritual Name:</span>
+                                    <span className="text-amber-100">{deploymentResult.ritualName}</span>
+                                  </div>
+                                  
+                                  <Separator className="bg-amber-900/30" />
+                                  
+                                  <div>
+                                    <span className="text-gray-400 block mb-1">Actions Performed:</span>
+                                    <div className="space-y-1">
+                                      {deploymentResult.actions.map((action: string, index: number) => (
+                                        <div key={index} className="text-xs py-1 px-2 rounded bg-amber-900/20 text-amber-200">
+                                          {action}
+                                        </div>
+                                      ))}
+                                    </div>
+                                  </div>
+                                </>
+                              )}
+                              
+                              {deploymentResult.status !== "Executed" && (
+                                <div className="text-red-400">
+                                  {deploymentResult.message || "Ritual execution failed. Please check your G.L.Y.P.H. syntax."}
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                        )}
                       </div>
                     ) : (
                       <div className="flex flex-col items-center justify-center py-8 text-center space-y-4">

@@ -839,6 +839,86 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
   
+  // Main G.L.Y.P.H. endpoint - processes glyphic prompts and returns structured response
+  app.post("/glyph", async (req: Request, res: Response) => {
+    try {
+      const { glyphPrompt } = req.body;
+      
+      if (!glyphPrompt || typeof glyphPrompt !== "string") {
+        return res.status(400).json({ 
+          message: "Missing glyphPrompt in request body"
+        });
+      }
+      
+      console.log(`Processing G.L.Y.P.H. prompt: ${glyphPrompt.substring(0, 50)}...`);
+      
+      // First verify the G.L.Y.P.H. ritual
+      const verificationResult = verifyGlyphRitual(glyphPrompt);
+      
+      if (!verificationResult.valid) {
+        return res.status(400).json({
+          status: "Invalid",
+          errors: verificationResult.errors
+        });
+      }
+      
+      // Execute the ritual if valid
+      const executionResult = await executeGlyphRitual(glyphPrompt);
+      
+      if (!executionResult.success) {
+        return res.status(500).json({
+          status: "Failed",
+          error: executionResult.error
+        });
+      }
+      
+      // Map ritual actions based on the spell components
+      const spell = verificationResult.spell;
+      
+      if (!spell) {
+        return res.status(500).json({
+          status: "Error",
+          message: "Invalid spell configuration detected"
+        });
+      }
+      
+      const actions = [];
+      
+      // Add panel actions based on spell panels
+      spell.panels.forEach(panel => {
+        actions.push(`Add Panel: ${panel}`);
+      });
+      
+      // Add logic module actions
+      spell.logicModules.forEach(module => {
+        actions.push(`Activate: ${module}`);
+      });
+      
+      // Add recovery glyph action if present
+      if (spell.recoveryGlyph) {
+        actions.push("Invoke Recovery Glyph");
+      }
+      
+      // Add deployment action
+      actions.push(`Deploy Output: ${spell.deployPath}`);
+      
+      // Return the structured response
+      return res.json({
+        ritualName: spell.command,
+        actions,
+        status: "Executed"
+      });
+      
+    } catch (error) {
+      console.error("Error processing G.L.Y.P.H. prompt:", error);
+      return res.status(500).json({ 
+        status: "Error",
+        message: "Failed to process G.L.Y.P.H. prompt",
+        error: error instanceof Error ? error.message : String(error)
+      });
+    }
+  });
+  
   // Simulate AI-to-AI negotiation
   app.post("/api/ai/negotiate", async (req: Request, res: Response) => {
     try {
