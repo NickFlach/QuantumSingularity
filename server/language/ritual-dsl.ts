@@ -149,15 +149,21 @@ export function performRitual(ritual: Ritual): Ritual {
             // Create an entanglement between the seed and the petal
             // In a real implementation, this would modify both qudits
             // For now, we'll just mark them as entangled
-            ritual.elements.seed.entanglementPartners = [
-              ...(ritual.elements.seed.entanglementPartners || []),
-              i
-            ];
+            if (!ritual.elements.seed.entangledWith) {
+              ritual.elements.seed.entangledWith = [];
+            }
+            ritual.elements.seed.entangledWith.push(`petal-${i}`);
             
-            ritual.elements.petals[i].entanglementPartners = [
-              ...(ritual.elements.petals[i].entanglementPartners || []),
-              -1 // -1 indicates the seed
-            ];
+            // Make sure petals array exists and the current petal exists
+            if (ritual.elements.petals && ritual.elements.petals[i]) {
+              // Safely access and update the entangledWith property
+              // Since we've already checked that ritual.elements.petals[i] exists, we can safely access it
+              const currentPetal = ritual.elements.petals[i];
+              // Initialize entangledWith array if it doesn't exist
+              currentPetal.entangledWith = currentPetal.entangledWith || [];
+              // Add the seed to the entanglement partners
+              currentPetal.entangledWith.push('seed');
+            }
           }
         }
         break;
@@ -440,7 +446,7 @@ quantum ritual ${ritual.name} {
   return {
     seed,
     petals,
-    measurements: [${ritual.results?.measurements?.map(m => `"${m.result}"`).join(', ') || ''}]
+    measurements: [${ritual.results?.measurements?.map((measurement: any) => `"${measurement.result}"`).join(', ') || ''}]
   };
 }`;
   
