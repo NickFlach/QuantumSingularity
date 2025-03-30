@@ -1,459 +1,222 @@
 /**
- * SINGULARIS PRIME High-Dimensional Quantum Module
+ * SINGULARIS PRIME High-Dimensional Quantum Operations
  * 
- * This module implements support for high-dimensional quantum systems (qudits),
- * inspired by the 37-dimensional light experiment. It provides facilities to
- * create, manipulate, and measure quantum systems with arbitrary dimensions,
- * not limited to the standard 2-dimensional qubit model.
- * 
- * The module is specifically optimized for working with 37-dimensional photonic states
- * that were demonstrated in breakthrough experiments extending the Greenberger–Horne–Zeilinger (GHZ)
- * paradox to high-dimensional quantum systems. These states can express quantum properties
- * beyond traditional qubits, offering higher information density and computational throughput.
+ * This module provides operations for 37-dimensional quantum states (qudits)
+ * simulation in the SINGULARIS PRIME environment, including state initialization,
+ * transformations, and entanglement operations.
  */
-
-// Type for quantum dimensions that can range from 2 (standard qubit) to arbitrary values
-export type QuditDimension = 2 | 3 | 4 | 5 | 8 | 10 | 16 | 32 | 37 | 50 | 64 | 100;
-
-// Physical implementation of high-dimensional qudits
-export enum QuditImplementation {
-  PHOTONIC = 'photonic',         // Photonic degrees of freedom (polarization, path, OAM)
-  ATOMIC = 'atomic',             // Atomic energy levels
-  SUPERCONDUCTING = 'superconducting', // Superconducting circuit energy levels
-  SPIN = 'spin',                 // Spin systems with more than 2 levels
-  MOLECULAR = 'molecular',       // Molecular rotational/vibrational states
-  TOPOLOGICAL = 'topological'    // Topologically protected states
-}
-
-// Error mitigation strategies for quantum operations
-export enum ErrorMitigationStrategy {
-  NONE = 'none',                   // No error mitigation
-  ZNE = 'zero_noise_extrapolation', // Zero-noise extrapolation
-  PEC = 'probabilistic_error_cancellation', // Probabilistic error cancellation
-  SYMMETRY = 'symmetry_verification', // Symmetry verification
-  READOUT = 'readout_error_mitigation', // Readout error mitigation
-  DECOHERENCE_FREE = 'decoherence_free_subspaces', // Decoherence-free subspaces
-  DYNAMICAL_DECOUPLING = 'dynamical_decoupling' // Dynamical decoupling sequences
-}
-
-// High-dimensional entangled state types
-export enum EntanglementType {
-  BELL = 'bell',            // 2-qubit maximally entangled state
-  GHZ = 'ghz',              // N-qubit Greenberger–Horne–Zeilinger state
-  W = 'w',                  // N-qubit W state
-  CLUSTER = 'cluster',      // Cluster state (for measurement-based quantum computing)
-  HIGH_DIM_GHZ = 'high_dim_ghz', // High-dimensional GHZ state
-  HIGH_DIM_BELL = 'high_dim_bell', // High-dimensional Bell state (for d-level systems)
-  CUSTOM = 'custom'         // Custom entanglement specification
-}
-
-// Represents a complex number for quantum amplitudes
-export interface Complex {
-  real: number;
-  imag: number;
-}
-
-// Represents a generalized quantum state with d-levels
-export interface Qudit<D extends QuditDimension = 2> {
-  dimension: D;
-  stateVector: Complex[];
-  id: string;
-  isEntangled: boolean;
-  entangledWith?: string[]; // IDs of qudits this one is entangled with
-  implementation?: QuditImplementation; // Physical implementation of the qudit
-  errorMitigation?: ErrorMitigationStrategy; // Error mitigation strategy applied
-  coherenceTime?: number; // Estimated coherence time in microseconds
-  fidelity?: number; // State preparation fidelity (0-1)
-}
-
-// Generalized quantum gate for d-dimensional systems
-export interface QuditGate<D extends QuditDimension = 2> {
-  name: string;
-  dimension: D;
-  matrix: Complex[][];
-}
 
 /**
- * Creates a new qudit with specified dimension
- * 
- * @param dimension Number of levels in the quantum system
- * @param id Identifier for the qudit
- * @param initialState Optional custom initial state (defaults to |0⟩)
- * @param implementation Optional physical implementation
- * @param errorMitigation Optional error mitigation strategy
- * @returns The initialized qudit
+ * Generate an initial state for a high-dimensional qudit
+ * @param dimension The dimension of the qudit (typically 37 for this application)
+ * @returns An array representing the quantum state amplitudes
  */
-export function createQudit<D extends QuditDimension>(
-  dimension: D,
-  id: string,
-  initialState?: Complex[],
-  implementation: QuditImplementation = QuditImplementation.PHOTONIC,
-  errorMitigation: ErrorMitigationStrategy = ErrorMitigationStrategy.NONE
-): Qudit<D> {
-  // If no initial state provided, default to |0⟩ state (first basis state)
-  let stateVector: Complex[];
+export function generateInitialState(dimension: number): number[] {
+  // For demonstration purposes, we'll create a basic equal superposition
+  // In a real quantum system, this would be handled by actual quantum operations
+  const state = new Array(dimension).fill(0);
   
-  if (initialState && initialState.length === dimension) {
-    stateVector = initialState;
-  } else {
-    // Initialize to |0⟩ state - first element is 1, rest are 0
-    stateVector = Array(dimension).fill({ real: 0, imag: 0 });
-    stateVector[0] = { real: 1, imag: 0 };
+  // Set initial state to |0⟩ with minor superposition effects
+  state[0] = 0.9; // High probability in ground state
+  
+  // Distribute remaining probability across other states
+  const remainingProbability = 0.1;
+  for (let i = 1; i < dimension; i++) {
+    state[i] = remainingProbability / (dimension - 1);
   }
   
-  // Calculate estimated coherence time based on implementation and dimension
-  const coherenceTime = calculateCoherenceTime(dimension, implementation);
-  
-  // Initial fidelity is usually high for freshly prepared states
-  const fidelity = 0.99;
-  
-  return {
-    dimension,
-    stateVector,
-    id,
-    isEntangled: false,
-    implementation,
-    errorMitigation,
-    coherenceTime,
-    fidelity
-  };
+  // Ensure normalization
+  const norm = Math.sqrt(state.reduce((sum, amp) => sum + amp * amp, 0));
+  return state.map(amp => amp / norm);
 }
 
 /**
- * Helper function to estimate coherence time based on dimension and implementation
- * This is a simplified model; actual coherence times would depend on many factors
+ * Transformation types for high-dimensional quantum states
  */
-function calculateCoherenceTime<D extends QuditDimension>(
-  dimension: D,
-  implementation: QuditImplementation
-): number {
-  // Base coherence times in microseconds for different implementations
-  const baseCoherenceTimes: Record<QuditImplementation, number> = {
-    [QuditImplementation.PHOTONIC]: 500,
-    [QuditImplementation.ATOMIC]: 1000,
-    [QuditImplementation.SUPERCONDUCTING]: 100,
-    [QuditImplementation.SPIN]: 200,
-    [QuditImplementation.MOLECULAR]: 300,
-    [QuditImplementation.TOPOLOGICAL]: 10000
-  };
-  
-  // Coherence typically decreases with dimension, model as inverse relationship
-  return baseCoherenceTimes[implementation] / Math.log(dimension);
-}
+export type TransformationType = 
+  | 'FOURIER'        // Quantum Fourier transform
+  | 'HADAMARD_GEN'   // Generalized Hadamard
+  | 'PHASE_SHIFT'    // Phase shift operation
+  | 'CYCLIC'         // Cyclic permutation
+  | 'HYPERBOLIC';    // Hyperbolic transformation
 
 /**
- * Creates an equal superposition state across all basis states of the qudit
- * Equivalent to applying Hadamard on a qubit, but generalized to d dimensions
- * 
- * @param qudit The qudit to put in superposition
- * @returns The qudit in equal superposition state
+ * Transform a high-dimensional quantum state
+ * @param state The current quantum state
+ * @param transformationType The type of transformation to apply
+ * @returns The transformed quantum state
  */
-export function createEqualSuperposition<D extends QuditDimension>(
-  qudit: Qudit<D>
-): Qudit<D> {
-  const amplitude = 1 / Math.sqrt(qudit.dimension);
-  const newStateVector = Array(qudit.dimension).fill({ 
-    real: amplitude, 
-    imag: 0 
-  });
+export function transformState(state: number[], transformationType: TransformationType): number[] {
+  const dimension = state.length;
+  const result = new Array(dimension).fill(0);
   
-  return {
-    ...qudit,
-    stateVector: newStateVector
-  };
-}
-
-/**
- * Creates a high-dimensional entangled state between multiple qudits
- * 
- * @param qudits Array of qudits to entangle
- * @param type The type of entanglement to create
- * @returns The array of entangled qudits
- */
-export function createEntangledState<D extends QuditDimension>(
-  qudits: Qudit<D>[],
-  type: EntanglementType
-): Qudit<D>[] {
-  // Ensure all qudits have the same dimension
-  const dimensions = new Set(qudits.map(q => q.dimension));
-  if (dimensions.size !== 1) {
-    throw new Error("All qudits must have the same dimension for entanglement");
-  }
-  
-  // Collect IDs for tracking entanglement
-  const quditIds = qudits.map(q => q.id);
-  
-  // Create entangled state based on type
-  switch (type) {
-    case EntanglementType.BELL:
-      if (qudits.length !== 2) {
-        throw new Error("Bell state requires exactly 2 qudits");
-      }
-      // For Bell state, we'd normally compute the actual state vectors
-      // but in this simulation, we're marking the qudits as entangled
-      break;
-      
-    case EntanglementType.GHZ:
-      // Standard GHZ state |00...0⟩ + |11...1⟩ (normalized)
-      break;
-      
-    case EntanglementType.HIGH_DIM_GHZ:
-      // High-dimensional GHZ state generalizes the standard GHZ
-      // |00...0⟩ + |11...1⟩ + |22...2⟩ + ... + |(d-1)(d-1)...(d-1)⟩ (normalized)
-      break;
-      
-    case EntanglementType.HIGH_DIM_BELL:
-      // High-dimensional Bell state
-      // 1/sqrt(d) * sum_{i=0}^{d-1} |i⟩|i⟩
-      if (qudits.length !== 2) {
-        throw new Error("High-dimensional Bell state requires exactly 2 qudits");
+  switch (transformationType) {
+    case 'FOURIER': {
+      // Simplified Quantum Fourier Transform
+      for (let i = 0; i < dimension; i++) {
+        let sum = 0;
+        for (let j = 0; j < dimension; j++) {
+          // e^(2πi*j*k/N) expressed in terms of sin and cos
+          const angle = 2 * Math.PI * i * j / dimension;
+          sum += state[j] * Math.cos(angle);
+        }
+        result[i] = sum / Math.sqrt(dimension);
       }
       break;
-      
-    case EntanglementType.W:
-      // W state |100...0⟩ + |010...0⟩ + |001...0⟩ + ... + |000...1⟩ (normalized)
-      break;
-      
-    case EntanglementType.CLUSTER:
-      // Cluster state - more complex pattern of entanglement
-      break;
-      
-    case EntanglementType.CUSTOM:
-      // Custom entanglement defined by the application
-      break;
-  }
-  
-  // Mark all qudits as entangled with each other
-  return qudits.map(qudit => ({
-    ...qudit,
-    isEntangled: true,
-    entangledWith: quditIds.filter(id => id !== qudit.id)
-  }));
-}
-
-/**
- * Apply a single-qudit gate to a d-dimensional quantum system
- * 
- * @param qudit Target qudit
- * @param gate The gate to apply
- * @returns The qudit after gate application
- */
-export function applyQuditGate<D extends QuditDimension>(
-  qudit: Qudit<D>,
-  gate: QuditGate<D>
-): Qudit<D> {
-  // In a real implementation, this would perform the matrix multiplication
-  // For simulation purposes, we're returning the qudit with a flag indicating change
-  return {
-    ...qudit,
-    // In a real implementation, the state vector would be updated
-    // stateVector = gate.matrix * qudit.stateVector
-  };
-}
-
-/**
- * Measures a qudit, collapsing its quantum state to a classical outcome
- * 
- * @param qudit The qudit to measure
- * @returns Measurement result (0 to dimension-1) and the collapsed qudit
- */
-export function measureQudit<D extends QuditDimension>(
-  qudit: Qudit<D>
-): { result: number; collapsedQudit: Qudit<D> } {
-  // In a real implementation, this would calculate probabilities from amplitudes
-  // and perform a weighted random selection based on those probabilities
-  
-  // Simulate a measurement outcome based on superposition principle
-  const result = Math.floor(Math.random() * qudit.dimension);
-  
-  // Create collapsed state - all zeroes except the measured basis state
-  const collapsedState = Array(qudit.dimension).fill({ real: 0, imag: 0 });
-  collapsedState[result] = { real: 1, imag: 0 };
-  
-  // Return the result and the collapsed qudit
-  return {
-    result,
-    collapsedQudit: {
-      ...qudit,
-      stateVector: collapsedState,
-      isEntangled: false, // Measurement breaks entanglement
-      entangledWith: undefined
     }
-  };
-}
-
-/**
- * Simulates quantum decoherence effects on high-dimensional quantum states
- * 
- * @param qudit The qudit experiencing decoherence
- * @param strength Strength of decoherence (0-1)
- * @returns The qudit after decoherence effects
- */
-export function simulateDecoherence<D extends QuditDimension>(
-  qudit: Qudit<D>,
-  strength: number
-): Qudit<D> {
-  // Ensure strength is between 0 and 1
-  const normalizedStrength = Math.max(0, Math.min(1, strength));
-  
-  // Calculate reduced fidelity due to decoherence
-  const newFidelity = qudit.fidelity 
-    ? qudit.fidelity * (1 - normalizedStrength) 
-    : 1 - normalizedStrength;
-  
-  return {
-    ...qudit,
-    fidelity: newFidelity
-  };
-}
-
-/**
- * Calculates the fidelity between two qudits of the same dimension
- * 
- * @param qudit1 First qudit
- * @param qudit2 Second qudit
- * @returns Fidelity value between 0 and 1 (1 = identical states)
- */
-export function calculateFidelity<D extends QuditDimension>(
-  qudit1: Qudit<D>,
-  qudit2: Qudit<D>
-): number {
-  // In a full implementation, this would compute the quantum fidelity
-  // between two quantum states: F(ρ,σ) = (Tr√√ρσ√ρ)²
-  
-  // For now, we compute a simplified fidelity as a weighted sum of state vector overlaps
-  let overlapSum = 0;
-  for (let i = 0; i < qudit1.dimension; i++) {
-    const amp1 = qudit1.stateVector[i];
-    const amp2 = qudit2.stateVector[i];
     
-    // Square of inner product between complex amplitudes
-    overlapSum += (amp1.real * amp2.real + amp1.imag * amp2.imag) ** 2 + 
-                  (amp1.real * amp2.imag - amp1.imag * amp2.real) ** 2;
-  }
-  
-  return Math.min(1, Math.max(0, overlapSum));
-}
-
-/**
- * Specially optimized for 37-dimensional quantum states based on recent breakthroughs
- * Creates a high-dimensional phase state optimized for 37D qudits
- * 
- * @param qudit The 37-dimensional qudit to transform
- * @returns The qudit in a phase state
- */
-export function create37DPhaseState(qudit: Qudit<37>): Qudit<37> {
-  // Check if the qudit has the correct dimension
-  if (qudit.dimension !== 37) {
-    throw new Error("This function requires a 37-dimensional qudit");
-  }
-  
-  // Create special phase relationships optimized for 37 dimensions
-  const newStateVector: Complex[] = Array(37).fill({ real: 0, imag: 0 });
-  
-  // Apply the specialized phase pattern discovered in recent experiments
-  for (let i = 0; i < 37; i++) {
-    const phase = (2 * Math.PI * i * i) / 37; // Quadratic phase relationship
-    const amplitude = 1 / Math.sqrt(37);
+    case 'HADAMARD_GEN': {
+      // Generalized Hadamard transform
+      for (let i = 0; i < dimension; i++) {
+        let sum = 0;
+        for (let j = 0; j < dimension; j++) {
+          // Simplified version for demo purposes
+          const sign = (i & j) % 2 === 0 ? 1 : -1;
+          sum += sign * state[j];
+        }
+        result[i] = sum / Math.sqrt(dimension);
+      }
+      break;
+    }
     
-    newStateVector[i] = {
-      real: amplitude * Math.cos(phase),
-      imag: amplitude * Math.sin(phase)
-    };
+    case 'PHASE_SHIFT': {
+      // Apply varying phase shifts
+      for (let i = 0; i < dimension; i++) {
+        const phase = i * Math.PI / dimension;
+        result[i] = state[i] * Math.cos(phase);
+      }
+      break;
+    }
+    
+    case 'CYCLIC': {
+      // Simple cyclic permutation of amplitudes
+      for (let i = 0; i < dimension; i++) {
+        result[i] = state[(i + 1) % dimension];
+      }
+      break;
+    }
+    
+    case 'HYPERBOLIC': {
+      // Hyperbolic transformation - emphasizes certain dimensions
+      const centralState = Math.floor(dimension / 2);
+      for (let i = 0; i < dimension; i++) {
+        // Distance from central state
+        const distance = Math.abs(i - centralState);
+        const factor = 1 / (1 + 0.1 * distance);
+        result[i] = state[i] * factor;
+      }
+      // Normalize
+      const norm = Math.sqrt(result.reduce((sum, amp) => sum + amp * amp, 0));
+      for (let i = 0; i < dimension; i++) {
+        result[i] /= norm;
+      }
+      break;
+    }
+    
+    default:
+      return [...state]; // Return copy of original state
   }
   
-  return {
-    ...qudit,
-    stateVector: newStateVector
-  };
+  // Ensure normalization
+  const norm = Math.sqrt(result.reduce((sum, amp) => sum + amp * amp, 0));
+  return result.map(amp => amp / norm);
 }
 
 /**
- * Creates a 37-dimensional entangled state with unique properties
- * This state has special correlation properties not found in lower dimensions
- * 
- * @param qudits Array of 37-dimensional qudits to entangle in the special state
- * @returns The array of entangled qudits
+ * Entanglement types for high-dimensional quantum states
  */
-export function create37DimensionalEntanglement(
-  qudits: Qudit<37>[]
-): Qudit<37>[] {
-  // Check that we have at least 2 qudits
-  if (qudits.length < 2) {
-    throw new Error("37-dimensional special entanglement requires at least 2 qudits");
+export type EntanglementType = 
+  | 'GHZ'         // Generalized GHZ (Greenberger–Horne–Zeilinger) state
+  | 'W'           // Generalized W state
+  | 'CLUSTER'     // Cluster state
+  | 'HIGHD_BELL'; // High-dimensional Bell state
+
+/**
+ * Generate an entangled state for high-dimensional qudits
+ * @param dimension The dimension of each qudit
+ * @param entanglementType The type of entanglement to create
+ * @returns An array representing the entangled quantum state
+ */
+export function generateEntangledState(dimension: number, entanglementType: EntanglementType): number[] {
+  // This is a simplified representation for demonstration
+  // In a real quantum system, this would be the result of actual entangling operations
+  
+  // Create a simplified entangled state representation
+  // For a real d-dimensional multipartite entangled state, this would be much more complex
+  const stateSize = dimension * 2; // Simplified for demo purposes
+  const state = new Array(stateSize).fill(0);
+  
+  switch (entanglementType) {
+    case 'GHZ': {
+      // Generalized GHZ state - equal superposition of |00...0⟩ and |11...1⟩
+      state[0] = 1/Math.sqrt(2);               // |00...0⟩
+      state[stateSize - 1] = 1/Math.sqrt(2);   // |11...1⟩
+      break;
+    }
+    
+    case 'W': {
+      // W state - equal superposition of states with a single excitation
+      const normalization = 1/Math.sqrt(dimension);
+      for (let i = 0; i < dimension; i++) {
+        state[i] = normalization;
+      }
+      break;
+    }
+    
+    case 'CLUSTER': {
+      // Simplified cluster state
+      for (let i = 0; i < stateSize; i++) {
+        state[i] = 1/Math.sqrt(stateSize);
+        // In a real cluster state, we would apply controlled-phase operations
+      }
+      break;
+    }
+    
+    case 'HIGHD_BELL': {
+      // High-dimensional Bell state |Φ⟩ = (1/√d) Σ|j,j⟩
+      const normalization = 1/Math.sqrt(dimension);
+      for (let i = 0; i < dimension; i++) {
+        state[i * 2] = normalization;
+      }
+      break;
+    }
+    
+    default:
+      // Default to GHZ-like state
+      state[0] = 1/Math.sqrt(2);
+      state[stateSize - 1] = 1/Math.sqrt(2);
   }
   
-  // Check that all qudits are 37-dimensional
-  for (const qudit of qudits) {
-    if (qudit.dimension !== 37) {
-      throw new Error("All qudits must be 37-dimensional for this special entanglement");
+  return state;
+}
+
+/**
+ * Measure a high-dimensional quantum state
+ * @param state The quantum state to measure
+ * @returns The measurement outcome and collapsed state
+ */
+export function measureQuantumState(state: number[]): { outcome: number, collapsedState: number[] } {
+  const dimension = state.length;
+  
+  // Calculate probabilities
+  const probabilities = state.map(amp => amp * amp);
+  
+  // Choose outcome based on probability distribution
+  let randomValue = Math.random();
+  let cumulativeProbability = 0;
+  let outcome = dimension - 1;
+  
+  for (let i = 0; i < dimension; i++) {
+    cumulativeProbability += probabilities[i];
+    if (randomValue <= cumulativeProbability) {
+      outcome = i;
+      break;
     }
   }
   
-  // Collect IDs for tracking entanglement
-  const quditIds = qudits.map(q => q.id);
+  // Create collapsed state (|outcome⟩)
+  const collapsedState = new Array(dimension).fill(0);
+  collapsedState[outcome] = 1;
   
-  // In a real implementation, this would create the actual entangled state
-  // For this simulation, we're just marking the qudits as entangled
-  
-  // Return the entangled qudits
-  return qudits.map(qudit => ({
-    ...qudit,
-    isEntangled: true,
-    entangledWith: quditIds.filter(id => id !== qudit.id),
-    fidelity: 0.98 // Special entanglement has slightly lower initial fidelity due to complexity
-  }));
-}
-
-/**
- * Applies error mitigation specific to 37-dimensional quantum states
- * Uses specialized techniques that work best in this dimension
- * 
- * @param qudit The 37-dimensional qudit to apply error mitigation to
- * @param strategy The error mitigation strategy to apply
- * @returns The qudit with error mitigation applied
- */
-export function apply37DErrorMitigation(
-  qudit: Qudit<37>,
-  strategy: ErrorMitigationStrategy
-): Qudit<37> {
-  // Check if the qudit has the correct dimension
-  if (qudit.dimension !== 37) {
-    throw new Error("This function requires a 37-dimensional qudit");
-  }
-  
-  // Apply the specified error mitigation strategy
-  // This would modify the qudit's state to be more robust against errors
-  
-  return {
-    ...qudit,
-    errorMitigation: strategy,
-    fidelity: qudit.fidelity ? Math.min(1, qudit.fidelity + 0.05) : 0.95 // Error mitigation improves fidelity
-  };
-}
-
-/**
- * Performs basis transformation optimized for 37-dimensional quantum states
- * Transforms between different representations of the same quantum information
- * 
- * @param qudit The 37-dimensional qudit to transform
- * @param newBasisType The type of basis to transform to
- * @returns The qudit in the new basis
- */
-export function transform37DBasis(
-  qudit: Qudit<37>,
-  newBasisType: 'computational' | 'fourier' | 'orbital' | 'magnetic'
-): Qudit<37> {
-  // Check if the qudit has the correct dimension
-  if (qudit.dimension !== 37) {
-    throw new Error("This function requires a 37-dimensional qudit");
-  }
-  
-  // In a real implementation, this would apply the appropriate transformation matrix
-  // For this simulation, we're just noting the transformation
-  
-  return {
-    ...qudit,
-    // The state vector would be transformed according to the basis change
-  };
+  return { outcome, collapsedState };
 }

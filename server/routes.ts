@@ -16,8 +16,20 @@ import {
 } from "./language/quantum";
 import {
   simulateQuantumMagnetism,
-  analyzeQuantumPhases
-} from "./language/quantum-simulation";
+  analyzeQuantumPhases,
+  generateHamiltonian,
+  LatticeType,
+  InteractionType
+} from "./language/quantum-magnetism";
+
+import {
+  generateInitialState,
+  transformState,
+  generateEntangledState,
+  measureQuantumState,
+  TransformationType,
+  EntanglementType
+} from "./language/high-dimensional-quantum";
 import { simulateAINegotiation } from "./language/ai";
 import {
   processAssistantChat,
@@ -2561,6 +2573,256 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       return res.status(500).json({ 
         message: "Failed to register user",
+        error: error instanceof Error ? error.message : String(error)
+      });
+    }
+  });
+  
+  // Demo API endpoints for 37-dimensional quantum computing
+  
+  // Create a 37-dimensional quantum Hamiltonian for magnetism simulations
+  app.post("/api/quantum/magnetism/hamiltonian", async (req: Request, res: Response) => {
+    try {
+      const { name, latticeType, dimension, numSites, temperature } = req.body;
+      
+      if (!name || !latticeType) {
+        return res.status(400).json({ 
+          message: "Required parameters: name, latticeType" 
+        });
+      }
+      
+      // Create a Hamiltonian using our quantum magnetism module
+      const hamiltonian = generateHamiltonian({
+        name,
+        latticeType: latticeType as LatticeType,
+        dimension: dimension || 37, // Default to 37D for SINGULARIS PRIME
+        numSites: numSites || 10,
+        temperature: temperature || 1.0
+      });
+      
+      return res.status(201).json({
+        message: `Created ${dimension || 37}-dimensional quantum magnetism Hamiltonian '${name}'`,
+        hamiltonian
+      });
+    } catch (error) {
+      console.error("Error creating magnetism Hamiltonian:", error);
+      return res.status(500).json({ 
+        message: "Failed to create quantum magnetism Hamiltonian",
+        error: error instanceof Error ? error.message : String(error)
+      });
+    }
+  });
+  
+  // Run quantum magnetism simulation with specific Hamiltonian
+  app.post("/api/quantum/magnetism/simulate", async (req: Request, res: Response) => {
+    try {
+      const { hamiltonianId, duration, timeSteps, errorMitigation } = req.body;
+      
+      if (!hamiltonianId) {
+        return res.status(400).json({ 
+          message: "Required parameters: hamiltonianId" 
+        });
+      }
+      
+      // Run the simulation using our quantum magnetism module
+      const simulation = simulateQuantumMagnetism({
+        hamiltonianId: Number(hamiltonianId),
+        duration: Number(duration) || 10,
+        timeSteps: Number(timeSteps) || 50,
+        errorMitigation: errorMitigation as 'ZNE' | 'QEC' | 'NONE' || 'NONE'
+      });
+      
+      return res.json({
+        message: `Completed quantum magnetism simulation for Hamiltonian ${hamiltonianId}`,
+        simulation
+      });
+    } catch (error) {
+      console.error("Error running magnetism simulation:", error);
+      return res.status(500).json({ 
+        message: "Failed to run quantum magnetism simulation",
+        error: error instanceof Error ? error.message : String(error)
+      });
+    }
+  });
+  
+  // Analyze quantum phase transitions
+  app.post("/api/quantum/magnetism/phases", async (req: Request, res: Response) => {
+    try {
+      const { hamiltonianId, paramRange, paramName } = req.body;
+      
+      if (!hamiltonianId || !paramRange || !paramName) {
+        return res.status(400).json({ 
+          message: "Required parameters: hamiltonianId, paramRange, paramName" 
+        });
+      }
+      
+      // Analyze phases using our quantum magnetism module
+      const analysis = analyzeQuantumPhases({
+        hamiltonianId: Number(hamiltonianId),
+        paramRange: {
+          start: paramRange.start || 0.01,
+          end: paramRange.end || 2.0,
+          steps: paramRange.steps || 20
+        },
+        paramName: paramName as 'temperature' | 'fieldStrength' | 'anisotropy'
+      });
+      
+      return res.json({
+        message: `Completed phase transition analysis for parameter ${paramName}`,
+        analysis
+      });
+    } catch (error) {
+      console.error("Error analyzing phase transitions:", error);
+      return res.status(500).json({ 
+        message: "Failed to analyze quantum phase transitions",
+        error: error instanceof Error ? error.message : String(error)
+      });
+    }
+  });
+  
+  // Create a 37-dimensional qudit
+  app.post("/api/quantum/high-dimensional/qudit", async (req: Request, res: Response) => {
+    try {
+      const { name, dimension, initialState } = req.body;
+      
+      if (!name || !dimension) {
+        return res.status(400).json({ 
+          message: "Required parameters: name (string), dimension (number)" 
+        });
+      }
+      
+      // Create quantum state in specified dimension
+      const state = initialState || generateInitialState(Number(dimension));
+      
+      // In a real implementation, this would be stored in a database
+      const qudit = {
+        id: Math.floor(1000 + Math.random() * 9000),
+        name,
+        dimension: Number(dimension),
+        state,
+        isEntangled: false,
+        entangledWith: null,
+        created: new Date().toISOString()
+      };
+      
+      return res.status(201).json({
+        message: `Created ${dimension}-dimensional quantum state '${name}'`,
+        qudit
+      });
+    } catch (error) {
+      console.error("Error creating high-dimensional qudit:", error);
+      return res.status(500).json({ 
+        message: "Failed to create high-dimensional qudit",
+        error: error instanceof Error ? error.message : String(error)
+      });
+    }
+  });
+  
+  // Entangle high-dimensional qudits
+  app.post("/api/quantum/high-dimensional/entangle", async (req: Request, res: Response) => {
+    try {
+      const { dimension, qudits, entanglementType } = req.body;
+      
+      if (!dimension || !qudits || qudits < 2) {
+        return res.status(400).json({ 
+          message: "Required parameters: dimension (number), qudits (number, minimum 2)" 
+        });
+      }
+      
+      // Generate a simulated entanglement result
+      const stateSize = Number(dimension);
+      const numQudits = Number(qudits);
+      
+      // Generate simulated state
+      const state = generateEntangledState(stateSize, (entanglementType as EntanglementType) || 'GHZ');
+      
+      // Create qudit IDs for tracking entanglement
+      const quditIds = Array.from({length: numQudits}, (_, i) => Math.floor(1000 + Math.random() * 9000));
+      
+      return res.json({
+        message: `Created ${stateSize}-dimensional entangled state with ${numQudits} qudits`,
+        entanglementType: entanglementType || 'GHZ',
+        dimension: stateSize,
+        state,
+        quditIds,
+        entangledWith: quditIds,
+        created: new Date().toISOString()
+      });
+    } catch (error) {
+      console.error("Error entangling high-dimensional qudits:", error);
+      return res.status(500).json({ 
+        message: "Failed to create entangled state",
+        error: error instanceof Error ? error.message : String(error)
+      });
+    }
+  });
+  
+  // Transform high-dimensional quantum states
+  app.post("/api/quantum/high-dimensional/transform", async (req: Request, res: Response) => {
+    try {
+      const { dimension, transformationType, state } = req.body;
+      
+      if (!dimension || !transformationType) {
+        return res.status(400).json({ 
+          message: "Required parameters: dimension (number), transformationType (string)" 
+        });
+      }
+      
+      // Generate a simulated basis transformation result
+      const stateSize = Number(dimension);
+      
+      // Generate initial state if not provided
+      const initialState = state || generateInitialState(stateSize);
+      
+      // Apply transformation
+      const transformedState = transformState(initialState, transformationType as TransformationType);
+      
+      return res.json({
+        message: `Applied ${transformationType} transformation to ${stateSize}-dimensional state`,
+        dimension: stateSize,
+        initialState,
+        transformedState,
+        transformationType,
+        created: new Date().toISOString()
+      });
+    } catch (error) {
+      console.error("Error transforming high-dimensional state:", error);
+      return res.status(500).json({ 
+        message: "Failed to transform quantum state",
+        error: error instanceof Error ? error.message : String(error)
+      });
+    }
+  });
+  
+  // Measure high-dimensional quantum state
+  app.post("/api/quantum/high-dimensional/measure", async (req: Request, res: Response) => {
+    try {
+      const { state, dimension } = req.body;
+      
+      if (!state && !dimension) {
+        return res.status(400).json({ 
+          message: "Required parameters: either state (array) or dimension (number)" 
+        });
+      }
+      
+      // If state is provided, use it; otherwise generate a state of the specified dimension
+      const quantumState = state || generateInitialState(Number(dimension));
+      
+      // Perform measurement
+      const measurement = measureQuantumState(quantumState);
+      
+      return res.json({
+        message: `Measured ${quantumState.length}-dimensional quantum state`,
+        initialState: quantumState,
+        outcome: measurement.outcome,
+        probability: quantumState[measurement.outcome] * quantumState[measurement.outcome],
+        collapsedState: measurement.collapsedState,
+        measured: new Date().toISOString()
+      });
+    } catch (error) {
+      console.error("Error measuring high-dimensional state:", error);
+      return res.status(500).json({ 
+        message: "Failed to measure quantum state",
         error: error instanceof Error ? error.message : String(error)
       });
     }
