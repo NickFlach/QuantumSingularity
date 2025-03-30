@@ -23,13 +23,15 @@ export type MagneticHamiltonianType =
 /**
  * Coupling model for quantum magnetic interactions
  */
-export type CouplingModel =
-  | 'nearest_neighbor'
-  | 'next_nearest_neighbor'
-  | 'all_to_all'
-  | 'lattice_2d'
-  | 'lattice_3d'
-  | 'custom';
+export enum CouplingModel {
+  NEAREST_NEIGHBOR = 'nearest_neighbor',
+  NEXT_NEAREST_NEIGHBOR = 'next_nearest_neighbor',
+  ALL_TO_ALL = 'all_to_all',
+  LATTICE_2D = 'lattice_2d',
+  LATTICE_3D = 'lattice_3d',
+  CUSTOM = 'custom',
+  HEISENBERG = 'heisenberg'
+}
 
 /**
  * Interface for a quantum magnetic system
@@ -93,7 +95,7 @@ export function createMagneticHamiltonian(params: MagneticHamiltonianParams): Qu
     type = 'ising',
     spinCount = 8,
     couplingStrength = 1.0,
-    couplingModel = 'nearest_neighbor',
+    couplingModel = CouplingModel.NEAREST_NEIGHBOR,
     externalField = [0, 0, 0.1],
     anisotropy = 0,
     dimensions = 2 // Default to regular qubits
@@ -308,7 +310,7 @@ export function generateMagneticHamiltonianCode(params: MagneticHamiltonianParam
     type = 'ising',
     spinCount = 8,
     couplingStrength = 1.0,
-    couplingModel = 'nearest_neighbor',
+    couplingModel = CouplingModel.NEAREST_NEIGHBOR,
     externalField = [0, 0, 0.1],
     anisotropy = 0
   } = params;

@@ -15,11 +15,10 @@ import {
   computeQuantumTopologicalInvariants
 } from "./language/quantum";
 import {
-  simulateQuantumMagnetism,
-  analyzeQuantumPhases,
-  generateHamiltonian,
-  LatticeType,
-  InteractionType
+  simulateMagneticSystem,
+  createMagneticHamiltonian,
+  MagneticHamiltonianType,
+  CouplingModel
 } from "./language/quantum-magnetism";
 import {
   getAllCodeFiles,
@@ -43,7 +42,6 @@ import { simulateAINegotiation } from "./language/ai";
 import {
   createQuantumState,
   createEntangledState,
-  createMagneticHamiltonian,
   runUnifiedSimulation,
   generateSingularisPrimeCode,
   ErrorMitigationType
@@ -109,6 +107,192 @@ import {
 } from "./github-service";
 
 const SessionStore = MemoryStore(session);
+
+/**
+ * Helper function to detect phase boundaries in magnetic simulation results
+ */
+function detectPhaseBoundaries(results: any[]): { position: number, confidence: number }[] {
+  if (!results || results.length < 3) {
+    return [];
+  }
+  
+  const boundaries: { position: number, confidence: number }[] = [];
+  
+  // Calculate derivatives of magnetization to detect sharp changes
+  for (let i = 1; i < results.length - 1; i++) {
+    const prevMag = results[i-1].magnetization ? 
+      Array.isArray(results[i-1].magnetization) ? 
+        Math.sqrt(results[i-1].magnetization.reduce((sum: number, val: number) => sum + val * val, 0)) : 
+        Math.abs(results[i-1].magnetization) : 
+      0;
+    
+    const currMag = results[i].magnetization ? 
+      Array.isArray(results[i].magnetization) ? 
+        Math.sqrt(results[i].magnetization.reduce((sum: number, val: number) => sum + val * val, 0)) : 
+        Math.abs(results[i].magnetization) : 
+      0;
+    
+    const nextMag = results[i+1].magnetization ? 
+      Array.isArray(results[i+1].magnetization) ? 
+        Math.sqrt(results[i+1].magnetization.reduce((sum: number, val: number) => sum + val * val, 0)) : 
+        Math.abs(results[i+1].magnetization) : 
+      0;
+    
+    // Compute first derivative approximation
+    const firstDeriv = Math.abs(nextMag - prevMag) / 2;
+    
+    // Compute second derivative approximation (change in slope)
+    const secondDeriv = Math.abs((nextMag - currMag) - (currMag - prevMag));
+    
+    // If there's a significant change in derivatives, mark as potential phase boundary
+    if (firstDeriv > 0.1 || secondDeriv > 0.05) {
+      boundaries.push({
+        position: i,
+        confidence: Math.min(1.0, (firstDeriv + secondDeriv) / 0.2)
+      });
+    }
+  }
+  
+  return boundaries;
+}
+
+/**
+ * Helper function to classify quantum magnetic phases
+ */
+function classifyPhases(results: any[]): { range: [number, number], type: string, properties: Record<string, any> }[] {
+  if (!results || results.length < 2) {
+    return [];
+  }
+  
+  const phases: { range: [number, number], type: string, properties: Record<string, any> }[] = [];
+  let currentStart = 0;
+  let currentType = determinePhaseType(results[0]);
+  
+  for (let i = 1; i < results.length; i++) {
+    const phaseType = determinePhaseType(results[i]);
+    
+    // If phase type changed, record the previous phase
+    if (phaseType !== currentType) {
+      phases.push({
+        range: [currentStart, i - 1],
+        type: currentType,
+        properties: extractPhaseProperties(results.slice(currentStart, i))
+      });
+      
+      currentStart = i;
+      currentType = phaseType;
+    }
+  }
+  
+  // Add the last phase
+  phases.push({
+    range: [currentStart, results.length - 1],
+    type: currentType,
+    properties: extractPhaseProperties(results.slice(currentStart))
+  });
+  
+  return phases;
+}
+
+/**
+ * Helper function to determine the phase type from simulation result
+ */
+function determinePhaseType(result: any): string {
+  // Extract the magnetization
+  const magnetization = result.magnetization;
+  
+  if (!magnetization) {
+    return "unknown";
+  }
+  
+  // Determine magnitude of magnetization
+  const magMagnitude = Array.isArray(magnetization) ? 
+    Math.sqrt(magnetization.reduce((sum, val) => sum + val * val, 0)) : 
+    Math.abs(magnetization);
+  
+  // Check for paramagnetic phase (low magnetization)
+  if (magMagnitude < 0.1) {
+    return "paramagnetic";
+  }
+  
+  // Check for ferromagnetic phase (high magnetization)
+  if (magMagnitude > 0.7) {
+    return "ferromagnetic";
+  }
+  
+  // Check for antiferromagnetic phase (moderate magnetization with oscillations in correlations)
+  if (result.correlations && Array.isArray(result.correlations)) {
+    let alternatingSign = true;
+    for (let i = 1; i < result.correlations.length; i++) {
+      if (Math.sign(result.correlations[i]) === Math.sign(result.correlations[i-1])) {
+        alternatingSign = false;
+        break;
+      }
+    }
+    
+    if (alternatingSign) {
+      return "antiferromagnetic";
+    }
+  }
+  
+  // Default to spin-glass for complex magnetic behavior
+  return "spin-glass";
+}
+
+/**
+ * Helper function to extract properties of a phase from simulation results
+ */
+function extractPhaseProperties(results: any[]): Record<string, any> {
+  if (!results || results.length === 0) {
+    return {};
+  }
+  
+  // Calculate average energy and magnetization
+  let avgEnergy = 0;
+  let avgMagnetization = Array.isArray(results[0].magnetization) ? 
+    new Array(results[0].magnetization.length).fill(0) : 
+    0;
+  
+  for (const result of results) {
+    avgEnergy += result.energy || 0;
+    
+    if (result.magnetization) {
+      if (Array.isArray(result.magnetization) && Array.isArray(avgMagnetization)) {
+        for (let i = 0; i < result.magnetization.length; i++) {
+          avgMagnetization[i] += result.magnetization[i] || 0;
+        }
+      } else if (!Array.isArray(result.magnetization) && !Array.isArray(avgMagnetization)) {
+        avgMagnetization += result.magnetization;
+      }
+    }
+  }
+  
+  avgEnergy /= results.length;
+  
+  if (Array.isArray(avgMagnetization)) {
+    for (let i = 0; i < avgMagnetization.length; i++) {
+      avgMagnetization[i] /= results.length;
+    }
+  } else {
+    avgMagnetization /= results.length;
+  }
+  
+  // Calculate fluctuations (standard deviation)
+  let energyFluctuation = 0;
+  for (const result of results) {
+    const energyDiff = (result.energy || 0) - avgEnergy;
+    energyFluctuation += energyDiff * energyDiff;
+  }
+  energyFluctuation = Math.sqrt(energyFluctuation / results.length);
+  
+  return {
+    averageEnergy: avgEnergy,
+    energyFluctuation,
+    averageMagnetization: avgMagnetization,
+    parameterRange: [results[0].paramValue, results[results.length - 1].paramValue],
+    stabilityMetric: 1.0 - (energyFluctuation / Math.abs(avgEnergy || 1))
+  };
+}
 
 // Initialize authentication middleware
 export function setupAuth(app: Express) {
@@ -1816,11 +2000,22 @@ export async function registerRoutes(app: Express): Promise<Server> {
       };
       
       // Run the simulation - in a real app, this would run on a quantum simulator or device
-      const simulationResults = simulateQuantumMagnetism({
-        hamiltonianId: Number(hamiltonianId),
-        duration: options.time,
-        timeSteps: Math.ceil(options.time / options.timeStep),
-        errorMitigation: options.errorMitigation
+      
+      // Create quantum operator from hamiltonian
+      const hamiltonianOperator = createMagneticHamiltonian({
+        type: hamiltonian.type as MagneticHamiltonianType,
+        spinCount: hamiltonian.spinCount,
+        couplingStrength: hamiltonian.couplingStrength,
+        couplingModel: hamiltonian.couplingModel as CouplingModel,
+        externalField: hamiltonian.externalField ? JSON.parse(hamiltonian.externalField) : undefined,
+        anisotropy: hamiltonian.anisotropy
+      });
+      
+      // Run the simulation
+      const simulationResults = simulateMagneticSystem(hamiltonianOperator, {
+        precision: 0.001,
+        errorMitigation: options.errorMitigation as any,
+        maxIterations: Math.ceil(options.time / options.timeStep)
       });
       
       // Get current timestamp
@@ -1879,12 +2074,79 @@ export async function registerRoutes(app: Express): Promise<Server> {
         });
       }
       
-      // Run the phase analysis
-      const phaseAnalysis = analyzeQuantumPhases({
-        hamiltonianId: Number(hamiltonianId),
-        paramRange,
-        paramName: (paramName as 'temperature' | 'fieldStrength' | 'anisotropy') || 'temperature'
+      // Create quantum operator from hamiltonian for phase analysis
+      const hamiltonianOperator = createMagneticHamiltonian({
+        type: hamiltonian.type as MagneticHamiltonianType,
+        spinCount: hamiltonian.systemSize,
+        couplingStrength: 1.0, // Default value
+        couplingModel: CouplingModel.NEAREST_NEIGHBOR,
+        externalField: [0, 0, 1], // Default z-direction field
+        anisotropy: 0.0
       });
+      
+      // Simulate the system at different parameter values
+      const phaseResults = [];
+      const paramValues = [];
+      const steps = paramRange.steps || 10;
+      const start = paramRange.start || 0;
+      const end = paramRange.end || 1;
+      const stepSize = (end - start) / steps;
+      
+      // Generate parameter values
+      for (let i = 0; i <= steps; i++) {
+        paramValues.push(start + i * stepSize);
+      }
+      
+      // Run simulations for each parameter value
+      for (const value of paramValues) {
+        // Adjust parameter value
+        const tempHamiltonian = {...hamiltonianOperator};
+        
+        if (paramName === 'temperature') {
+          // Temperature affects the simulation, not the Hamiltonian
+          const result = simulateMagneticSystem(tempHamiltonian, {
+            temperature: value,
+            precision: 0.001,
+            maxIterations: 1000,
+          });
+          phaseResults.push({
+            paramValue: value,
+            energy: result.energy,
+            magnetization: result.magnetization,
+            correlations: result.correlations,
+            phaseType: result.phaseType
+          });
+        } else if (paramName === 'fieldStrength') {
+          tempHamiltonian.externalField = [0, 0, value]; // Apply field in z-direction
+          const result = simulateMagneticSystem(tempHamiltonian);
+          phaseResults.push({
+            paramValue: value,
+            energy: result.energy,
+            magnetization: result.magnetization,
+            correlations: result.correlations,
+            phaseType: result.phaseType
+          });
+        } else if (paramName === 'anisotropy') {
+          tempHamiltonian.anisotropy = value;
+          const result = simulateMagneticSystem(tempHamiltonian);
+          phaseResults.push({
+            paramValue: value,
+            energy: result.energy,
+            magnetization: result.magnetization,
+            correlations: result.correlations,
+            phaseType: result.phaseType
+          });
+        }
+      }
+      
+      // Analyze phases based on the simulation results
+      const phaseAnalysis = {
+        paramName,
+        paramValues,
+        results: phaseResults,
+        phaseBoundaries: detectPhaseBoundaries(phaseResults),
+        phaseClassification: classifyPhases(phaseResults)
+      };
       
       return res.json({
         message: `Analyzed quantum phases for Hamiltonian '${hamiltonian.name}'`,

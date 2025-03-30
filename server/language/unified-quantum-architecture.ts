@@ -29,11 +29,11 @@ import {
 } from './high-dimensional-qudit';
 
 import {
-  MagneticHamiltonianType,
   CouplingModel,
-  QuantumMagneticSystem,
+  MagneticHamiltonianType,
   MagneticHamiltonianParams,
   MagneticSimulationResult,
+  QuantumMagneticSystem,
   createMagneticHamiltonian,
   simulateMagneticSystem,
   createQuantumMagneticSystem,
@@ -66,6 +66,7 @@ export interface UnifiedQuantumParams extends QuditOperationParams {
   anisotropy?: number;
   temperature?: number;
   errorMitigation?: ErrorMitigationType;
+  dimensions?: number;
 }
 
 /**
@@ -225,7 +226,7 @@ export function runUnifiedQuantumMagneticSimulation(
     type: params.magneticType || 'heisenberg',
     spinCount: params.spinCount || 8,
     couplingStrength: params.couplingStrength || 1.0,
-    couplingModel: params.couplingModel || 'nearest_neighbor',
+    couplingModel: params.couplingModel || CouplingModel.NEAREST_NEIGHBOR,
     externalField: params.externalField || [0, 0, 0.1],
     anisotropy: params.anisotropy || 0,
     temperature,
