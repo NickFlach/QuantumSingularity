@@ -1801,7 +1801,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
       };
       
       // Run the simulation - in a real app, this would run on a quantum simulator or device
-      const simulationResults = simulateQuantumMagnetism(hamiltonian, options);
+      const simulationResults = simulateQuantumMagnetism({
+        hamiltonianId: Number(hamiltonianId),
+        duration: options.time,
+        timeSteps: Math.ceil(options.time / options.timeStep),
+        errorMitigation: options.errorMitigation
+      });
       
       // Get current timestamp
       const dateNow = new Date();
@@ -1812,10 +1817,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         projectId,
         hamiltonianId: Number(hamiltonianId),
         parameters: options,
-        results: { success: true },
-        evolutionData: simulationResults.evolution,
-        finalState: simulationResults.finalState,
-        resourcesUsed: simulationResults.resourcesUsed,
+        results: simulationResults.results,
         errorMitigation: options.errorMitigation,
         createdAt: now,
         completedAt: dateNow
@@ -1863,11 +1865,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
       
       // Run the phase analysis
-      const phaseAnalysis = analyzeQuantumPhases(
-        hamiltonian,
+      const phaseAnalysis = analyzeQuantumPhases({
+        hamiltonianId: Number(hamiltonianId),
         paramRange,
-        paramName || 'h'
-      );
+        paramName: (paramName as 'temperature' | 'fieldStrength' | 'anisotropy') || 'temperature'
+      });
       
       return res.json({
         message: `Analyzed quantum phases for Hamiltonian '${hamiltonian.name}'`,

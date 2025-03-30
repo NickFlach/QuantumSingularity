@@ -60,29 +60,25 @@ export function Qudit37DDemo() {
   const runBasisTransformation = async () => {
     setIsLoading(true);
     try {
-      const response = await apiRequest('/api/quantum/high-dimensional/transform', 'POST', {
+      // Using consistent API pattern
+      const data = await apiRequest('/api/quantum/high-dimensional/transform', 'POST', {
         dimension: dimensions,
         transformationType: 'fourier'
       });
       
-      if (response.ok) {
-        const result = await response.json();
-        setSimulationResults(prev => [...prev, {
-          id: Math.random(),
-          name: `${dimensions}D Basis Transform`,
-          dimension: dimensions,
-          state: result.transformedState || [],
-          isEntangled: false,
-          created: new Date().toISOString()
-        }]);
-        
-        toast({
-          title: 'Basis Transformation Complete',
-          description: `${dimensions}-dimensional basis transformation complete!`,
-        });
-      } else {
-        throw new Error('Failed to perform basis transformation');
-      }
+      setSimulationResults(prev => [...prev, {
+        id: Math.floor(Math.random() * 10000),
+        name: `${dimensions}D Basis Transform`,
+        dimension: dimensions,
+        state: data.transformedState || [],
+        isEntangled: false,
+        created: new Date().toISOString()
+      }]);
+      
+      toast({
+        title: 'Basis Transformation Complete',
+        description: `${dimensions}-dimensional basis transformation complete!`,
+      });
     } catch (error) {
       toast({
         title: 'Transformation Failed',

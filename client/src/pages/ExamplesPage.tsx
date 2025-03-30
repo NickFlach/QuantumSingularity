@@ -3,6 +3,7 @@ import { Link } from "wouter";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Qudit37DDemo } from '@/components/examples/Qudit37DDemo';
 import { QuantumMagnetismDemo } from '@/components/examples/QuantumMagnetismDemo';
+import { QuantumUnifiedDemo } from '@/components/examples/QuantumUnifiedDemo';
 
 export function ExamplesPage() {
   return (
@@ -19,11 +20,37 @@ export function ExamplesPage() {
         </Link>
       </div>
 
-      <Tabs defaultValue="37d-quantum" className="w-full">
-        <TabsList className="grid w-full grid-cols-2">
+      <Tabs defaultValue="unified-framework" className="w-full">
+        <TabsList className="grid w-full grid-cols-3">
+          <TabsTrigger value="unified-framework">Unified Framework</TabsTrigger>
           <TabsTrigger value="37d-quantum">37D Quantum States</TabsTrigger>
           <TabsTrigger value="quantum-magnetism">Quantum Magnetism</TabsTrigger>
         </TabsList>
+        <TabsContent value="unified-framework" className="space-y-4 mt-4">
+          <div className="prose max-w-none mb-6">
+            <h2>Unified Quantum Framework</h2>
+            <p>
+              The SINGULARIS PRIME language has evolved to unify 37-dimensional quantum states with 
+              quantum magnetism simulations, creating a coherent framework that makes complex quantum 
+              operations more accessible.
+            </p>
+            <p>
+              This unified approach enables researchers to explore quantum entanglement in high-dimensional spaces
+              alongside quantum magnetic phenomena, revealing deeper connections between these domains.
+            </p>
+            <p>
+              Key features of this unified framework include:
+            </p>
+            <ul>
+              <li>Parametric quantum types that adapt to any dimension</li>
+              <li>Entanglement as a first-class concept throughout the language</li>
+              <li>Seamless integration of classical and quantum operations</li>
+              <li>Linear type system for proper quantum state manipulation</li>
+              <li>Advanced error mitigation strategies automatically applied</li>
+            </ul>
+          </div>
+          <QuantumUnifiedDemo />
+        </TabsContent>
         <TabsContent value="37d-quantum" className="space-y-4 mt-4">
           <div className="prose max-w-none mb-6">
             <h2>High-Dimensional Quantum States</h2>
