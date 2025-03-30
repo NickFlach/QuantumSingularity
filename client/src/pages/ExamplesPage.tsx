@@ -14,10 +14,8 @@ export function ExamplesPage() {
             Explore the capabilities of 37-dimensional quantum states and quantum magnetism simulations
           </p>
         </div>
-        <Link href="/">
-          <a className="underline text-sm text-muted-foreground hover:text-primary">
-            Back to Home
-          </a>
+        <Link href="/" className="underline text-sm text-muted-foreground hover:text-primary">
+          Back to Home
         </Link>
       </div>
 

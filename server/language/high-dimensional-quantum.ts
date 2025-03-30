@@ -1,222 +1,184 @@
 /**
- * SINGULARIS PRIME High-Dimensional Quantum Operations
+ * SINGULARIS PRIME High-Dimensional Quantum Module
  * 
- * This module provides operations for 37-dimensional quantum states (qudits)
- * simulation in the SINGULARIS PRIME environment, including state initialization,
- * transformations, and entanglement operations.
+ * This module provides operations for working with high-dimensional quantum states (qudits),
+ * particularly focusing on 37-dimensional states as demonstrated in recent research.
+ * 
+ * 37-dimensional quantum states provide significant advantages for quantum computing,
+ * communication, and simulation tasks by offering increased information capacity and
+ * more complex entanglement patterns.
  */
 
+export type EntanglementType = 'GHZ' | 'W' | 'CLUSTER' | 'CUSTOM';
+export type TransformationType = 'fourier' | 'hadamard' | 'z' | 'random' | 'custom';
+
 /**
- * Generate an initial state for a high-dimensional qudit
- * @param dimension The dimension of the qudit (typically 37 for this application)
- * @returns An array representing the quantum state amplitudes
+ * Generate a normalized initial state in the specified dimension
+ * Default state is a uniform superposition of all basis states
  */
 export function generateInitialState(dimension: number): number[] {
-  // For demonstration purposes, we'll create a basic equal superposition
-  // In a real quantum system, this would be handled by actual quantum operations
+  // Create a uniform superposition by default
+  const amplitude = 1.0 / Math.sqrt(dimension);
+  return Array(dimension).fill(amplitude);
+}
+
+/**
+ * Generate an entangled state of the specified dimension and type
+ */
+export function generateEntangledState(dimension: number, type: EntanglementType): number[] {
   const state = new Array(dimension).fill(0);
   
-  // Set initial state to |0⟩ with minor superposition effects
-  state[0] = 0.9; // High probability in ground state
-  
-  // Distribute remaining probability across other states
-  const remainingProbability = 0.1;
-  for (let i = 1; i < dimension; i++) {
-    state[i] = remainingProbability / (dimension - 1);
-  }
-  
-  // Ensure normalization
-  const norm = Math.sqrt(state.reduce((sum, amp) => sum + amp * amp, 0));
-  return state.map(amp => amp / norm);
-}
-
-/**
- * Transformation types for high-dimensional quantum states
- */
-export type TransformationType = 
-  | 'FOURIER'        // Quantum Fourier transform
-  | 'HADAMARD_GEN'   // Generalized Hadamard
-  | 'PHASE_SHIFT'    // Phase shift operation
-  | 'CYCLIC'         // Cyclic permutation
-  | 'HYPERBOLIC';    // Hyperbolic transformation
-
-/**
- * Transform a high-dimensional quantum state
- * @param state The current quantum state
- * @param transformationType The type of transformation to apply
- * @returns The transformed quantum state
- */
-export function transformState(state: number[], transformationType: TransformationType): number[] {
-  const dimension = state.length;
-  const result = new Array(dimension).fill(0);
-  
-  switch (transformationType) {
-    case 'FOURIER': {
-      // Simplified Quantum Fourier Transform
+  switch (type) {
+    case 'GHZ':
+      // In a GHZ-like state, only the first and last basis states have non-zero amplitudes
+      state[0] = 1 / Math.sqrt(2);
+      state[dimension - 1] = 1 / Math.sqrt(2);
+      break;
+    case 'W':
+      // In a W-like state, all basis states have equal amplitudes
+      const amplitude = 1.0 / Math.sqrt(dimension);
+      return Array(dimension).fill(amplitude);
+    case 'CLUSTER':
+      // Simplified cluster state representation
       for (let i = 0; i < dimension; i++) {
-        let sum = 0;
-        for (let j = 0; j < dimension; j++) {
-          // e^(2πi*j*k/N) expressed in terms of sin and cos
-          const angle = 2 * Math.PI * i * j / dimension;
-          sum += state[j] * Math.cos(angle);
-        }
-        result[i] = sum / Math.sqrt(dimension);
+        state[i] = (i % 2 === 0) ? 1 / Math.sqrt(dimension/2) : 0;
       }
       break;
-    }
-    
-    case 'HADAMARD_GEN': {
-      // Generalized Hadamard transform
+    case 'CUSTOM':
+      // Equal superposition of odd-indexed states
       for (let i = 0; i < dimension; i++) {
-        let sum = 0;
-        for (let j = 0; j < dimension; j++) {
-          // Simplified version for demo purposes
-          const sign = (i & j) % 2 === 0 ? 1 : -1;
-          sum += sign * state[j];
-        }
-        result[i] = sum / Math.sqrt(dimension);
+        state[i] = (i % 2 === 1) ? 1 / Math.sqrt(Math.ceil(dimension/2)) : 0;
       }
       break;
-    }
-    
-    case 'PHASE_SHIFT': {
-      // Apply varying phase shifts
-      for (let i = 0; i < dimension; i++) {
-        const phase = i * Math.PI / dimension;
-        result[i] = state[i] * Math.cos(phase);
-      }
-      break;
-    }
-    
-    case 'CYCLIC': {
-      // Simple cyclic permutation of amplitudes
-      for (let i = 0; i < dimension; i++) {
-        result[i] = state[(i + 1) % dimension];
-      }
-      break;
-    }
-    
-    case 'HYPERBOLIC': {
-      // Hyperbolic transformation - emphasizes certain dimensions
-      const centralState = Math.floor(dimension / 2);
-      for (let i = 0; i < dimension; i++) {
-        // Distance from central state
-        const distance = Math.abs(i - centralState);
-        const factor = 1 / (1 + 0.1 * distance);
-        result[i] = state[i] * factor;
-      }
-      // Normalize
-      const norm = Math.sqrt(result.reduce((sum, amp) => sum + amp * amp, 0));
-      for (let i = 0; i < dimension; i++) {
-        result[i] /= norm;
-      }
-      break;
-    }
-    
-    default:
-      return [...state]; // Return copy of original state
-  }
-  
-  // Ensure normalization
-  const norm = Math.sqrt(result.reduce((sum, amp) => sum + amp * amp, 0));
-  return result.map(amp => amp / norm);
-}
-
-/**
- * Entanglement types for high-dimensional quantum states
- */
-export type EntanglementType = 
-  | 'GHZ'         // Generalized GHZ (Greenberger–Horne–Zeilinger) state
-  | 'W'           // Generalized W state
-  | 'CLUSTER'     // Cluster state
-  | 'HIGHD_BELL'; // High-dimensional Bell state
-
-/**
- * Generate an entangled state for high-dimensional qudits
- * @param dimension The dimension of each qudit
- * @param entanglementType The type of entanglement to create
- * @returns An array representing the entangled quantum state
- */
-export function generateEntangledState(dimension: number, entanglementType: EntanglementType): number[] {
-  // This is a simplified representation for demonstration
-  // In a real quantum system, this would be the result of actual entangling operations
-  
-  // Create a simplified entangled state representation
-  // For a real d-dimensional multipartite entangled state, this would be much more complex
-  const stateSize = dimension * 2; // Simplified for demo purposes
-  const state = new Array(stateSize).fill(0);
-  
-  switch (entanglementType) {
-    case 'GHZ': {
-      // Generalized GHZ state - equal superposition of |00...0⟩ and |11...1⟩
-      state[0] = 1/Math.sqrt(2);               // |00...0⟩
-      state[stateSize - 1] = 1/Math.sqrt(2);   // |11...1⟩
-      break;
-    }
-    
-    case 'W': {
-      // W state - equal superposition of states with a single excitation
-      const normalization = 1/Math.sqrt(dimension);
-      for (let i = 0; i < dimension; i++) {
-        state[i] = normalization;
-      }
-      break;
-    }
-    
-    case 'CLUSTER': {
-      // Simplified cluster state
-      for (let i = 0; i < stateSize; i++) {
-        state[i] = 1/Math.sqrt(stateSize);
-        // In a real cluster state, we would apply controlled-phase operations
-      }
-      break;
-    }
-    
-    case 'HIGHD_BELL': {
-      // High-dimensional Bell state |Φ⟩ = (1/√d) Σ|j,j⟩
-      const normalization = 1/Math.sqrt(dimension);
-      for (let i = 0; i < dimension; i++) {
-        state[i * 2] = normalization;
-      }
-      break;
-    }
-    
-    default:
-      // Default to GHZ-like state
-      state[0] = 1/Math.sqrt(2);
-      state[stateSize - 1] = 1/Math.sqrt(2);
   }
   
   return state;
 }
 
 /**
- * Measure a high-dimensional quantum state
- * @param state The quantum state to measure
- * @returns The measurement outcome and collapsed state
+ * Apply a transformation to a quantum state
+ */
+export function transformState(state: number[], type: TransformationType): number[] {
+  const dimension = state.length;
+  const result = new Array(dimension).fill(0);
+  
+  switch (type) {
+    case 'fourier':
+      // Quantum Fourier Transform (simplified)
+      for (let i = 0; i < dimension; i++) {
+        for (let j = 0; j < dimension; j++) {
+          const angle = (2 * Math.PI * i * j) / dimension;
+          result[i] += state[j] * Math.cos(angle) / Math.sqrt(dimension);
+        }
+      }
+      break;
+    case 'hadamard':
+      // Generalized Hadamard transform
+      for (let i = 0; i < dimension; i++) {
+        for (let j = 0; j < dimension; j++) {
+          result[i] += state[j] * (Math.pow(-1, (i & j).toString(2).split('1').length - 1) / Math.sqrt(dimension));
+        }
+      }
+      break;
+    case 'z':
+      // Phase shift
+      for (let i = 0; i < dimension; i++) {
+        const phase = (2 * Math.PI * i) / dimension;
+        result[i] = state[i] * Math.cos(phase); // Simplified phase application without complex numbers
+      }
+      break;
+    case 'random':
+      // Random unitary transformation (simplified)
+      for (let i = 0; i < dimension; i++) {
+        for (let j = 0; j < dimension; j++) {
+          const randomPhase = Math.random() * 2 * Math.PI;
+          result[i] += state[j] * Math.cos(randomPhase) / Math.sqrt(dimension);
+        }
+      }
+      break;
+    case 'custom':
+      // Example custom transformation
+      for (let i = 0; i < dimension; i++) {
+        result[(i + 1) % dimension] = state[i];
+      }
+      break;
+  }
+  
+  // Normalize the state
+  const normFactor = Math.sqrt(result.reduce((sum, amp) => sum + amp * amp, 0));
+  return result.map(amp => amp / normFactor);
+}
+
+/**
+ * Measure a quantum state, returning the outcome and collapsed state
  */
 export function measureQuantumState(state: number[]): { outcome: number, collapsedState: number[] } {
   const dimension = state.length;
-  
-  // Calculate probabilities
   const probabilities = state.map(amp => amp * amp);
   
-  // Choose outcome based on probability distribution
-  let randomValue = Math.random();
-  let cumulativeProbability = 0;
-  let outcome = dimension - 1;
+  // Generate a random number between 0 and 1
+  const randomValue = Math.random();
+  
+  // Find the outcome based on the probability distribution
+  let cumulativeProb = 0;
+  let outcome = 0;
   
   for (let i = 0; i < dimension; i++) {
-    cumulativeProbability += probabilities[i];
-    if (randomValue <= cumulativeProbability) {
+    cumulativeProb += probabilities[i];
+    if (randomValue <= cumulativeProb) {
       outcome = i;
       break;
     }
   }
   
-  // Create collapsed state (|outcome⟩)
+  // Create the collapsed state (|outcome⟩)
   const collapsedState = new Array(dimension).fill(0);
   collapsedState[outcome] = 1;
   
   return { outcome, collapsedState };
+}
+
+/**
+ * Entangle multiple quantum states
+ */
+export function entangleStates(states: number[][], type: EntanglementType): number[] {
+  // This is a simplified implementation
+  // In a real quantum system, entanglement is more complex
+  
+  const combinedDimension = states.reduce((prod, state) => prod * state.length, 1);
+  const entangledState = generateEntangledState(combinedDimension, type);
+  
+  return entangledState;
+}
+
+/**
+ * Compute the entanglement entropy of a quantum state
+ */
+export function calculateEntanglementEntropy(state: number[]): number {
+  // This is a simplified calculation of Von Neumann entropy
+  // In a real implementation, this would involve calculating the reduced density matrix
+  
+  const probabilities = state.map(amp => amp * amp);
+  let entropy = 0;
+  
+  for (const prob of probabilities) {
+    if (prob > 0) {
+      entropy -= prob * Math.log2(prob);
+    }
+  }
+  
+  return entropy;
+}
+
+/**
+ * Check if a state exhibits quantum contextuality
+ */
+export function checkContextuality(state: number[]): boolean {
+  // This is a placeholder implementation
+  // Real contextuality checks would involve more complex measurements
+  // and analysis of measurement outcomes
+  
+  // For demonstration, we'll just check if the state has more than 3 non-zero amplitudes
+  const nonZeroAmplitudes = state.filter(amp => Math.abs(amp) > 1e-6).length;
+  return nonZeroAmplitudes > 3;
 }
