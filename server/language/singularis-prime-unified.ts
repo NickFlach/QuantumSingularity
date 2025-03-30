@@ -1,360 +1,526 @@
 /**
- * SINGULARIS PRIME Unified Quantum Framework
+ * SINGULARIS PRIME Unified Framework
  * 
- * This module provides a unified approach to quantum computing, combining
- * high-dimensional quantum states (37D) with quantum magnetism simulations.
- * It serves as the core language implementation for Singularis Prime.
- * 
- * Key features:
- * - First-class entanglement as a core language concept
- * - 37-dimensional quantum state manipulation
- * - Quantum magnetism simulations for complex physical systems
- * - Linear type system for quantum data to prevent cloning
- * - Parametric quantum types with dimension support
+ * This module provides a unified framework for integrating 37-dimensional
+ * quantum states with quantum magnetism in the SINGULARIS PRIME language.
+ * It serves as the foundation for the Quantum Architecture Project.
  */
 
-import { 
-  EntanglementType, 
-  TransformationType,
-  generateInitialState,
-  generateEntangledState,
-  transformState,
-  measureQuantumState,
-  entangleStates,
-  calculateEntanglementEntropy,
-  checkContextuality
-} from './high-dimensional-quantum';
+import { v4 as uuidv4 } from 'uuid';
 
-import {
-  LatticeType,
-  InteractionType,
-  ErrorMitigationType,
-  QuantumHamiltonian,
-  MagnetismSimulation,
-  PhaseAnalysis,
-  generateHamiltonian,
-  simulateQuantumMagnetism,
-  analyzeQuantumPhases,
-  calculateMagnetization,
-  calculateCorrelationFunction
-} from './quantum-magnetism';
+// Constants for quantum simulation parameters
+const MAX_DIMENSIONS = 37;
+const DEFAULT_PRECISION = 1e-8;
+const DEFAULT_ITERATIONS = 1000;
+
+// Types of error mitigation strategies
+export type ErrorMitigationType = 
+  | 'zero_noise_extrapolation' 
+  | 'probabilistic_error_cancellation'
+  | 'error_detection_code'
+  | 'dynamical_decoupling'
+  | 'measurement_error_mitigation';
 
 /**
- * Type definitions for the Singularis Prime language
+ * Parameters for quantum simulation
  */
-
-// Parametric quantum type that specifies the dimension
-export type Qudit<D extends number> = {
-  id: number;
-  dimension: D;
-  state: number[];  // State vector representation
-  isEntangled: boolean;
-  entangledWith?: number[];
-};
-
-// Unified simulation result type
-export interface UnifiedQuantumResult {
-  id: number;
-  name: string;
-  timestamp: string;
-  resultType: 'state' | 'magnetism' | 'entanglement' | 'combined';
-  states?: Qudit<number>[];
-  hamiltonian?: QuantumHamiltonian;
-  magnetism?: {
-    magnetization: number[];
-    correlations?: number[][];
-  };
-  entanglementMetrics?: {
-    entropy: number;
-    nonlocality: number;
-    contextuality: boolean;
-  };
+export interface QuantumSimulationParams {
+  dimensions?: number;
+  precision?: number;
+  errorMitigation?: ErrorMitigationType;
+  maxIterations?: number;
+  temperature?: number;
+  hamiltonian?: string;
+  initialState?: number[];
 }
 
 /**
- * Create a quantum state with the specified dimension
- * Default is 37 dimensions, in homage to recent breakthroughs
+ * Result of a quantum simulation
  */
-export function createQuantumState<D extends number>(
-  name: string, 
-  dimension: D = 37 as D, 
-  initialState?: number[]
-): Qudit<D> {
-  const state = initialState || generateInitialState(dimension);
+export interface QuantumSimulationResult {
+  id: string;
+  dimensions: number;
+  state: number[];
+  probability: number[];
+  entanglementEntropy?: number;
+  correlationMatrix?: number[][];
+  magnetization?: number[];
+  energySpectrum?: number[];
+  simulationTime: number;
+  iterations: number;
+  errorEstimate: number;
+}
+
+/**
+ * Vector representation of a quantum state
+ */
+export interface QuantumStateVector {
+  dimensions: number;
+  amplitudes: number[];
+  phases: number[];
+}
+
+/**
+ * Matrix representation of a quantum operator
+ */
+export interface QuantumOperator {
+  dimensions: number;
+  matrix: number[][];
+}
+
+/**
+ * Creates a quantum state in specified dimensions
+ * 
+ * @param dimensions The number of dimensions for the quantum state
+ * @param initialValues Optional initial values for state amplitudes
+ * @returns A quantum state vector
+ */
+export function createQuantumState(
+  dimensions: number = 2, 
+  initialValues?: number[]
+): QuantumStateVector {
+  // Validate dimensions
+  if (dimensions < 2 || dimensions > MAX_DIMENSIONS) {
+    throw new Error(`Dimensions must be between 2 and ${MAX_DIMENSIONS}`);
+  }
+  
+  // Initialize amplitudes and phases
+  const amplitudes: number[] = new Array(dimensions).fill(0);
+  const phases: number[] = new Array(dimensions).fill(0);
+  
+  if (initialValues && initialValues.length > 0) {
+    // Use provided initial values
+    const normalizationFactor = Math.sqrt(
+      initialValues.reduce((sum, val) => sum + val * val, 0)
+    );
+    
+    for (let i = 0; i < Math.min(dimensions, initialValues.length); i++) {
+      amplitudes[i] = initialValues[i] / normalizationFactor;
+      phases[i] = 0; // Default phases to 0
+    }
+  } else {
+    // Create equal superposition
+    const amplitude = 1 / Math.sqrt(dimensions);
+    amplitudes.fill(amplitude);
+  }
   
   return {
-    id: Math.floor(1000 + Math.random() * 9000),
-    dimension,
-    state,
-    isEntangled: false
+    dimensions,
+    amplitudes,
+    phases
   };
 }
 
 /**
- * Create an entangled quantum state
+ * Creates an entangled state between two quantum systems
+ * 
+ * @param state1 First quantum state
+ * @param state2 Second quantum state
+ * @param entanglementType Type of entanglement to create
+ * @returns Pair of entangled quantum states
  */
-export function createEntangledState<D extends number>(
-  name: string,
-  dimension: D = 37 as D,
-  numQudits: number = 2,
-  entanglementType: EntanglementType = 'GHZ'
-): Qudit<D>[] {
-  // Generate the entangled state
-  const state = generateEntangledState(dimension, entanglementType);
+export function createEntangledState(
+  state1: QuantumStateVector,
+  state2: QuantumStateVector,
+  entanglementType: 'bell' | 'ghz' | 'cluster' = 'bell'
+): [QuantumStateVector, QuantumStateVector] {
+  // Create copies to avoid modifying originals
+  const entangledState1 = { ...state1, amplitudes: [...state1.amplitudes], phases: [...state1.phases] };
+  const entangledState2 = { ...state2, amplitudes: [...state2.amplitudes], phases: [...state2.phases] };
   
-  // Create qudit IDs for tracking entanglement
-  const quditIds = Array.from(
-    {length: numQudits}, 
-    () => Math.floor(1000 + Math.random() * 9000)
-  );
+  // Apply entanglement based on type
+  if (entanglementType === 'bell') {
+    // Create Bell-like state for high dimensions
+    entangledState1.amplitudes.fill(0);
+    entangledState2.amplitudes.fill(0);
+    
+    // Set only diagonal elements for simple entanglement
+    for (let i = 0; i < Math.min(state1.dimensions, state2.dimensions); i++) {
+      entangledState1.amplitudes[i] = 1 / Math.sqrt(state1.dimensions);
+      entangledState2.amplitudes[i] = 1 / Math.sqrt(state2.dimensions);
+      
+      // Set phases to create correlation
+      entangledState1.phases[i] = i % 2 === 0 ? 0 : Math.PI;
+      entangledState2.phases[i] = i % 2 === 0 ? 0 : Math.PI;
+    }
+  } else if (entanglementType === 'ghz') {
+    // Create GHZ-like state
+    entangledState1.amplitudes.fill(0);
+    entangledState2.amplitudes.fill(0);
+    
+    // Only first and last states have amplitude
+    entangledState1.amplitudes[0] = 1 / Math.sqrt(2);
+    entangledState1.amplitudes[entangledState1.dimensions - 1] = 1 / Math.sqrt(2);
+    
+    entangledState2.amplitudes[0] = 1 / Math.sqrt(2);
+    entangledState2.amplitudes[entangledState2.dimensions - 1] = 1 / Math.sqrt(2);
+  } else if (entanglementType === 'cluster') {
+    // Create cluster-like state
+    entangledState1.amplitudes.fill(0);
+    entangledState2.amplitudes.fill(0);
+    
+    // Create superposition of all states with specific phase pattern
+    for (let i = 0; i < state1.dimensions; i++) {
+      entangledState1.amplitudes[i] = 1 / Math.sqrt(state1.dimensions);
+      entangledState1.phases[i] = (i * (i + 1) / 2) * Math.PI;
+    }
+    
+    for (let i = 0; i < state2.dimensions; i++) {
+      entangledState2.amplitudes[i] = 1 / Math.sqrt(state2.dimensions);
+      entangledState2.phases[i] = (i * (i + 1) / 2) * Math.PI;
+    }
+  }
   
-  // Create the entangled qudits
-  return quditIds.map(id => ({
-    id,
-    dimension,
-    state,
-    isEntangled: true,
-    entangledWith: quditIds.filter(qid => qid !== id)
-  }));
+  return [entangledState1, entangledState2];
 }
 
 /**
- * Create a magnetic Hamiltonian for simulations
+ * Creates a magnetic Hamiltonian for quantum simulation
+ * 
+ * @param type Type of Hamiltonian to create
+ * @param dimensions Number of dimensions in the quantum system
+ * @param parameters Additional parameters for Hamiltonian
+ * @returns Matrix representation of the Hamiltonian
  */
 export function createMagneticHamiltonian(
-  name: string,
-  dimension: number = 37,
-  latticeType: LatticeType = 'HIGHD_HYPERCUBIC',
-  temperature: number = 1.0,
-  numSites: number = 10
-): QuantumHamiltonian {
-  return generateHamiltonian({
-    name,
-    latticeType,
-    dimension,
-    temperature,
-    numSites
-  });
-}
-
-/**
- * Run a unified simulation that combines quantum states with magnetism
- */
-export function runUnifiedSimulation(
-  states: Qudit<number>[],
-  hamiltonian: QuantumHamiltonian,
-  errorMitigation: ErrorMitigationType = 'NONE'
-): UnifiedQuantumResult {
-  // 1. Extract the primary state dimension
-  const dimension = states[0]?.dimension || 37;
+  type: 'ising' | 'heisenberg' | 'xy' | 'highd_hypercubic',
+  dimensions: number = 2,
+  parameters: Record<string, number> = {}
+): QuantumOperator {
+  // Default parameters
+  const J = parameters.J || 1.0; // Coupling strength
+  const h = parameters.h || 0.5; // Transverse field
+  const matrix: number[][] = Array(dimensions)
+    .fill(0)
+    .map(() => Array(dimensions).fill(0));
   
-  // 2. Calculate entanglement properties
-  const entanglementEntropy = states.some(s => s.isEntangled) 
-    ? calculateEntanglementEntropy(states[0].state)
-    : 0;
-  
-  const contextuality = states.some(s => s.isEntangled) 
-    ? checkContextuality(states[0].state)
-    : false;
-  
-  // 3. Run the magnetism simulation with the given Hamiltonian
-  const magnetismSim = simulateQuantumMagnetism({
-    hamiltonianId: hamiltonian.id,
-    duration: 10.0,
-    timeSteps: 50,
-    errorMitigation
-  });
-  
-  // 4. Combine the results
-  return {
-    id: Math.floor(1000 + Math.random() * 9000),
-    name: `Unified ${dimension}D Quantum Simulation`,
-    timestamp: new Date().toISOString(),
-    resultType: 'combined',
-    states,
-    hamiltonian,
-    magnetism: {
-      magnetization: magnetismSim.results.magnetization,
-      correlations: magnetismSim.results.correlationFunction
-    },
-    entanglementMetrics: {
-      entropy: entanglementEntropy,
-      nonlocality: entanglementEntropy * 2, // Simplified measure of nonlocality
-      contextuality
+  if (type === 'ising') {
+    // Simple Ising model Hamiltonian
+    for (let i = 0; i < dimensions; i++) {
+      // Diagonal terms (Z-Z interaction)
+      matrix[i][i] = -J;
+      
+      // Off-diagonal terms (X field)
+      if (i > 0) matrix[i][i-1] = -h;
+      if (i < dimensions - 1) matrix[i][i+1] = -h;
     }
-  };
-}
-
-/**
- * Apply a measurement to a high-dimensional quantum state
- */
-export function measureQudit<D extends number>(qudit: Qudit<D>): { 
-  outcome: number;
-  collapsedQudit: Qudit<D>;
-} {
-  const measurement = measureQuantumState(qudit.state);
-  
-  return {
-    outcome: measurement.outcome,
-    collapsedQudit: {
-      ...qudit,
-      state: measurement.collapsedState,
-      isEntangled: false, // Measurement breaks entanglement
-      entangledWith: undefined
+  } else if (type === 'heisenberg') {
+    // Heisenberg model Hamiltonian
+    for (let i = 0; i < dimensions; i++) {
+      // Diagonal terms (Z-Z interaction)
+      matrix[i][i] = -J;
+      
+      // Off-diagonal terms (X-X and Y-Y interactions)
+      if (i > 0) {
+        matrix[i][i-1] = -J;
+        matrix[i-1][i] = -J;
+      }
+      if (i < dimensions - 1) {
+        matrix[i][i+1] = -J;
+        matrix[i+1][i] = -J;
+      }
     }
-  };
-}
-
-/**
- * Apply a transformation to a quantum state
- */
-export function transformQudit<D extends number>(
-  qudit: Qudit<D>, 
-  transformation: TransformationType
-): Qudit<D> {
-  const transformedState = transformState(qudit.state, transformation);
+  } else if (type === 'xy') {
+    // XY model Hamiltonian
+    for (let i = 0; i < dimensions; i++) {
+      // Off-diagonal terms (X-X and Y-Y interactions)
+      if (i > 0) {
+        matrix[i][i-1] = -J;
+        matrix[i-1][i] = -J;
+      }
+      if (i < dimensions - 1) {
+        matrix[i][i+1] = -J;
+        matrix[i+1][i] = -J;
+      }
+      
+      // Diagonal Z terms
+      matrix[i][i] = -h;
+    }
+  } else if (type === 'highd_hypercubic') {
+    // High-dimensional hypercubic lattice Hamiltonian
+    // For simplicity, we implement a mean-field approximation
+    
+    // Mean-field coupling: each dimension interacts with all others
+    const meanFieldStrength = J / dimensions;
+    
+    for (let i = 0; i < dimensions; i++) {
+      for (let j = 0; j < dimensions; j++) {
+        if (i !== j) {
+          matrix[i][j] = -meanFieldStrength;
+        } else {
+          matrix[i][i] = -h;
+        }
+      }
+    }
+  }
   
   return {
-    ...qudit,
-    state: transformedState
+    dimensions,
+    matrix
   };
 }
 
 /**
- * Analyze the phases of a quantum magnetic system across a parameter range
+ * Runs a unified quantum simulation combining high-dimensional states and magnetism
+ * 
+ * @param params Simulation parameters
+ * @returns Simulation results
  */
-export function analyzeQuantumPhaseTransitions(
-  hamiltonian: QuantumHamiltonian,
-  paramName: 'temperature' | 'fieldStrength' | 'anisotropy' = 'temperature',
-  paramRange: { start: number; end: number; steps: number } = { start: 0.1, end: 2.0, steps: 20 }
-): PhaseAnalysis {
-  return analyzeQuantumPhases({
-    hamiltonianId: hamiltonian.id,
-    paramName,
-    paramRange
-  });
-}
-
-/**
- * Calculate the correlation between entangled qudits and magnetism
- * This demonstrates the unique unified approach of Singularis Prime
- */
-export function calculateEntanglementMagnetismCorrelation(
-  states: Qudit<number>[],
-  magnetism: number[]
-): number {
-  // This is a simplified calculation that demonstrates the concept
-  // of relating entanglement to magnetic properties
+export function runUnifiedSimulation(params: QuantumSimulationParams = {}): QuantumSimulationResult {
+  // Extract parameters with defaults
+  const dimensions = params.dimensions || 37;
+  const precision = params.precision || DEFAULT_PRECISION;
+  const maxIterations = params.maxIterations || DEFAULT_ITERATIONS;
+  const temperature = params.temperature || 0.1;
+  const hamiltonianType = params.hamiltonian || 'highd_hypercubic';
   
-  // 1. Calculate entanglement entropy
-  const entropy = states.some(s => s.isEntangled)
-    ? calculateEntanglementEntropy(states[0].state)
-    : 0;
+  // Start timing the simulation
+  const startTime = Date.now();
   
-  // 2. Calculate magnetization magnitude
-  const magMagnitude = Math.sqrt(
-    magnetism.reduce((sum, val) => sum + val * val, 0)
+  // Create quantum state
+  const initialState = createQuantumState(dimensions, params.initialState);
+  
+  // Create Hamiltonian
+  const hamiltonian = createMagneticHamiltonian(
+    hamiltonianType as any, 
+    dimensions, 
+    { J: 1.0, h: temperature }
   );
   
-  // 3. Calculate correlation (simplified model)
-  // In a real quantum system, this would involve complex calculations
-  // relating entanglement to magnetic ordering
-  const correlation = entropy * magMagnitude / 
-    (states[0].dimension * Math.sqrt(magnetism.length));
+  // Run simulation (simplified for demonstration)
+  let state = [...initialState.amplitudes];
+  let iterations = 0;
+  let errorEstimate = 1.0;
   
-  return correlation;
+  // Simulate time evolution using a simplified algorithm
+  while (errorEstimate > precision && iterations < maxIterations) {
+    // Apply Hamiltonian to state (simplified matrix-vector multiplication)
+    const newState = new Array(dimensions).fill(0);
+    
+    for (let i = 0; i < dimensions; i++) {
+      for (let j = 0; j < dimensions; j++) {
+        newState[i] += hamiltonian.matrix[i][j] * state[j];
+      }
+    }
+    
+    // Update state
+    const normFactor = Math.sqrt(newState.reduce((sum, val) => sum + val * val, 0));
+    state = newState.map(val => val / normFactor);
+    
+    // Update error estimate (simple convergence metric)
+    errorEstimate = Math.sqrt(
+      state.reduce((sum, val, idx) => sum + Math.pow(val - initialState.amplitudes[idx], 2), 0)
+    );
+    
+    iterations++;
+  }
+  
+  // Calculate probabilities
+  const probability = state.map(amplitude => amplitude * amplitude);
+  
+  // Calculate entanglement entropy (simplified)
+  const entanglementEntropy = -probability.reduce(
+    (sum, prob) => sum + (prob > 0 ? prob * Math.log(prob) : 0), 
+    0
+  );
+  
+  // Calculate magnetization (simplified for demonstration)
+  const magnetization = state.map((val, idx) => {
+    return val * val * (idx % 2 === 0 ? 1 : -1);
+  });
+  
+  // Calculate correlation matrix (simplified)
+  const correlationMatrix: number[][] = [];
+  for (let i = 0; i < dimensions; i++) {
+    correlationMatrix[i] = [];
+    for (let j = 0; j < dimensions; j++) {
+      correlationMatrix[i][j] = i === j ? 1 : state[i] * state[j] * 2;
+    }
+  }
+  
+  // Calculate energy spectrum (eigenvalues of Hamiltonian - simplified)
+  const energySpectrum = Array(dimensions).fill(0).map((_, i) => {
+    return -temperature * (i + 0.5);
+  });
+  
+  const endTime = Date.now();
+  const simulationTime = (endTime - startTime) / 1000; // in seconds
+  
+  return {
+    id: uuidv4(),
+    dimensions,
+    state,
+    probability,
+    entanglementEntropy,
+    correlationMatrix,
+    magnetization,
+    energySpectrum,
+    simulationTime,
+    iterations,
+    errorEstimate
+  };
 }
 
 /**
- * Generate SINGULARIS PRIME code representation of a quantum operation
+ * Generates SINGULARIS PRIME code for a specified quantum operation
+ * 
+ * @param operation The quantum operation to generate code for
+ * @param params Parameters for the operation
+ * @returns Generated SINGULARIS PRIME code as a string
  */
 export function generateSingularisPrimeCode(
-  operation: 'create_qudit' | 'entangle' | 'measure' | 'transform' | 'magnetism' | 'unified',
-  params: Record<string, any>
+  operation: 'magnetism' | 'unified' | 'create_qudit' | 'entangle' | 'measure' | 'transform',
+  params: Record<string, any> = {}
 ): string {
-  // This function generates Singularis Prime code syntax for the specified operation
+  let code = '/**\n * SINGULARIS PRIME Quantum Code\n';
+  code += ` * Operation: ${operation}\n`;
+  code += ` * Generated: ${new Date().toISOString()}\n */\n\n`;
   
-  switch (operation) {
-    case 'create_qudit':
-      return `
-// Create a ${params.dimension ?? 37}D quantum state
-Qudit<${params.dimension ?? 37}> ${params.name ?? 'qudit'} = new Qudit(dimension: ${params.dimension ?? 37});
-quantum_init(${params.name ?? 'qudit'});
-`;
-
-    case 'entangle':
-      return `
-// Create entangled ${params.dimension ?? 37}D qudits
-EntanglementProtocol protocol = EntanglementProtocol.${params.type ?? 'GHZ'};
-Qudit<${params.dimension ?? 37}>[${params.numQudits ?? 2}] entangled_qudits = 
-  entangle(dimension: ${params.dimension ?? 37}, num_qudits: ${params.numQudits ?? 2}, protocol: protocol);
-`;
-
-    case 'measure':
-      return `
-// Measure a ${params.dimension ?? 37}D qudit
-MeasurementResult result = measure(${params.name ?? 'qudit'});
-int outcome = result.outcome;
-Qudit<${params.dimension ?? 37}> collapsed = result.state;
-`;
-
-    case 'transform':
-      return `
-// Transform a ${params.dimension ?? 37}D qudit
-TransformOperation op = TransformOperation.${params.transformation ?? 'FOURIER'};
-Qudit<${params.dimension ?? 37}> transformed = transform(${params.name ?? 'qudit'}, op);
-`;
-
-    case 'magnetism':
-      return `
-// Create a quantum magnetism Hamiltonian
-LatticeType lattice = LatticeType.${params.latticeType ?? 'HIGHD_HYPERCUBIC'};
-QuantumHamiltonian H = new QuantumHamiltonian(
-  dimension: ${params.dimension ?? 37},
-  lattice: lattice,
-  temperature: ${params.temperature ?? 1.0}
-);
-
-// Run a quantum magnetism simulation
-MagnetismSimulation sim = simulate_magnetism(H, duration: 10.0);
-Vector<double> magnetization = sim.magnetization;
-`;
-
-    case 'unified':
-      return `
-// Unified 37D quantum state + magnetism simulation
-// This demonstrates the unique Singularis Prime approach
-
-// 1. Create high-dimensional qudits
-Qudit<37> q1 = new Qudit(dimension: 37);
-Qudit<37> q2 = new Qudit(dimension: 37);
-
-// 2. Entangle them
-Qudit<37>[] entangled_pair = entangle(q1, q2, protocol: EntanglementProtocol.GHZ);
-
-// 3. Create a quantum magnetic system in the same dimension
-QuantumHamiltonian H = new QuantumHamiltonian(
-  dimension: 37,
-  lattice: LatticeType.HIGHD_HYPERCUBIC,
-  temperature: 0.5
-);
-
-// 4. Run a unified simulation that leverages both capabilities
-UnifiedSimulation result = simulate_unified(
-  states: entangled_pair,
-  hamiltonian: H
-);
-
-// 5. Extract and analyze integrated results
-Vector<double> magnetization = result.magnetism.magnetization;
-double entanglement_entropy = result.entanglement_metrics.entropy;
-double phase_correlation = calculate_correlation(
-  entangled_pair,
-  magnetization
-);
-`;
-
-    default:
-      return `// Unknown operation type: ${operation}`;
+  if (operation === 'create_qudit') {
+    const dimensions = params.dimensions || 37;
+    code += `// Create a ${dimensions}-dimensional quantum state (qudit)\n`;
+    code += `Qudit<${dimensions}> q = new Qudit<${dimensions}>();\n\n`;
+    code += `// Initialize in equal superposition\n`;
+    code += `q.applyHadamard();\n\n`;
+    code += `// Verify creation\n`;
+    code += `assert q.dimensions === ${dimensions};\n`;
+    code += `print("Created ${dimensions}-dimensional qudit: " + q);\n`;
+  } 
+  else if (operation === 'entangle') {
+    const dimensions = params.dimensions || 37;
+    const entanglementType = params.type || 'bell';
+    
+    code += `// Create two ${dimensions}-dimensional qudits\n`;
+    code += `Qudit<${dimensions}> q1 = new Qudit<${dimensions}>();\n`;
+    code += `Qudit<${dimensions}> q2 = new Qudit<${dimensions}>();\n\n`;
+    
+    code += `// Initialize qudits\n`;
+    code += `q1.applyHadamard();\n`;
+    code += `q2.setState(0);\n\n`;
+    
+    code += `// Create ${entanglementType}-type entanglement\n`;
+    code += `Entangler.create${entanglementType.charAt(0).toUpperCase() + entanglementType.slice(1)}Entanglement(q1, q2);\n\n`;
+    
+    code += `// Verify entanglement\n`;
+    code += `assert Entangler.isEntangled(q1, q2);\n`;
+    code += `print("Created entangled qudits with type ${entanglementType}");\n`;
   }
+  else if (operation === 'magnetism') {
+    const dimensions = params.dimensions || 10;
+    const hamiltonianType = params.hamiltonianType || 'ising';
+    const temperature = params.temperature || 0.5;
+    
+    code += `// Import quantum magnetism modules\n`;
+    code += `import { QuantumMagnetism } from "@singularis/core";\n\n`;
+    
+    code += `// Create quantum spin system\n`;
+    code += `const spins = QuantumMagnetism.createSpinSystem(${dimensions});\n\n`;
+    
+    code += `// Define ${hamiltonianType} Hamiltonian\n`;
+    code += `const H = QuantumMagnetism.createHamiltonian("${hamiltonianType}", {\n`;
+    code += `  J: 1.0,  // Coupling strength\n`;
+    code += `  h: ${temperature},  // External field / temperature\n`;
+    code += `});\n\n`;
+    
+    code += `// Evolve system\n`;
+    code += `const result = QuantumMagnetism.evolveSystem(spins, H, {\n`;
+    code += `  steps: 1000,\n`;
+    code += `  dt: 0.01,\n`;
+    code += `  errorMitigation: "zero_noise_extrapolation"\n`;
+    code += `});\n\n`;
+    
+    code += `// Calculate observable properties\n`;
+    code += `const magnetization = result.getMagnetization();\n`;
+    code += `const correlations = result.getCorrelationMatrix();\n`;
+    code += `const entropy = result.getEntanglementEntropy();\n\n`;
+    
+    code += `// Output results\n`;
+    code += `print("Magnetization:", magnetization);\n`;
+    code += `print("Entanglement entropy:", entropy);\n`;
+  }
+  else if (operation === 'unified') {
+    const dimensions = params.dimensions || 37;
+    const temperature = params.temperature || 0.5;
+    
+    code += `/**\n * Unified 37-Dimensional Quantum Magnetism Simulation\n`;
+    code += ` * This simulation combines 37-dimensional quantum states with\n`;
+    code += ` * quantum magnetism principles in a unified framework.\n */\n\n`;
+    
+    code += `import { UnifiedQuantum, ErrorMitigation } from "@singularis/unified";\n\n`;
+    
+    code += `// Create high-dimensional quantum system\n`;
+    code += `const system = new UnifiedQuantum.System(${dimensions});\n\n`;
+    
+    code += `// Define hypercubic Hamiltonian for ${dimensions}D system\n`;
+    code += `const hamiltonian = UnifiedQuantum.createHypercubicHamiltonian(${dimensions}, {\n`;
+    code += `  temperature: ${temperature},\n`;
+    code += `  couplingStrength: 1.0\n`;
+    code += `});\n\n`;
+    
+    code += `// Apply error mitigation strategy\n`;
+    code += `system.setErrorMitigation(ErrorMitigation.ZeroNoiseExtrapolation);\n\n`;
+    
+    code += `// Run unified simulation\n`;
+    code += `const results = system.evolve(hamiltonian, {\n`;
+    code += `  steps: 1000,\n`;
+    code += `  convergencePrecision: 1e-8\n`;
+    code += `});\n\n`;
+    
+    code += `// Extract quantum properties\n`;
+    code += `const entanglementStructure = results.getEntanglementStructure();\n`;
+    code += `const magneticOrder = results.getMagneticOrderParameter();\n`;
+    code += `const dimensionalProjections = results.getDimensionalProjections();\n\n`;
+    
+    code += `// Output results\n`;
+    code += `print("Simulation completed with ${dimensions}-dimensional system");\n`;
+    code += `print("Magnetic order parameter:", magneticOrder);\n`;
+    code += `print("Entanglement complexity:", entanglementStructure.complexity);\n`;
+    code += `print("Dimensional projections:", dimensionalProjections);\n`;
+  }
+  else if (operation === 'measure') {
+    const dimensions = params.dimensions || 37;
+    
+    code += `// Measure a ${dimensions}-dimensional qudit\n`;
+    code += `Qudit<${dimensions}> q = new Qudit<${dimensions}>();\n\n`;
+    
+    code += `// Prepare non-trivial state\n`;
+    code += `q.applyHadamard();\n`;
+    code += `q.applyPhase(Math.PI / 4);\n\n`;
+    
+    code += `// Perform measurement in computational basis\n`;
+    code += `const outcome = q.measure();\n\n`;
+    
+    code += `// Report result\n`;
+    code += `print("Measured qudit collapsed to state:", outcome);\n`;
+    code += `print("Measurement statistics:", q.getMeasurementProbabilities());\n`;
+  }
+  else if (operation === 'transform') {
+    const dimensions = params.dimensions || 37;
+    
+    code += `// Transform a ${dimensions}-dimensional quantum state\n`;
+    code += `Qudit<${dimensions}> q = new Qudit<${dimensions}>();\n\n`;
+    
+    code += `// Initialize to uniform superposition\n`;
+    code += `q.applyHadamard();\n\n`;
+    
+    code += `// Create a custom unitary transformation\n`;
+    code += `const U = Unitary.createParametric(${dimensions}, {\n`;
+    code += `  phi: Math.PI / 3,\n`;
+    code += `  theta: Math.PI / 8,\n`;
+    code += `  pattern: "hypercubic"\n`;
+    code += `});\n\n`;
+    
+    code += `// Apply transformation\n`;
+    code += `q.applyUnitary(U);\n\n`;
+    
+    code += `// Analyze resulting state\n`;
+    code += `const stateVector = q.getStateVector();\n`;
+    code += `const stateEntropy = q.getVonNeumannEntropy();\n\n`;
+    
+    code += `// Output results\n`;
+    code += `print("Transformed state entropy:", stateEntropy);\n`;
+    code += `print("State vector has ${dimensions} dimensions");\n`;
+  }
+  
+  return code;
 }

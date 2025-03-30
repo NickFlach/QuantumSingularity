@@ -21,6 +21,15 @@ import {
   LatticeType,
   InteractionType
 } from "./language/quantum-magnetism";
+import {
+  getAllCodeFiles,
+  getCodeFilesByType,
+  getCodeFileById,
+  analyzeCodeFile,
+  generateCode,
+  estimateExplainability,
+  generateLocalDocumentation
+} from "./services/CodeAnalysisService";
 
 import {
   generateInitialState,
@@ -36,10 +45,6 @@ import {
   createEntangledState,
   createMagneticHamiltonian,
   runUnifiedSimulation,
-  measureQudit,
-  transformQudit,
-  analyzeQuantumPhaseTransitions,
-  calculateEntanglementMagnetismCorrelation,
   generateSingularisPrimeCode,
   ErrorMitigationType
 } from './language/singularis-prime-unified';
@@ -53,16 +58,14 @@ import {
 } from "./language/singularis-assistant";
 import { 
   analyzeCode as aiServiceAnalyzeCode, 
-  enhanceAINegotiation, 
-  explainQuantumOperation, 
-  suggestParadoxResolution,
   generateDocumentation,
-  evaluateExplainability,
-  suggestCode,
-  getAIProviders,
-  configureAIProvider,
-  setActiveAIProvider
+  evaluateExplainability
 } from "./language/ai-service";
+
+import { 
+  CodeFile,
+  CodeAnalysisResult 
+} from "./services/CodeAnalysisService";
 import { sendTemplateEmail, sendCustomEmail, EmailTemplate } from "./email-service";
 
 import { 
@@ -3008,6 +3011,176 @@ export async function registerRoutes(app: Express): Promise<Server> {
       console.error("Error generating SINGULARIS PRIME code:", error);
       return res.status(500).json({ 
         message: "Failed to generate code",
+        error: error instanceof Error ? error.message : String(error)
+      });
+    }
+  });
+
+  // API routes for code analysis
+  app.get("/api/code/analysis/files", async (req: Request, res: Response) => {
+    try {
+      const files = getAllCodeFiles();
+      return res.json({ files });
+    } catch (error) {
+      console.error("Error getting code files:", error);
+      return res.status(500).json({ 
+        message: "Failed to retrieve code files",
+        error: error instanceof Error ? error.message : String(error)
+      });
+    }
+  });
+
+  app.get("/api/code/analysis/files/:type", async (req: Request, res: Response) => {
+    try {
+      const { type } = req.params;
+      const validTypes = ['quantum', 'ai', 'magnetism', '37d', 'unified', 'kashiwara', 'circuit', 'geometry', 'other', 'all'];
+      
+      if (!validTypes.includes(type)) {
+        return res.status(400).json({ message: "Invalid file type" });
+      }
+      
+      const files = getCodeFilesByType(type);
+      return res.json({ files });
+    } catch (error) {
+      console.error("Error getting files by type:", error);
+      return res.status(500).json({ 
+        message: "Failed to retrieve files by type",
+        error: error instanceof Error ? error.message : String(error)
+      });
+    }
+  });
+
+  app.post("/api/code/analysis/analyze", async (req: Request, res: Response) => {
+    try {
+      const { fileId } = req.body;
+      
+      if (!fileId) {
+        return res.status(400).json({ message: "File ID is required" });
+      }
+      
+      const result = await analyzeCodeFile(fileId);
+      
+      if (!result) {
+        return res.status(404).json({ message: "File not found or analysis failed" });
+      }
+      
+      return res.json({ analysis: result });
+    } catch (error) {
+      console.error("Error analyzing file:", error);
+      return res.status(500).json({ 
+        message: "Failed to analyze file",
+        error: error instanceof Error ? error.message : String(error)
+      });
+    }
+  });
+
+  app.post("/api/code/analysis/analyze-batch", async (req: Request, res: Response) => {
+    try {
+      const { fileIds } = req.body;
+      
+      if (!fileIds || !Array.isArray(fileIds) || fileIds.length === 0) {
+        return res.status(400).json({ message: "File IDs array is required" });
+      }
+      
+      // Analyze files in parallel
+      const analysisPromises = fileIds.map(fileId => analyzeCodeFile(fileId));
+      const results = await Promise.all(analysisPromises);
+      
+      // Filter out null results (files not found)
+      const validResults = results.filter(result => result !== null);
+      
+      return res.json({ analyses: validResults });
+    } catch (error) {
+      console.error("Error analyzing files:", error);
+      return res.status(500).json({ 
+        message: "Failed to analyze files",
+        error: error instanceof Error ? error.message : String(error)
+      });
+    }
+  });
+
+  app.get("/api/code/analysis/unified", async (req: Request, res: Response) => {
+    try {
+      const files = getCodeFilesByType('unified');
+      return res.json({ files });
+    } catch (error) {
+      console.error("Error getting unified quantum files:", error);
+      return res.status(500).json({ 
+        message: "Failed to retrieve unified quantum files",
+        error: error instanceof Error ? error.message : String(error)
+      });
+    }
+  });
+
+  app.get("/api/code/analysis/ai-integration", async (req: Request, res: Response) => {
+    try {
+      const files = getCodeFilesByType('ai');
+      return res.json({ files });
+    } catch (error) {
+      console.error("Error getting AI integration files:", error);
+      return res.status(500).json({ 
+        message: "Failed to retrieve AI integration files",
+        error: error instanceof Error ? error.message : String(error)
+      });
+    }
+  });
+
+  app.post("/api/code/analysis/generate-code", async (req: Request, res: Response) => {
+    try {
+      const { operation, params } = req.body;
+      
+      if (!operation) {
+        return res.status(400).json({ message: "Operation is required" });
+      }
+      
+      const code = generateCode(
+        operation, 
+        params || {}
+      );
+      
+      return res.json({ code });
+    } catch (error) {
+      console.error("Error generating code:", error);
+      return res.status(500).json({ 
+        message: "Failed to generate code",
+        error: error instanceof Error ? error.message : String(error)
+      });
+    }
+  });
+
+  app.post("/api/code/analysis/explainability", async (req: Request, res: Response) => {
+    try {
+      const { code } = req.body;
+      
+      if (!code || typeof code !== "string") {
+        return res.status(400).json({ message: "Code is required" });
+      }
+      
+      const explainability = estimateExplainability(code);
+      return res.json({ explainability });
+    } catch (error) {
+      console.error("Error evaluating explainability:", error);
+      return res.status(500).json({ 
+        message: "Failed to evaluate explainability",
+        error: error instanceof Error ? error.message : String(error)
+      });
+    }
+  });
+
+  app.post("/api/code/analysis/documentation", async (req: Request, res: Response) => {
+    try {
+      const { code } = req.body;
+      
+      if (!code || typeof code !== "string") {
+        return res.status(400).json({ message: "Code is required" });
+      }
+      
+      const documentation = generateLocalDocumentation(code);
+      return res.json({ documentation });
+    } catch (error) {
+      console.error("Error generating documentation:", error);
+      return res.status(500).json({ 
+        message: "Failed to generate documentation",
         error: error instanceof Error ? error.message : String(error)
       });
     }

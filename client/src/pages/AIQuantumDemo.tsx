@@ -12,6 +12,7 @@ import { apiRequest } from "@/lib/queryClient";
 import { parseOptimizationDirectives } from "@/lib/OptimizationDirectives";
 import { Monaco } from "@monaco-editor/react";
 import Editor from "@monaco-editor/react";
+import { CodeAnalysisPanel } from "@/components/CodeAnalysisPanel";
 
 // Demo quantum circuit with AI optimization directives
 const initialQuantumCode = `// SINGULARIS PRIME - Quantum Circuit Optimization Demo
@@ -251,159 +252,284 @@ export default function AIQuantumDemo() {
       <Separator className="mb-6" />
 
       <Tabs defaultValue="circuit" value={tab} onValueChange={setTab} className="mb-8">
-        <TabsList className="grid grid-cols-3 w-full max-w-md">
+        <TabsList className="grid grid-cols-4 w-full max-w-md">
           <TabsTrigger value="circuit">Quantum Circuit</TabsTrigger>
           <TabsTrigger value="governance">AI Governance</TabsTrigger>
           <TabsTrigger value="geometry">Quantum Geometry</TabsTrigger>
+          <TabsTrigger value="analysis">Code Analysis</TabsTrigger>
         </TabsList>
 
-        <div className="mt-6 grid grid-cols-1 lg:grid-cols-2 gap-6">
-          <Card className="col-span-1">
-            <CardHeader className="pb-3">
-              <CardTitle>
-                {tab === "circuit"
-                  ? "Quantum Circuit with Optimization Directives"
-                  : tab === "governance"
-                  ? "AI Governance Framework"
-                  : "Quantum Geometry Operations"}
-              </CardTitle>
-              <CardDescription>
-                {tab === "circuit"
-                  ? "Edit the quantum circuit code with optimization directives"
-                  : tab === "governance"
-                  ? "Define explainability thresholds and governance policies"
-                  : "Quantum states in geometric spaces with AI optimization"}
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="h-[400px] border rounded-md">
-                <Editor
-                  height="400px"
-                  language="javascript"
-                  theme="vs-dark"
-                  value={code}
-                  onChange={(value) => setCode(value || "")}
-                  options={{
-                    minimap: { enabled: false },
-                    fontSize: 14,
-                    lineNumbers: "on",
-                  }}
-                />
-              </div>
-            </CardContent>
-            <CardFooter className="flex flex-wrap gap-2">
-              {directives.map((directive, index) => (
-                <Badge key={index} variant="outline" className="bg-slate-100 text-slate-800">
-                  {directive}
-                </Badge>
-              ))}
-            </CardFooter>
-          </Card>
-
-          <div className="col-span-1 space-y-6">
-            <Card>
-              <CardHeader>
-                <CardTitle>Actions</CardTitle>
-                <CardDescription>
-                  Apply AI optimization to your quantum operations
-                </CardDescription>
+        <TabsContent value="circuit" className="mt-6">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <Card className="col-span-1">
+              <CardHeader className="pb-3">
+                <CardTitle>Quantum Circuit with Optimization Directives</CardTitle>
+                <CardDescription>Edit the quantum circuit code with optimization directives</CardDescription>
               </CardHeader>
-              <CardContent className="flex flex-wrap gap-4">
-                <Button 
-                  onClick={optimizeCircuit} 
-                  className="bg-gradient-to-r from-blue-600 to-purple-600 text-white"
-                  disabled={isOptimizing}
-                >
-                  <Sparkles className="mr-2 h-4 w-4" />
-                  {isOptimizing ? "Optimizing..." : "Optimize with AI"}
-                </Button>
-                
-                <Button 
-                  onClick={analyzeCode}
-                  variant="outline"
-                  disabled={isOptimizing}
-                >
-                  <Code className="mr-2 h-4 w-4" />
-                  Analyze Code
-                </Button>
-                
-                {showComparison && (
-                  <Button 
-                    onClick={() => setShowComparison(false)}
-                    variant="outline"
-                  >
-                    <RefreshCw className="mr-2 h-4 w-4" />
-                    Reset
-                  </Button>
-                )}
+              <CardContent>
+                <div className="h-[400px] border rounded-md">
+                  <Editor
+                    height="400px"
+                    language="javascript"
+                    theme="vs-dark"
+                    value={code}
+                    onChange={(value) => setCode(value || "")}
+                    options={{
+                      minimap: { enabled: false },
+                      fontSize: 14,
+                      lineNumbers: "on",
+                    }}
+                  />
+                </div>
               </CardContent>
+              <CardFooter className="flex flex-wrap gap-2">
+                {directives.map((directive, index) => (
+                  <Badge key={index} variant="outline" className="bg-slate-100 text-slate-800">
+                    {directive}
+                  </Badge>
+                ))}
+              </CardFooter>
             </Card>
 
-            {showComparison && optimized && (
+            <div className="col-span-1 space-y-6">
               <Card>
                 <CardHeader>
-                  <CardTitle>
-                    <div className="flex items-center">
-                      <span>Optimization Results</span>
-                      <Badge className="ml-2 bg-green-100 text-green-800">
-                        {optimized.explainability * 100}% Explainable
-                      </Badge>
-                    </div>
-                  </CardTitle>
+                  <CardTitle>Actions</CardTitle>
                   <CardDescription>
-                    AI-optimized quantum circuit with performance metrics
+                    Apply AI optimization to your quantum operations
                   </CardDescription>
                 </CardHeader>
-                <CardContent className="space-y-4">
-                  <div className="space-y-2">
-                    <h3 className="font-medium">Performance Improvements</h3>
-                    <div className="grid grid-cols-2 gap-4">
-                      <div className="bg-slate-50 p-3 rounded-md">
-                        <div className="text-sm text-slate-500">Gate Count</div>
-                        <div className="flex items-center">
-                          <span className="text-xl font-bold">{optimized.improvement.gateCount}</span>
-                          <span className="ml-1 text-green-600 text-sm">
-                            ({Math.abs(optimized.improvement.gateCount / optimized.original.gates * 100).toFixed(1)}%)
-                          </span>
-                        </div>
-                      </div>
-                      <div className="bg-slate-50 p-3 rounded-md">
-                        <div className="text-sm text-slate-500">Circuit Depth</div>
-                        <div className="flex items-center">
-                          <span className="text-xl font-bold">{optimized.improvement.depthChange}</span>
-                          <span className="ml-1 text-green-600 text-sm">
-                            ({Math.abs(optimized.improvement.depthChange / optimized.original.depth * 100).toFixed(1)}%)
-                          </span>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
+                <CardContent className="flex flex-wrap gap-4">
+                  <Button 
+                    onClick={optimizeCircuit} 
+                    className="bg-gradient-to-r from-blue-600 to-purple-600 text-white"
+                    disabled={isOptimizing}
+                  >
+                    <Sparkles className="mr-2 h-4 w-4" />
+                    {isOptimizing ? "Optimizing..." : "Optimize with AI"}
+                  </Button>
                   
-                  <Separator />
+                  <Button 
+                    onClick={analyzeCode}
+                    variant="outline"
+                    disabled={isOptimizing}
+                  >
+                    <Code className="mr-2 h-4 w-4" />
+                    Analyze Code
+                  </Button>
                   
-                  <div>
-                    <h3 className="font-medium mb-2">AI Explanation</h3>
-                    <div className="bg-slate-50 p-3 rounded-md text-sm">
-                      {optimized.optimized.explanation}
-                    </div>
-                  </div>
-                  
-                  <div className="pt-2">
-                    <h3 className="font-medium mb-2">Human Oversight Metrics</h3>
-                    <div className="flex flex-wrap gap-2">
-                      <Badge variant="outline" className="bg-blue-50 text-blue-800">
-                        {optimized.improvement.fidelity ? `${optimized.improvement.fidelity * 100}% Fidelity` : 'Fidelity Preserved'}
-                      </Badge>
-                      <Badge variant="outline" className="bg-purple-50 text-purple-800">
-                        {optimized.improvement.explainability ? `${optimized.improvement.explainability * 100}% Transparent` : 'Transparency Maintained'}
-                      </Badge>
-                    </div>
-                  </div>
+                  {showComparison && (
+                    <Button 
+                      onClick={() => setShowComparison(false)}
+                      variant="outline"
+                    >
+                      <RefreshCw className="mr-2 h-4 w-4" />
+                      Reset
+                    </Button>
+                  )}
                 </CardContent>
               </Card>
-            )}
+
+              {showComparison && optimized && (
+                <Card>
+                  <CardHeader>
+                    <CardTitle>
+                      <div className="flex items-center">
+                        <span>Optimization Results</span>
+                        <Badge className="ml-2 bg-green-100 text-green-800">
+                          {optimized.explainability * 100}% Explainable
+                        </Badge>
+                      </div>
+                    </CardTitle>
+                    <CardDescription>
+                      AI-optimized quantum circuit with performance metrics
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent className="space-y-4">
+                    <div className="space-y-2">
+                      <h3 className="font-medium">Performance Improvements</h3>
+                      <div className="grid grid-cols-2 gap-4">
+                        <div className="bg-slate-50 p-3 rounded-md">
+                          <div className="text-sm text-slate-500">Gate Count</div>
+                          <div className="flex items-center">
+                            <span className="text-xl font-bold">{optimized.improvement.gateCount}</span>
+                            <span className="ml-1 text-green-600 text-sm">
+                              ({Math.abs(optimized.improvement.gateCount / optimized.original.gates * 100).toFixed(1)}%)
+                            </span>
+                          </div>
+                        </div>
+                        <div className="bg-slate-50 p-3 rounded-md">
+                          <div className="text-sm text-slate-500">Circuit Depth</div>
+                          <div className="flex items-center">
+                            <span className="text-xl font-bold">{optimized.improvement.depthChange}</span>
+                            <span className="ml-1 text-green-600 text-sm">
+                              ({Math.abs(optimized.improvement.depthChange / optimized.original.depth * 100).toFixed(1)}%)
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                    
+                    <Separator />
+                    
+                    <div>
+                      <h3 className="font-medium mb-2">AI Explanation</h3>
+                      <div className="bg-slate-50 p-3 rounded-md text-sm">
+                        {optimized.optimized.explanation}
+                      </div>
+                    </div>
+                    
+                    <div className="pt-2">
+                      <h3 className="font-medium mb-2">Human Oversight Metrics</h3>
+                      <div className="flex flex-wrap gap-2">
+                        <Badge variant="outline" className="bg-blue-50 text-blue-800">
+                          {optimized.improvement.fidelity ? `${optimized.improvement.fidelity * 100}% Fidelity` : 'Fidelity Preserved'}
+                        </Badge>
+                        <Badge variant="outline" className="bg-purple-50 text-purple-800">
+                          {optimized.improvement.explainability ? `${optimized.improvement.explainability * 100}% Transparent` : 'Transparency Maintained'}
+                        </Badge>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              )}
+            </div>
           </div>
-        </div>
+        </TabsContent>
+        
+        <TabsContent value="governance" className="mt-6">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <Card className="col-span-1">
+              <CardHeader className="pb-3">
+                <CardTitle>AI Governance Framework</CardTitle>
+                <CardDescription>Define explainability thresholds and governance policies</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="h-[400px] border rounded-md">
+                  <Editor
+                    height="400px"
+                    language="javascript"
+                    theme="vs-dark"
+                    value={code}
+                    onChange={(value) => setCode(value || "")}
+                    options={{
+                      minimap: { enabled: false },
+                      fontSize: 14,
+                      lineNumbers: "on",
+                    }}
+                  />
+                </div>
+              </CardContent>
+              <CardFooter className="flex flex-wrap gap-2">
+                {directives.map((directive, index) => (
+                  <Badge key={index} variant="outline" className="bg-slate-100 text-slate-800">
+                    {directive}
+                  </Badge>
+                ))}
+              </CardFooter>
+            </Card>
+
+            <div className="col-span-1 space-y-6">
+              <Card>
+                <CardHeader>
+                  <CardTitle>Actions</CardTitle>
+                  <CardDescription>
+                    Apply AI optimization to your quantum operations
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="flex flex-wrap gap-4">
+                  <Button 
+                    onClick={optimizeCircuit} 
+                    className="bg-gradient-to-r from-blue-600 to-purple-600 text-white"
+                    disabled={isOptimizing}
+                  >
+                    <Sparkles className="mr-2 h-4 w-4" />
+                    {isOptimizing ? "Optimizing..." : "Optimize with AI"}
+                  </Button>
+                  
+                  <Button 
+                    onClick={analyzeCode}
+                    variant="outline"
+                    disabled={isOptimizing}
+                  >
+                    <Code className="mr-2 h-4 w-4" />
+                    Analyze Code
+                  </Button>
+                </CardContent>
+              </Card>
+            </div>
+          </div>
+        </TabsContent>
+        
+        <TabsContent value="geometry" className="mt-6">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <Card className="col-span-1">
+              <CardHeader className="pb-3">
+                <CardTitle>Quantum Geometry Operations</CardTitle>
+                <CardDescription>Quantum states in geometric spaces with AI optimization</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="h-[400px] border rounded-md">
+                  <Editor
+                    height="400px"
+                    language="javascript"
+                    theme="vs-dark"
+                    value={code}
+                    onChange={(value) => setCode(value || "")}
+                    options={{
+                      minimap: { enabled: false },
+                      fontSize: 14,
+                      lineNumbers: "on",
+                    }}
+                  />
+                </div>
+              </CardContent>
+              <CardFooter className="flex flex-wrap gap-2">
+                {directives.map((directive, index) => (
+                  <Badge key={index} variant="outline" className="bg-slate-100 text-slate-800">
+                    {directive}
+                  </Badge>
+                ))}
+              </CardFooter>
+            </Card>
+
+            <div className="col-span-1 space-y-6">
+              <Card>
+                <CardHeader>
+                  <CardTitle>Actions</CardTitle>
+                  <CardDescription>
+                    Apply AI optimization to your quantum operations
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="flex flex-wrap gap-4">
+                  <Button 
+                    onClick={optimizeCircuit} 
+                    className="bg-gradient-to-r from-blue-600 to-purple-600 text-white"
+                    disabled={isOptimizing}
+                  >
+                    <Sparkles className="mr-2 h-4 w-4" />
+                    {isOptimizing ? "Optimizing..." : "Optimize with AI"}
+                  </Button>
+                  
+                  <Button 
+                    onClick={analyzeCode}
+                    variant="outline"
+                    disabled={isOptimizing}
+                  >
+                    <Code className="mr-2 h-4 w-4" />
+                    Analyze Code
+                  </Button>
+                </CardContent>
+              </Card>
+            </div>
+          </div>
+        </TabsContent>
+        
+        <TabsContent value="analysis" className="mt-6">
+          <div className="card">
+            <CodeAnalysisPanel />
+          </div>
+        </TabsContent>
       </Tabs>
     </div>
   );

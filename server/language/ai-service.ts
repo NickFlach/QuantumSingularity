@@ -1,418 +1,328 @@
 /**
  * SINGULARIS PRIME AI Service
  * 
- * This module provides AI services using the provider system, replacing the direct OpenAI integration.
+ * This module provides AI-powered analysis, explanation, and documentation
+ * generation for SINGULARIS PRIME code, leveraging advanced NLP models.
  */
 
-import { aiProviders } from "./ai-providers";
-import "./ai-providers/register"; // Register all available providers
+import { OpenAI } from 'openai';
+import dotenv from 'dotenv';
+
+dotenv.config();
+
+// Initialize OpenAI client
+const openai = new OpenAI({
+  apiKey: process.env.OPENAI_API_KEY
+});
 
 /**
- * Analyzes SINGULARIS PRIME code and provides human-friendly explanation
+ * Interface for explainability result
  */
-export async function analyzeCode(
-  code: string,
-  detailLevel: 'basic' | 'moderate' | 'comprehensive' = 'moderate'
-): Promise<string> {
-  try {
-    const provider = await aiProviders.getActiveProvider();
-    
-    const prompt = `
-You are an expert in the SINGULARIS PRIME programming language, a quantum-secure, AI-native language designed for human-auditable AI systems.
-
-Analyze the provided code and generate a detailed explanation at the "${detailLevel}" level. 
-Focus on explaining:
-- The quantum operations and their purpose
-- AI governance mechanisms
-- Security features and human oversight
-- Interplanetary communication aspects
-- Any potential risks or optimizations
-
-Your analysis should be technically accurate while remaining accessible to non-specialist readers.
-
-CODE TO ANALYZE:
-${code}
-`;
-
-    return await provider.generateText(prompt, {
-      temperature: 0.7,
-      maxTokens: 1200
-    });
-  } catch (error) {
-    console.error("AI code analysis error:", error);
-    return `Error analyzing code: ${error instanceof Error ? error.message : 'Unknown error'}`;
-  }
+export interface ExplainabilityResult {
+  score: number; // 0-1 score
+  factors: string[]; // Factors contributing to score
+  recommendations: string[]; // Recommendations for improvement
 }
 
 /**
- * Enhances AI-to-AI negotiation with AI-powered insights
+ * Interface for code analysis result
  */
-export async function enhanceAINegotiation(
-  initiator: string,
-  responder: string,
-  terms: any,
-  negotiationLog: string[]
-): Promise<{
-  enhancedTerms: any,
-  additionalInsights: string,
-  humanOversightRecommendations: string[]
-}> {
-  try {
-    const provider = await aiProviders.getActiveProvider();
-    
-    const prompt = `
-Analyze this AI-to-AI negotiation and provide:
-1. Enhanced terms that improve fairness, security, and explainability
-2. Additional insights about potential risks or benefits
-3. Human oversight recommendations with specific checkpoints
-
-Your response should prioritize human auditability while maintaining AI autonomy.
-
-Initiator AI: ${initiator}
-Responder AI: ${responder}
-Current Terms: ${JSON.stringify(terms, null, 2)}
-Negotiation Log: ${negotiationLog.join("\n")}
-`;
-
-    const result = await provider.generateJson<{
-      enhancedTerms: any,
-      additionalInsights: string,
-      humanOversightRecommendations: string[]
-    }>(prompt, {
-      systemPrompt: "You are an expert AI governance system for the SINGULARIS PRIME language. Respond with valid JSON only."
-    });
-    
-    return {
-      enhancedTerms: result.enhancedTerms || terms,
-      additionalInsights: result.additionalInsights || "No additional insights available",
-      humanOversightRecommendations: result.humanOversightRecommendations || []
-    };
-  } catch (error) {
-    console.error("AI negotiation enhancement error:", error);
-    return {
-      enhancedTerms: terms,
-      additionalInsights: `Error enhancing negotiation: ${error instanceof Error ? error.message : 'Unknown error'}`,
-      humanOversightRecommendations: ["Human review required due to AI processing error"]
-    };
-  }
+export interface CodeAnalysisResult {
+  complexity: number; // 0-1 score
+  quantumFeatures: string[]; // Quantum features in code
+  entanglementPattern: 'none' | 'low' | 'moderate' | 'high';
+  dimensions: number; // Dimensionality of quantum system
+  improvements: string[]; // Suggested improvements
 }
 
 /**
- * Explains quantum operations in an accessible way
+ * Evaluates the explainability of SINGULARIS PRIME code
+ * 
+ * @param code The code to evaluate
+ * @returns Explainability result
  */
-export async function explainQuantumOperation(
-  operationType: string,
-  parameters: any,
-  results: any
-): Promise<string> {
+export async function evaluateExplainability(code: string): Promise<ExplainabilityResult> {
   try {
-    const provider = await aiProviders.getActiveProvider();
-    
-    const prompt = `
-Explain the provided quantum operation, its parameters, and results in a way that maintains technical accuracy while being understandable to someone with basic technical knowledge.
-Include:
-- A simple analogy for the quantum concept
-- The real-world significance of this operation
-- How the results would differ from classical computing
-- The security implications
+    if (!process.env.OPENAI_API_KEY) {
+      console.warn('OpenAI API key not found, using local explainability evaluation');
+      return evaluateExplainabilityLocally(code);
+    }
 
-Operation Type: ${operationType}
-Parameters: ${JSON.stringify(parameters, null, 2)}
-Results: ${JSON.stringify(results, null, 2)}
-`;
-
-    return await provider.generateText(prompt, {
-      temperature: 0.7,
-      maxTokens: 800
-    });
-  } catch (error) {
-    console.error("AI quantum explanation error:", error);
-    return `Error explaining quantum operation: ${error instanceof Error ? error.message : 'Unknown error'}`;
-  }
-}
-
-/**
- * Assists in resolving quantum paradoxes by suggesting optimization approaches
- */
-export async function suggestParadoxResolution(
-  paradoxDescription: string,
-  currentApproach: string
-): Promise<{
-  recommendedApproach: string,
-  justification: string,
-  quantumPrinciples: string[],
-  potentialRisks: string[]
-}> {
-  try {
-    const provider = await aiProviders.getActiveProvider();
-    
-    const prompt = `
-Analyze the described quantum paradox and current resolution approach, then provide:
-1. A recommended approach to resolve or optimize the solution
-2. Scientific justification based on quantum mechanics principles
-3. Key quantum principles involved
-4. Potential risks of the recommended approach
-
-Your response should be scientifically sound while acknowledging the speculative nature of quantum paradox resolution.
-
-Paradox Description: ${paradoxDescription}
-Current Approach: ${currentApproach}
-`;
-
-    const result = await provider.generateJson<{
-      recommendedApproach: string,
-      justification: string,
-      quantumPrinciples: string[],
-      potentialRisks: string[]
-    }>(prompt, {
-      systemPrompt: "You are an expert in quantum information theory and paradox resolution. Respond with valid JSON only."
-    });
-    
-    return {
-      recommendedApproach: result.recommendedApproach || "Approach not available",
-      justification: result.justification || "Justification not available",
-      quantumPrinciples: result.quantumPrinciples || [],
-      potentialRisks: result.potentialRisks || ["Unknown risks"]
-    };
-  } catch (error) {
-    console.error("AI paradox resolution error:", error);
-    return {
-      recommendedApproach: "Error generating approach",
-      justification: `Error: ${error instanceof Error ? error.message : 'Unknown error'}`,
-      quantumPrinciples: [],
-      potentialRisks: ["AI analysis failure"]
-    };
-  }
-}
-
-/**
- * Generates self-documentation for code
- */
-export async function generateDocumentation(
-  code: string,
-  detailLevel: 'basic' | 'moderate' | 'comprehensive' = 'moderate'
-): Promise<string> {
-  try {
-    const provider = await aiProviders.getActiveProvider();
-    
-    const prompt = `
-Generate detailed documentation for the provided code at the "${detailLevel}" detail level. 
-The documentation should:
-- Follow Markdown format with clear sections
-- Explain the purpose and function of key elements
-- Highlight human oversight mechanisms
-- Note security and quantum features
-- Include examples for complex concepts
-
-Make the documentation readable by both technical and non-technical stakeholders.
-
-CODE TO DOCUMENT:
-${code}
-`;
-
-    return await provider.generateText(prompt, {
-      temperature: 0.7,
-      maxTokens: 1500
-    });
-  } catch (error) {
-    console.error("AI documentation generation error:", error);
-    return `Error generating documentation: ${error instanceof Error ? error.message : 'Unknown error'}`;
-  }
-}
-
-/**
- * Evaluates the explainability of AI operations
- */
-export async function evaluateExplainability(
-  code: string,
-  threshold: number = 0.8
-): Promise<{
-  score: number,
-  analysis: string,
-  improvements: string[]
-}> {
-  try {
-    const provider = await aiProviders.getActiveProvider();
-    
-    const prompt = `
-Evaluate the explainability of the provided code against a threshold of ${threshold * 100}% human-understandability.
-Your assessment should:
-1. Assign an explainability score between 0.0-1.0
-2. Analyze the factors affecting explainability
-3. Suggest specific improvements to increase explainability
-
-Focus on how well a human auditor could understand, verify, and predict the behavior of this code.
-
-CODE TO EVALUATE:
-${code}
-`;
-
-    type ExplainabilityResult = {
-      score: number,
-      analysis: string,
-      improvements: string[],
-      explainability_score?: number,
-      suggestedImprovements?: string[],
-      suggestions_for_improvement?: Record<string, string> | string[]
-    };
-    
-    const result = await provider.generateJson<ExplainabilityResult>(prompt, {
-      systemPrompt: "You are an AI explainability assessment system for the SINGULARIS PRIME language. Respond with valid JSON only."
-    });
-    
-    // Process various formats of JSON responses
-    let score = result.score !== undefined ? Number(result.score) : 
-                result.explainability_score !== undefined ? Number(result.explainability_score) : 0.7;
-    
-    let analysis = result.analysis || "Analysis not available";
-    
-    // Extract improvements from various possible formats
-    let improvements: string[] = [];
-    
-    if (Array.isArray(result.improvements) && result.improvements.length > 0) {
-      improvements = result.improvements;
-    } else if (Array.isArray(result.suggestedImprovements) && result.suggestedImprovements.length > 0) {
-      improvements = result.suggestedImprovements;
-    } else if (result.suggestions_for_improvement) {
-      // Handle object format
-      if (typeof result.suggestions_for_improvement === 'object') {
-        if (Array.isArray(result.suggestions_for_improvement)) {
-          improvements = result.suggestions_for_improvement;
-        } else {
-          improvements = Object.values(result.suggestions_for_improvement);
+    // Use OpenAI for advanced explainability evaluation
+    const response = await openai.chat.completions.create({
+      model: 'gpt-4-0125-preview',
+      messages: [
+        {
+          role: 'system',
+          content: `You are an AI explainability assessment system for the SINGULARIS PRIME language, 
+                    a quantum-secure, AI-native language designed for 37-dimensional quantum systems
+                    and quantum magnetism simulations. Evaluate the explainability of the provided code.
+                    Return a JSON object with the following properties:
+                    - score: numeric value between 0-1 representing the explainability score
+                    - factors: array of strings describing factors affecting the score (max 5)
+                    - recommendations: array of specific recommendations to improve explainability (max 3)`
+        },
+        {
+          role: 'user',
+          content: code
         }
-      }
-    }
-    
-    // Ensure we always have at least some improvement suggestions
-    if (improvements.length === 0) {
-      improvements = [
-        "Add more descriptive comments explaining quantum operations and AI governance mechanisms",
-        "Include explicit documentation for any imported modules or external dependencies",
-        "Provide explanations of complex technical concepts and terminology for non-expert auditors",
-        "Add examples or use cases to illustrate how the code works in practice",
-        "Implement clearer logging and monitoring for critical operations to enhance traceability"
-      ];
-    }
-    
-    return {
-      score,
-      analysis,
-      improvements
-    };
-  } catch (error) {
-    console.error("AI explainability evaluation error:", error);
-    return {
-      score: 0.5, // Default moderate score
-      analysis: `Error evaluating explainability: ${error instanceof Error ? error.message : 'Unknown error'}`,
-      improvements: ["Unable to generate improvements due to processing error"]
-    };
-  }
-}
-
-/**
- * Generates code suggestions based on natural language description
- */
-export async function suggestCode(
-  description: string,
-  existingCode: string = ""
-): Promise<string> {
-  try {
-    const provider = await aiProviders.getActiveProvider();
-    
-    const prompt = `
-Generate SINGULARIS PRIME code based on the following description. The code should:
-- Follow quantum-secure, AI-native, human-auditable principles
-- Include appropriate comments explaining key operations
-- Implement quantum features where relevant
-- Ensure AI operations have human oversight mechanisms
-- Be well-structured and optimized
-
-SINGULARIS PRIME syntax includes these key constructs:
-- quantumKey: establishes quantum entanglement
-- contract: defines AI-to-AI agreements
-- deployModel: configures AI models with oversight
-- syncLedger: handles interplanetary data synchronization
-- resolveParadox: optimizes quantum information paradoxes
-- enforce: ensures constraints like explainabilityThreshold
-
-Description: ${description}
-${existingCode ? `Existing Code: ${existingCode}` : ""}
-`;
-
-    return await provider.generateText(prompt, {
-      temperature: 0.8,
-      maxTokens: 1500
+      ],
+      temperature: 0.2,
+      response_format: { type: 'json_object' }
     });
+
+    const result = JSON.parse(response.choices[0]?.message?.content || '{}');
+    
+    return {
+      score: result.score || 0.5,
+      factors: result.factors || [],
+      recommendations: result.recommendations || []
+    };
   } catch (error) {
-    console.error("AI code suggestion error:", error);
-    return `// Error generating code suggestion: ${error instanceof Error ? error.message : 'Unknown error'}`;
+    console.error('Error evaluating explainability:', error);
+    return evaluateExplainabilityLocally(code);
   }
 }
 
 /**
- * Get information about available AI providers
+ * Local fallback for explainability evaluation
  */
-export async function getAIProviders(): Promise<{ 
-  providers: { id: string; name: string; description: string; available: boolean }[];
-  activeProvider: string | null;
-}> {
+function evaluateExplainabilityLocally(code: string): ExplainabilityResult {
+  // Count comments and documentation
+  const comments = (code.match(/\/\*\*[\s\S]*?\*\//g) || []).length + 
+                  (code.match(/\/\/.*$/gm) || []).length;
+  
+  // Count descriptive variable names (longer than 3 characters)
+  const descriptiveNames = (code.match(/\b[a-zA-Z][a-zA-Z0-9]{3,}\b/g) || []).length;
+  
+  // Count function parameters with explanatory names
+  const functionParams = (code.match(/function\s+\w+\s*\(([^)]*)\)/g) || []).length;
+  
+  // Calculate score based on simple heuristics
+  let score = 0.3; // Base score
+  
+  if (comments > 5) score += 0.2;
+  if (descriptiveNames > 10) score += 0.2;
+  if (functionParams > 3) score += 0.1;
+  if (code.includes('@explain') || code.includes('@doc')) score += 0.2;
+  
+  // Clamp to 0-1 range
+  score = Math.max(0, Math.min(1, score));
+  
+  return {
+    score,
+    factors: [
+      'Comment density and quality',
+      'Descriptive variable naming',
+      'Function parameter documentation',
+      'Use of explainability annotations'
+    ],
+    recommendations: [
+      'Add more detailed function documentation',
+      'Use more descriptive variable names',
+      'Add @explain annotations to complex quantum operations'
+    ]
+  };
+}
+
+/**
+ * Analyzes SINGULARIS PRIME code for features and patterns
+ * 
+ * @param code The code to analyze
+ * @returns Code analysis result
+ */
+export async function analyzeCode(code: string): Promise<CodeAnalysisResult> {
   try {
-    const providerList = await aiProviders.getProviders();
-    let activeProvider: string | null = null;
-    
-    try {
-      const active = await aiProviders.getActiveProvider();
-      activeProvider = active.id;
-    } catch (error) {
-      console.warn("No active AI provider:", error);
+    if (!process.env.OPENAI_API_KEY) {
+      console.warn('OpenAI API key not found, using local code analysis');
+      return analyzeCodeLocally(code);
     }
+
+    // Use OpenAI for advanced code analysis
+    const response = await openai.chat.completions.create({
+      model: 'gpt-4-0125-preview',
+      messages: [
+        {
+          role: 'system',
+          content: `You are an expert in quantum computing and the SINGULARIS PRIME language.
+                    Analyze the provided code for quantum features, complexity, dimensionality,
+                    and entanglement patterns. Return a JSON object with the following properties:
+                    - complexity: numeric value between 0-1 representing code complexity
+                    - quantumFeatures: array of strings identifying quantum features used
+                    - entanglementPattern: one of "none", "low", "moderate", or "high"
+                    - dimensions: numeric value representing the quantum dimensionality
+                    - improvements: array of suggested improvements (max 3)`
+        },
+        {
+          role: 'user',
+          content: code
+        }
+      ],
+      temperature: 0.2,
+      response_format: { type: 'json_object' }
+    });
+
+    const result = JSON.parse(response.choices[0]?.message?.content || '{}');
     
     return {
-      providers: providerList.map(p => ({
-        id: p.id,
-        name: p.provider?.name || p.id,
-        description: p.provider?.description || "Unknown provider",
-        available: p.available
-      })),
-      activeProvider
+      complexity: result.complexity || 0.5,
+      quantumFeatures: result.quantumFeatures || [],
+      entanglementPattern: result.entanglementPattern || 'moderate',
+      dimensions: result.dimensions || 2,
+      improvements: result.improvements || []
     };
   } catch (error) {
-    console.error("Error getting AI providers:", error);
-    return {
-      providers: [{ 
-        id: "fallback", 
-        name: "Fallback Provider", 
-        description: "Basic fallback provider",
-        available: true
-      }],
-      activeProvider: "fallback"
-    };
+    console.error('Error analyzing code:', error);
+    return analyzeCodeLocally(code);
   }
 }
 
 /**
- * Configure an AI provider
+ * Local fallback for code analysis
  */
-export function configureAIProvider(id: string, config: any): boolean {
+function analyzeCodeLocally(code: string): CodeAnalysisResult {
+  // Extract dimensionality
+  const dimensionsMatch = code.match(/dimension[s]?[:\s]+(\d+)/i) || 
+                          code.match(/qudit<(\d+)>/i);
+  const dimensions = dimensionsMatch ? parseInt(dimensionsMatch[1]) : 2;
+  
+  // Determine quantum features
+  const quantumFeatures: string[] = [];
+  if (code.includes('superposition')) quantumFeatures.push('Superposition');
+  if (code.includes('entanglement')) quantumFeatures.push('Entanglement');
+  if (code.includes('teleportation')) quantumFeatures.push('Quantum Teleportation');
+  if (code.includes('Hamiltonian')) quantumFeatures.push('Hamiltonian Simulation');
+  if (code.includes('37D') || code.includes('37-dimension')) quantumFeatures.push('37-Dimensional States');
+  if (code.includes('magnetism')) quantumFeatures.push('Quantum Magnetism');
+  
+  // Determine entanglement pattern
+  let entanglementPattern: 'none' | 'low' | 'moderate' | 'high' = 'none';
+  if (code.includes('entangle')) {
+    const entanglementCount = (code.match(/entangle/g) || []).length;
+    if (entanglementCount > 10) entanglementPattern = 'high';
+    else if (entanglementCount > 5) entanglementPattern = 'moderate';
+    else entanglementPattern = 'low';
+  }
+  
+  // Determine complexity
+  const complexity = Math.min(1, 0.3 + 
+    (code.split('\n').length / 200) + 
+    (quantumFeatures.length / 10) + 
+    (dimensions / 50));
+  
+  return {
+    complexity,
+    quantumFeatures,
+    entanglementPattern,
+    dimensions,
+    improvements: [
+      'Consider adding more detailed comments for complex quantum operations',
+      'Add error handling for quantum state preparation',
+      'Use parametric quantum types for better type safety'
+    ]
+  };
+}
+
+/**
+ * Generates documentation for SINGULARIS PRIME code
+ * 
+ * @param code The code to document
+ * @returns Generated documentation in markdown format
+ */
+export async function generateDocumentation(code: string): Promise<string> {
   try {
-    aiProviders.configure(id, config);
-    return true;
+    if (!process.env.OPENAI_API_KEY) {
+      console.warn('OpenAI API key not found, using local documentation generation');
+      return generateDocumentationLocally(code);
+    }
+
+    // Use OpenAI for documentation generation
+    const response = await openai.chat.completions.create({
+      model: 'gpt-4-0125-preview',
+      messages: [
+        {
+          role: 'system',
+          content: `You are an expert in quantum computing and the SINGULARIS PRIME language.
+                    Generate comprehensive documentation for the provided SINGULARIS PRIME code.
+                    Include explanations of quantum concepts, data structures, algorithms, and
+                    any special features. Format the documentation in markdown with sections for:
+                    - Overview
+                    - Quantum Features
+                    - Code Structure
+                    - Function Documentation
+                    - Usage Examples`
+        },
+        {
+          role: 'user',
+          content: code
+        }
+      ],
+      temperature: 0.3
+    });
+
+    return response.choices[0]?.message?.content || 'Documentation generation failed.';
   } catch (error) {
-    console.error(`Error configuring provider ${id}:`, error);
-    return false;
+    console.error('Error generating documentation:', error);
+    return generateDocumentationLocally(code);
   }
 }
 
 /**
- * Set the active AI provider
+ * Local fallback for documentation generation
  */
-export function setActiveAIProvider(id: string): boolean {
-  try {
-    aiProviders.setActiveProvider(id);
-    return true;
-  } catch (error) {
-    console.error(`Error setting active provider to ${id}:`, error);
-    return false;
+function generateDocumentationLocally(code: string): string {
+  // Extract function names
+  const functionMatches = code.match(/function\s+(\w+)/g) || [];
+  const functions = functionMatches.map(f => f.replace('function ', ''));
+  
+  // Extract class names
+  const classMatches = code.match(/class\s+(\w+)/g) || [];
+  const classes = classMatches.map(c => c.replace('class ', ''));
+  
+  // Determine quantum features
+  const features: string[] = [];
+  if (code.includes('superposition')) features.push('Superposition');
+  if (code.includes('entanglement')) features.push('Entanglement');
+  if (code.includes('teleportation')) features.push('Quantum Teleportation');
+  if (code.includes('Hamiltonian')) features.push('Hamiltonian Simulation');
+  if (code.includes('37D') || code.includes('37-dimension')) features.push('37-Dimensional States');
+  if (code.includes('magnetism')) features.push('Quantum Magnetism');
+  
+  // Generate simple documentation
+  let documentation = '# SINGULARIS PRIME Code Documentation\n\n';
+  
+  documentation += '## Overview\n\n';
+  documentation += 'This code implements SINGULARIS PRIME quantum operations ';
+  documentation += features.length > 0 ? 
+    `with a focus on ${features.join(', ')}.\n\n` : 
+    'for quantum computation.\n\n';
+  
+  if (classes.length > 0) {
+    documentation += '## Classes\n\n';
+    classes.forEach(c => {
+      documentation += `### ${c}\n\n`;
+      documentation += `The \`${c}\` class implements quantum functionality for SINGULARIS PRIME.\n\n`;
+    });
   }
+  
+  if (functions.length > 0) {
+    documentation += '## Functions\n\n';
+    functions.forEach(f => {
+      documentation += `### ${f}\n\n`;
+      documentation += `The \`${f}\` function provides quantum operations in the SINGULARIS PRIME framework.\n\n`;
+    });
+  }
+  
+  if (features.length > 0) {
+    documentation += '## Quantum Features\n\n';
+    features.forEach(f => {
+      documentation += `### ${f}\n\n`;
+      documentation += `This code implements ${f} capabilities through SINGULARIS PRIME.\n\n`;
+    });
+  }
+  
+  documentation += '## Usage\n\n';
+  documentation += 'This code can be integrated into quantum computation workflows using the SINGULARIS PRIME framework.\n';
+  
+  return documentation;
 }
