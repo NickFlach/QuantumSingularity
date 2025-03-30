@@ -20,15 +20,7 @@ import {
   MagneticHamiltonianType,
   CouplingModel
 } from "./language/quantum-magnetism";
-import {
-  getAllCodeFiles,
-  getCodeFilesByType,
-  getCodeFileById,
-  analyzeCodeFile,
-  generateCode,
-  estimateExplainability,
-  generateLocalDocumentation
-} from "./services/CodeAnalysisService";
+import { executeGlyphRitual, verifyGlyphRitual } from "./language/glyph-binding";
 
 import {
   generateInitialState,
@@ -805,6 +797,43 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       return res.status(500).json({ 
         message: "Failed to simulate AI-optimized quantum circuit",
+        error: error instanceof Error ? error.message : String(error)
+      });
+    }
+  });
+  
+  // G.L.Y.P.H. - Generalized Lattice Yield Protocolic Hieroglyphs routes
+  app.post("/api/glyph/verify", async (req: Request, res: Response) => {
+    try {
+      const { spellText } = req.body;
+      
+      if (!spellText) {
+        return res.status(400).json({ message: "Missing glyphic spell text" });
+      }
+      
+      const verificationResult = verifyGlyphRitual(spellText);
+      return res.json(verificationResult);
+    } catch (error) {
+      return res.status(500).json({ 
+        message: "Failed to verify G.L.Y.P.H. ritual",
+        error: error instanceof Error ? error.message : String(error)
+      });
+    }
+  });
+  
+  app.post("/api/glyph/execute", async (req: Request, res: Response) => {
+    try {
+      const { spellText } = req.body;
+      
+      if (!spellText) {
+        return res.status(400).json({ message: "Missing glyphic spell text" });
+      }
+      
+      const executionResult = await executeGlyphRitual(spellText);
+      return res.json(executionResult);
+    } catch (error) {
+      return res.status(500).json({ 
+        message: "Failed to execute G.L.Y.P.H. ritual",
         error: error instanceof Error ? error.message : String(error)
       });
     }
