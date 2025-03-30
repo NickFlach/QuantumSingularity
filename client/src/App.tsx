@@ -17,6 +17,7 @@ import QuantumExperience from "@/pages/QuantumExperience";
 import CodeAnalysisPage from "@/pages/CodeAnalysisPage";
 import KashiwaraQuantumPage from "@/pages/KashiwaraQuantumPage";
 import { ExamplesPage } from "@/pages/ExamplesPage";
+import { QuantumVisualizerDemo } from "@/pages/QuantumVisualizerDemo";
 import Header from "@/components/Header";
 import { AuthProvider } from "./lib/AuthContext";
 import { ProtectedRoute } from "./lib/ProtectedRoute";
@@ -34,6 +35,7 @@ function Router() {
       <ProtectedRoute path="/kashiwara-quantum" component={KashiwaraQuantumPage} />
       <ProtectedRoute path="/code-analysis" component={CodeAnalysisPage} />
       <ProtectedRoute path="/examples" component={ExamplesPage} />
+      <ProtectedRoute path="/quantum-visualizer" component={QuantumVisualizerDemo} />
       <ProtectedRoute path="/projects" component={ProjectsPage} />
       <ProtectedRoute path="/projects/:id" component={ProjectDetail} />
       <ProtectedRoute path="/profile" component={ProfilePage} />
