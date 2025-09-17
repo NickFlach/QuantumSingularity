@@ -40,7 +40,18 @@ export type InstructionOpcode =
   | 'STACK_OVERFLOW_CHECK'
   | 'ROLLBACK_POINT'
   | 'ENABLE_MONITORING'
-  | 'DISABLE_MONITORING';
+  | 'DISABLE_MONITORING'
+  // Advanced Glyph Binding System Operations
+  | 'GLYPH_COMPOSE'
+  | 'GLYPH_BIND'
+  | 'GLYPH_SPACE'
+  | 'GLYPH_TRANSFORM'
+  | 'GLYPH_PATTERN'
+  | 'GLYPH_ANIMATE'
+  | 'GLYPH_REACT'
+  | 'GLYPH_OPTIMIZE'
+  | 'GLYPH_UNBIND'
+  | 'GLYPH_DESTROY';
 
 // Mapping of parser tokens to instruction opcodes
 export const PARSER_TOKEN_TO_OPCODE: Record<string, InstructionOpcode> = {
@@ -79,7 +90,19 @@ export const PARSER_TOKEN_TO_OPCODE: Record<string, InstructionOpcode> = {
   'stackOverflowCheck': 'STACK_OVERFLOW_CHECK',
   'rollbackPoint': 'ROLLBACK_POINT',
   'enableMonitoring': 'ENABLE_MONITORING',
-  'disableMonitoring': 'DISABLE_MONITORING'
+  'disableMonitoring': 'DISABLE_MONITORING',
+  
+  // Advanced Glyph Binding System
+  'glyphCompose': 'GLYPH_COMPOSE',
+  'glyphBind': 'GLYPH_BIND',
+  'glyphSpace': 'GLYPH_SPACE',
+  'glyphTransform': 'GLYPH_TRANSFORM',
+  'glyphPattern': 'GLYPH_PATTERN',
+  'glyphAnimate': 'GLYPH_ANIMATE',
+  'glyphReact': 'GLYPH_REACT',
+  'glyphOptimize': 'GLYPH_OPTIMIZE',
+  'glyphUnbind': 'GLYPH_UNBIND',
+  'glyphDestroy': 'GLYPH_DESTROY'
 };
 
 // Mapping of opcodes to execution method names
@@ -118,7 +141,19 @@ export const OPCODE_TO_EXECUTION_METHOD: Record<InstructionOpcode, string> = {
   'STACK_OVERFLOW_CHECK': 'executeStackOverflowCheck',
   'ROLLBACK_POINT': 'executeRollbackPoint',
   'ENABLE_MONITORING': 'executeEnableMonitoring',
-  'DISABLE_MONITORING': 'executeDisableMonitoring'
+  'DISABLE_MONITORING': 'executeDisableMonitoring',
+  
+  // Advanced Glyph Binding System
+  'GLYPH_COMPOSE': 'executeGlyphCompose',
+  'GLYPH_BIND': 'executeGlyphBind',
+  'GLYPH_SPACE': 'executeGlyphSpace',
+  'GLYPH_TRANSFORM': 'executeGlyphTransform',
+  'GLYPH_PATTERN': 'executeGlyphPattern',
+  'GLYPH_ANIMATE': 'executeGlyphAnimate',
+  'GLYPH_REACT': 'executeGlyphReact',
+  'GLYPH_OPTIMIZE': 'executeGlyphOptimize',
+  'GLYPH_UNBIND': 'executeGlyphUnbind',
+  'GLYPH_DESTROY': 'executeGlyphDestroy'
 };
 
 // Validation helpers

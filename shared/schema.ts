@@ -1727,3 +1727,458 @@ export type QuantumParadoxHandlerResult = typeof quantumParadoxHandlerResults.$i
 
 export type InsertParadoxResolutionConfig = z.infer<typeof insertParadoxResolutionConfigSchema>;
 export type ParadoxResolutionConfig = typeof paradoxResolutionConfig.$inferSelect;
+
+// =============================================================================
+// ADVANCED GLYPH BINDING SYSTEM SCHEMAS
+// =============================================================================
+
+// Glyph Types and Categories
+export enum GlyphType {
+  BASIC = "basic",                      // Simple geometric glyphs
+  PARAMETRIC = "parametric",            // Glyphs with configurable parameters
+  COMPOSITE = "composite",              // Complex glyphs built from components
+  TEMPORAL = "temporal",                // Time-based animated glyphs
+  REACTIVE = "reactive",                // Environment-responsive glyphs
+  SELF_MODIFYING = "self_modifying",    // Glyphs that can alter themselves
+  QUANTUM_BOUND = "quantum_bound"       // Glyphs bound to quantum states
+}
+
+// Glyph Space Dimensions
+export enum GlyphSpaceDimension {
+  ONE_D = 1,      // Linear glyph arrangements
+  TWO_D = 2,      // Planar glyph layouts
+  THREE_D = 3,    // 3D glyph structures
+  FOUR_D = 4,     // 4D spacetime glyphs
+  FIVE_D = 5,     // 5D manifold glyphs
+  MULTI_D = 10,   // Multi-dimensional spaces
+  INFINITE_D = -1 // Infinite-dimensional spaces
+}
+
+// Glyph Transformation Types
+export enum GlyphTransformationType {
+  TRANSLATE = "translate",      // Position transformations
+  ROTATE = "rotate",           // Rotation transformations
+  SCALE = "scale",             // Scaling transformations
+  MIRROR = "mirror",           // Reflection transformations
+  MORPH = "morph",             // Shape morphing
+  PROJECT = "project",         // Dimensional projections
+  COMPOSE = "compose",         // Composition operations
+  INVERT = "invert"           // Inversion transformations
+}
+
+// Glyph-Quantum Binding Types
+export enum QuantumGlyphBindingType {
+  STATE_BIND = "state_bind",           // Bind to specific quantum state
+  COHERENCE_BIND = "coherence_bind",   // Bind to coherence properties
+  ENTANGLEMENT_BIND = "entanglement_bind", // Bind to entanglement relationships
+  MEASUREMENT_BIND = "measurement_bind",   // Bind to measurement triggers
+  EVOLUTION_BIND = "evolution_bind"    // Bind to quantum evolution
+}
+
+// Glyph Pattern Types
+export enum GlyphPatternType {
+  GEOMETRIC = "geometric",     // Geometric pattern matching
+  TOPOLOGICAL = "topological", // Topological pattern recognition
+  SYMBOLIC = "symbolic",       // Symbolic pattern analysis
+  TEMPORAL = "temporal",       // Time-based pattern sequences
+  QUANTUM = "quantum"          // Quantum state patterns
+}
+
+// Core Glyph Definitions
+export const glyphDefinitions = pgTable("glyph_definitions", {
+  id: serial("id").primaryKey(),
+  glyphId: text("glyph_id").notNull().unique(), // GlyphId brand type as string
+  projectId: integer("project_id").references(() => singularisProjects.id),
+  name: text("name").notNull(),
+  type: text("type").notNull(), // GlyphType enum
+  description: text("description"),
+  
+  // Glyph structure and properties
+  structure: jsonb("structure").notNull(), // Core glyph structure definition
+  parameters: jsonb("parameters"), // Configurable parameters for parametric glyphs
+  components: jsonb("components"), // Component glyphs for composite types
+  transformations: jsonb("transformations"), // Applied transformations
+  constraints: jsonb("constraints"), // Glyph behavior constraints
+  
+  // Visual and rendering properties
+  renderingData: jsonb("rendering_data").notNull(), // Visual representation data
+  dimensions: jsonb("dimensions").notNull(), // Spatial dimensions and bounds
+  complexity: integer("complexity").notNull(), // Rendering complexity (1-10)
+  qualityLevels: jsonb("quality_levels"), // Available quality levels for adaptive rendering
+  
+  // Metadata and versioning
+  version: text("version").notNull().default("1.0.0"),
+  parentGlyphId: text("parent_glyph_id"), // Parent glyph for derived glyphs
+  tags: jsonb("tags"), // Searchable tags
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
+});
+
+// Multi-Dimensional Glyph Spaces
+export const glyphSpaces = pgTable("glyph_spaces", {
+  id: serial("id").primaryKey(),
+  spaceId: text("space_id").notNull().unique(), // GlyphSpaceId brand type as string
+  projectId: integer("project_id").references(() => singularisProjects.id),
+  name: text("name").notNull(),
+  description: text("description"),
+  
+  // Space configuration
+  dimensions: integer("dimensions").notNull(), // Number of spatial dimensions
+  topology: text("topology").notNull(), // "euclidean", "hyperbolic", "spherical", "manifold"
+  bounds: jsonb("bounds").notNull(), // Spatial bounds for each dimension
+  resolution: jsonb("resolution").notNull(), // Spatial resolution settings
+  
+  // Space properties
+  coordinateSystem: text("coordinate_system").notNull(), // "cartesian", "polar", "spherical", "custom"
+  metricTensor: jsonb("metric_tensor"), // Metric tensor for non-Euclidean spaces
+  curvature: text("curvature"), // Space curvature properties
+  connectionProperties: jsonb("connection_properties"), // Parallel transport rules
+  
+  // Hierarchy and nesting
+  parentSpaceId: text("parent_space_id"), // Parent space for nested spaces
+  subspaces: jsonb("subspaces"), // Array of nested subspace IDs
+  transformToParent: jsonb("transform_to_parent"), // Transformation to parent space
+  
+  // Performance and optimization
+  spatialIndex: jsonb("spatial_index"), // Spatial indexing for efficient queries
+  cachingStrategy: text("caching_strategy").notNull().default("adaptive"),
+  maxCachedGlyphs: integer("max_cached_glyphs").default(1000),
+  
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
+});
+
+// Glyph Instances and Positioning
+export const glyphInstances = pgTable("glyph_instances", {
+  id: serial("id").primaryKey(),
+  instanceId: text("instance_id").notNull().unique(), // GlyphInstanceId brand type as string
+  glyphId: text("glyph_id").notNull(),
+  spaceId: text("space_id").notNull(),
+  projectId: integer("project_id").references(() => singularisProjects.id),
+  
+  // Position and orientation
+  coordinates: jsonb("coordinates").notNull(), // N-dimensional coordinates
+  orientation: jsonb("orientation"), // Rotation/orientation in space
+  scale: jsonb("scale"), // Scaling factors per dimension
+  visibility: boolean("visibility").default(true),
+  
+  // Instance-specific properties
+  instanceParameters: jsonb("instance_parameters"), // Override parameters for this instance
+  localTransformations: jsonb("local_transformations"), // Instance-specific transformations
+  interactionRadius: text("interaction_radius"), // Radius for spatial interactions
+  
+  // Relationships
+  parentInstanceId: text("parent_instance_id"), // Parent instance for hierarchies
+  childInstances: jsonb("child_instances"), // Array of child instance IDs
+  spatialNeighbors: jsonb("spatial_neighbors"), // Nearby glyph instances
+  
+  // State and lifecycle
+  state: text("state").notNull().default("active"), // "active", "dormant", "transitioning"
+  lastUpdated: timestamp("last_updated").notNull().defaultNow(),
+  accessCount: integer("access_count").default(0),
+  
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+});
+
+// Quantum-Glyph Bindings
+export const quantumGlyphBindings = pgTable("quantum_glyph_bindings", {
+  id: serial("id").primaryKey(),
+  bindingId: text("binding_id").notNull().unique(), // QuantumGlyphBindingId brand type as string
+  glyphInstanceId: text("glyph_instance_id").notNull(),
+  quantumStateId: text("quantum_state_id").notNull(), // QuantumReferenceId as string
+  projectId: integer("project_id").references(() => singularisProjects.id),
+  
+  // Binding configuration
+  bindingType: text("binding_type").notNull(), // QuantumGlyphBindingType enum
+  bindingStrength: text("binding_strength").notNull(), // Strength of the binding (0-1)
+  bindingProperties: jsonb("binding_properties").notNull(), // Type-specific binding properties
+  
+  // Coherence and integrity
+  coherenceRequired: boolean("coherence_required").default(true),
+  coherenceThreshold: text("coherence_threshold"), // Minimum coherence to maintain binding
+  entanglementAware: boolean("entanglement_aware").default(true),
+  measurementTriggers: jsonb("measurement_triggers"), // Triggers based on quantum measurements
+  
+  // Quantum operation effects
+  allowedOperations: jsonb("allowed_operations").notNull(), // Quantum operations that can affect bound state
+  operationConstraints: jsonb("operation_constraints"), // Constraints on quantum operations
+  glyphResponseRules: jsonb("glyph_response_rules").notNull(), // How glyph responds to quantum changes
+  
+  // Safety and verification
+  explainabilityScore: text("explainability_score").notNull(), // AI explainability score (0-1)
+  humanOversightRequired: boolean("human_oversight_required").default(false),
+  auditTrail: jsonb("audit_trail"), // Audit trail for binding operations
+  
+  // Status and metrics
+  status: text("status").notNull().default("active"), // "active", "suspended", "broken", "error"
+  lastQuantumInteraction: timestamp("last_quantum_interaction"),
+  interactionCount: integer("interaction_count").default(0),
+  errorCount: integer("error_count").default(0),
+  
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
+});
+
+// Glyph Transformations and Operations
+export const glyphTransformations = pgTable("glyph_transformations", {
+  id: serial("id").primaryKey(),
+  transformationId: text("transformation_id").notNull().unique(),
+  sourceGlyphId: text("source_glyph_id").notNull(),
+  targetGlyphId: text("target_glyph_id"), // Result glyph (for persistent transformations)
+  projectId: integer("project_id").references(() => singularisProjects.id),
+  
+  // Transformation definition
+  transformationType: text("transformation_type").notNull(), // GlyphTransformationType enum
+  transformationMatrix: jsonb("transformation_matrix"), // Mathematical transformation matrix
+  parameters: jsonb("parameters").notNull(), // Transformation parameters
+  inverseTransformation: jsonb("inverse_transformation"), // Inverse transformation for reversibility
+  
+  // Conditional execution
+  conditions: jsonb("conditions"), // Conditions for transformation execution
+  triggers: jsonb("triggers"), // Event triggers for automatic transformation
+  dependencies: jsonb("dependencies"), // Dependencies on other transformations or states
+  
+  // Performance and optimization
+  optimized: boolean("optimized").default(false),
+  compiledForm: jsonb("compiled_form"), // Pre-compiled transformation for performance
+  estimatedCost: integer("estimated_cost"), // Computational cost estimate
+  
+  // History and versioning
+  appliedCount: integer("applied_count").default(0),
+  lastApplied: timestamp("last_applied"),
+  successRate: text("success_rate"), // Success rate as decimal (0-1)
+  
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+});
+
+// Glyph Pattern Recognition and Matching
+export const glyphPatterns = pgTable("glyph_patterns", {
+  id: serial("id").primaryKey(),
+  patternId: text("pattern_id").notNull().unique(),
+  projectId: integer("project_id").references(() => singularisProjects.id),
+  name: text("name").notNull(),
+  description: text("description"),
+  
+  // Pattern definition
+  patternType: text("pattern_type").notNull(), // GlyphPatternType enum
+  patternStructure: jsonb("pattern_structure").notNull(), // Pattern definition
+  matchingCriteria: jsonb("matching_criteria").notNull(), // Criteria for pattern matching
+  tolerance: text("tolerance").notNull(), // Matching tolerance (0-1)
+  
+  // Pattern properties
+  complexity: integer("complexity").notNull(), // Pattern complexity (1-10)
+  invariances: jsonb("invariances"), // Properties invariant under transformations
+  variableComponents: jsonb("variable_components"), // Components that can vary in matches
+  
+  // Recognition performance
+  matchingAlgorithm: text("matching_algorithm").notNull(), // Algorithm used for matching
+  averageMatchTime: integer("average_match_time"), // Average matching time in microseconds
+  cacheMatchResults: boolean("cache_match_results").default(true),
+  
+  // Usage statistics
+  matchCount: integer("match_count").default(0),
+  falsePositiveRate: text("false_positive_rate"), // False positive rate as decimal
+  falseNegativeRate: text("false_negative_rate"), // False negative rate as decimal
+  
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
+});
+
+// Glyph Performance and Optimization Metrics
+export const glyphPerformanceMetrics = pgTable("glyph_performance_metrics", {
+  id: serial("id").primaryKey(),
+  metricId: text("metric_id").notNull().unique(),
+  glyphId: text("glyph_id"),
+  spaceId: text("space_id"),
+  bindingId: text("binding_id"),
+  projectId: integer("project_id").references(() => singularisProjects.id),
+  
+  // Performance measurements
+  renderingTime: integer("rendering_time"), // Microseconds
+  memoryUsage: integer("memory_usage"), // Bytes
+  cpuUsage: text("cpu_usage"), // CPU usage percentage as decimal
+  gpuUsage: text("gpu_usage"), // GPU usage percentage as decimal
+  networkLatency: integer("network_latency"), // Network latency in microseconds
+  
+  // Quality metrics
+  visualQuality: text("visual_quality"), // Visual quality score (0-1)
+  spatialAccuracy: text("spatial_accuracy"), // Spatial positioning accuracy (0-1)
+  temporalConsistency: text("temporal_consistency"), // Temporal consistency score (0-1)
+  quantumCoherence: text("quantum_coherence"), // Quantum coherence preservation (0-1)
+  
+  // Optimization insights
+  bottlenecks: jsonb("bottlenecks"), // Identified performance bottlenecks
+  optimizationSuggestions: jsonb("optimization_suggestions"), // Automated optimization suggestions
+  cacheHitRate: text("cache_hit_rate"), // Cache hit rate as decimal (0-1)
+  
+  // Measurement context
+  measurementConditions: jsonb("measurement_conditions"), // Conditions during measurement
+  systemLoad: text("system_load"), // System load during measurement (0-1)
+  timestamp: timestamp("timestamp").notNull().defaultNow(),
+});
+
+// Glyph Evolution and Version History
+export const glyphVersionHistory = pgTable("glyph_version_history", {
+  id: serial("id").primaryKey(),
+  versionId: text("version_id").notNull().unique(),
+  glyphId: text("glyph_id").notNull(),
+  projectId: integer("project_id").references(() => singularisProjects.id),
+  
+  // Version information
+  version: text("version").notNull(),
+  previousVersion: text("previous_version"),
+  changeType: text("change_type").notNull(), // "major", "minor", "patch", "hotfix"
+  changeDescription: text("change_description").notNull(),
+  
+  // Version data
+  versionData: jsonb("version_data").notNull(), // Complete glyph data for this version
+  deltaFromPrevious: jsonb("delta_from_previous"), // Changes from previous version
+  migrationRules: jsonb("migration_rules"), // Rules for migrating to this version
+  
+  // Metadata
+  createdBy: text("created_by"), // User or system that created this version
+  automated: boolean("automated").default(false), // Whether this was an automated update
+  rollbackData: jsonb("rollback_data"), // Data needed to rollback to previous version
+  
+  // Performance comparison
+  performanceImpact: jsonb("performance_impact"), // Performance changes from previous version
+  compatibilityBreaking: boolean("compatibility_breaking").default(false),
+  
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+});
+
+// Insert schemas for glyph system
+export const insertGlyphDefinitionSchema = createInsertSchema(glyphDefinitions).pick({
+  glyphId: true,
+  projectId: true,
+  name: true,
+  type: true,
+  description: true,
+  structure: true,
+  parameters: true,
+  components: true,
+  transformations: true,
+  constraints: true,
+  renderingData: true,
+  dimensions: true,
+  complexity: true,
+  qualityLevels: true,
+  version: true,
+  parentGlyphId: true,
+  tags: true,
+});
+
+export const insertGlyphSpaceSchema = createInsertSchema(glyphSpaces).pick({
+  spaceId: true,
+  projectId: true,
+  name: true,
+  description: true,
+  dimensions: true,
+  topology: true,
+  bounds: true,
+  resolution: true,
+  coordinateSystem: true,
+  metricTensor: true,
+  curvature: true,
+  connectionProperties: true,
+  parentSpaceId: true,
+  subspaces: true,
+  transformToParent: true,
+  spatialIndex: true,
+  cachingStrategy: true,
+  maxCachedGlyphs: true,
+});
+
+export const insertGlyphInstanceSchema = createInsertSchema(glyphInstances).pick({
+  instanceId: true,
+  glyphId: true,
+  spaceId: true,
+  projectId: true,
+  coordinates: true,
+  orientation: true,
+  scale: true,
+  visibility: true,
+  instanceParameters: true,
+  localTransformations: true,
+  interactionRadius: true,
+  parentInstanceId: true,
+  childInstances: true,
+  spatialNeighbors: true,
+  state: true,
+});
+
+export const insertQuantumGlyphBindingSchema = createInsertSchema(quantumGlyphBindings).pick({
+  bindingId: true,
+  glyphInstanceId: true,
+  quantumStateId: true,
+  projectId: true,
+  bindingType: true,
+  bindingStrength: true,
+  bindingProperties: true,
+  coherenceRequired: true,
+  coherenceThreshold: true,
+  entanglementAware: true,
+  measurementTriggers: true,
+  allowedOperations: true,
+  operationConstraints: true,
+  glyphResponseRules: true,
+  explainabilityScore: true,
+  humanOversightRequired: true,
+  auditTrail: true,
+  status: true,
+});
+
+export const insertGlyphTransformationSchema = createInsertSchema(glyphTransformations).pick({
+  transformationId: true,
+  sourceGlyphId: true,
+  targetGlyphId: true,
+  projectId: true,
+  transformationType: true,
+  transformationMatrix: true,
+  parameters: true,
+  inverseTransformation: true,
+  conditions: true,
+  triggers: true,
+  dependencies: true,
+  optimized: true,
+  compiledForm: true,
+  estimatedCost: true,
+});
+
+export const insertGlyphPatternSchema = createInsertSchema(glyphPatterns).pick({
+  patternId: true,
+  projectId: true,
+  name: true,
+  description: true,
+  patternType: true,
+  patternStructure: true,
+  matchingCriteria: true,
+  tolerance: true,
+  complexity: true,
+  invariances: true,
+  variableComponents: true,
+  matchingAlgorithm: true,
+  cacheMatchResults: true,
+});
+
+// Glyph system types
+export type InsertGlyphDefinition = z.infer<typeof insertGlyphDefinitionSchema>;
+export type GlyphDefinition = typeof glyphDefinitions.$inferSelect;
+
+export type InsertGlyphSpace = z.infer<typeof insertGlyphSpaceSchema>;
+export type GlyphSpace = typeof glyphSpaces.$inferSelect;
+
+export type InsertGlyphInstance = z.infer<typeof insertGlyphInstanceSchema>;
+export type GlyphInstance = typeof glyphInstances.$inferSelect;
+
+export type InsertQuantumGlyphBinding = z.infer<typeof insertQuantumGlyphBindingSchema>;
+export type QuantumGlyphBinding = typeof quantumGlyphBindings.$inferSelect;
+
+export type InsertGlyphTransformation = z.infer<typeof insertGlyphTransformationSchema>;
+export type GlyphTransformation = typeof glyphTransformations.$inferSelect;
+
+export type InsertGlyphPattern = z.infer<typeof insertGlyphPatternSchema>;
+export type GlyphPattern = typeof glyphPatterns.$inferSelect;
+
+export type GlyphPerformanceMetric = typeof glyphPerformanceMetrics.$inferSelect;
+export type GlyphVersionHistory = typeof glyphVersionHistory.$inferSelect;

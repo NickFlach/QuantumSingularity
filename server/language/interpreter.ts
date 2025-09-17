@@ -104,6 +104,33 @@ import {
   VerificationOperation,
   VerificationResult
 } from '../runtime/ai-verification-service';
+
+// Import Advanced Glyph Binding System runtime components
+import {
+  advancedGlyphEngine,
+  GlyphId,
+  GlyphInstanceId,
+  GlyphSpaceId,
+  GlyphStructure,
+  GlyphComposition,
+  GlyphAnimationSequence
+} from '../runtime/advanced-glyph-engine';
+import {
+  glyphSpaceManager,
+  NDimensionalCoordinate,
+  SpatialRelationship
+} from '../runtime/glyph-space-manager';
+import {
+  quantumGlyphInterface,
+  QuantumGlyphBindingId,
+  QuantumGlyphBindingConfig
+} from '../runtime/quantum-glyph-interface';
+import {
+  glyphTypesSystem
+} from '../runtime/glyph-types-system';
+import {
+  glyphOptimizer
+} from '../runtime/glyph-optimizer';
 import {
   explainabilityMonitor,
   ExplainabilityMethod
@@ -735,6 +762,28 @@ export class SingularisInterpreter {
           return this.executeEnableMonitoring(parts, astNode, typeResult);
         case 'DISABLE_MONITORING':
           return this.executeDisableMonitoring(parts, astNode, typeResult);
+
+        // Advanced Glyph Binding System Instructions
+        case 'GLYPH_COMPOSE':
+          return this.executeGlyphCompose(parts, astNode, typeResult);
+        case 'GLYPH_BIND':
+          return this.executeGlyphBind(parts, astNode, typeResult);
+        case 'GLYPH_SPACE':
+          return this.executeGlyphSpace(parts, astNode, typeResult);
+        case 'GLYPH_TRANSFORM':
+          return this.executeGlyphTransform(parts, astNode, typeResult);
+        case 'GLYPH_PATTERN':
+          return this.executeGlyphPattern(parts, astNode, typeResult);
+        case 'GLYPH_ANIMATE':
+          return this.executeGlyphAnimate(parts, astNode, typeResult);
+        case 'GLYPH_REACT':
+          return this.executeGlyphReact(parts, astNode, typeResult);
+        case 'GLYPH_OPTIMIZE':
+          return this.executeGlyphOptimize(parts, astNode, typeResult);
+        case 'GLYPH_UNBIND':
+          return this.executeGlyphUnbind(parts, astNode, typeResult);
+        case 'GLYPH_DESTROY':
+          return this.executeGlyphDestroy(parts, astNode, typeResult);
           
         default:
           // Fallback to original execution logic
@@ -2735,6 +2784,638 @@ class QuantumMemoryManagerImpl implements QuantumMemoryManager {
       this.addRuntimeError({
         type: 'execution',
         message: `Monitor disablement failed: ${error instanceof Error ? error.message : String(error)}`,
+        location: astNode.location
+      });
+      return false;
+    }
+  }
+
+  // ============================================================================
+  // ADVANCED GLYPH BINDING SYSTEM EXECUTION METHODS
+  // ============================================================================
+
+  /**
+   * Execute glyph composition - combining multiple glyphs into new compound glyph
+   */
+  private async executeGlyphCompose(parts: string[], astNode: ASTNode, typeResult: TypeInferenceResult): Promise<boolean> {
+    const resultGlyphId = parts[1] as GlyphId;
+    const sourceGlyph1Id = parts[2] as GlyphId;
+    const sourceGlyph2Id = parts[3] as GlyphId;
+
+    try {
+      // AI Verification for glyph composition
+      const verificationOperation: VerificationOperation = {
+        id: `glyph_compose_${this.operationCounter++}`,
+        type: 'glyph_operation',
+        description: `Compose glyph ${resultGlyphId} from ${sourceGlyph1Id} and ${sourceGlyph2Id}`,
+        criticality: astNode.metadata?.criticality || OperationCriticality.MEDIUM,
+        explainabilityRequirement: 0.85 as ExplainabilityScore,
+        oversightLevel: astNode.metadata?.oversightLevel || HumanOversightLevel.MONITORING,
+        context: {
+          sourceLocation: astNode.location,
+          codeFragment: `glyphCompose ${resultGlyphId} = ${sourceGlyph1Id} + ${sourceGlyph2Id}`,
+          parameters: { resultGlyphId, sourceGlyph1Id, sourceGlyph2Id }
+        }
+      };
+
+      const verificationResult = await aiVerificationService.verifyOperation(verificationOperation);
+      if (!verificationResult.success) {
+        this.addRuntimeError({
+          type: 'ai_safety',
+          message: `Glyph composition verification failed: ${verificationResult.violations.map(v => v.message).join(', ')}`,
+          location: astNode.location
+        });
+        return false;
+      }
+
+      // Execute glyph composition through advanced glyph engine
+      const composition = await advancedGlyphEngine.composeGlyphs(sourceGlyph1Id, sourceGlyph2Id, {
+        resultId: resultGlyphId,
+        compositionStrategy: 'additive',
+        preserveProperties: ['geometry', 'temporal'],
+        optimizeResult: true
+      });
+
+      this.log(`  Glyph composition: ${resultGlyphId} = ${sourceGlyph1Id} + ${sourceGlyph2Id} (composition ID: ${composition.id})`);
+      return true;
+
+    } catch (error) {
+      this.addRuntimeError({
+        type: 'execution',
+        message: `Glyph composition failed: ${error instanceof Error ? error.message : String(error)}`,
+        location: astNode.location
+      });
+      return false;
+    }
+  }
+
+  /**
+   * Execute glyph binding to quantum state
+   */
+  private async executeGlyphBind(parts: string[], astNode: ASTNode, typeResult: TypeInferenceResult): Promise<boolean> {
+    const glyphId = parts[1] as GlyphId;
+    const quantumStateId = parts[2] as QuantumReferenceId;
+    const bindingType = parts[3];
+
+    try {
+      // Verify quantum state exists and is coherent
+      const quantumHandle = this.activeQuantumHandles.get(quantumStateId);
+      if (!isValidHandle(quantumHandle)) {
+        this.addRuntimeError({
+          type: 'quantum_violation',
+          message: `Cannot bind to invalid quantum state: ${quantumStateId}`,
+          location: astNode.location
+        });
+        return false;
+      }
+
+      const quantumState = quantumHandle!.getState();
+      if (!quantumState || !canPerformOperation(quantumState)) {
+        this.addRuntimeError({
+          type: 'quantum_violation',
+          message: `Quantum state ${quantumStateId} is not coherent for glyph binding`,
+          location: astNode.location
+        });
+        return false;
+      }
+
+      // AI Verification for quantum-glyph binding
+      const verificationOperation: VerificationOperation = {
+        id: `glyph_bind_${this.operationCounter++}`,
+        type: 'glyph_operation',
+        description: `Bind glyph ${glyphId} to quantum state ${quantumStateId}`,
+        criticality: OperationCriticality.HIGH, // Quantum bindings are always high criticality
+        explainabilityRequirement: 0.90 as ExplainabilityScore,
+        oversightLevel: HumanOversightLevel.APPROVAL, // Require approval for quantum bindings
+        context: {
+          sourceLocation: astNode.location,
+          codeFragment: `glyphBind ${glyphId} to ${quantumStateId} ${bindingType}`,
+          parameters: { glyphId, quantumStateId, bindingType },
+          quantumState: quantumStateId
+        }
+      };
+
+      const verificationResult = await aiVerificationService.verifyOperation(verificationOperation);
+      if (!verificationResult.success || verificationResult.humanOversightRequired) {
+        this.addRuntimeError({
+          type: 'ai_safety',
+          message: `Quantum-glyph binding requires human approval: ${verificationResult.violations.map(v => v.message).join(', ')}`,
+          location: astNode.location
+        });
+        return false;
+      }
+
+      // Execute quantum-glyph binding
+      const bindingConfig: QuantumGlyphBindingConfig = {
+        bindingId: `binding_${glyphId}_${quantumStateId}` as QuantumGlyphBindingId,
+        glyphInstanceId: glyphId as GlyphInstanceId,
+        quantumStateId,
+        bindingType: bindingType as any,
+        bindingStrength: 0.95,
+        coherenceRequirements: {
+          minimumCoherence: 0.8,
+          maximumDecoherenceRate: 0.01,
+          coherenceMonitoring: true,
+          automaticCorrection: true
+        },
+        bindingProperties: {
+          bidirectional: true,
+          persistent: true,
+          entanglementPreserving: true,
+          measurementAware: true
+        },
+        safetyConstraints: {
+          preventCloning: true,
+          measurementProtection: true,
+          decoherenceProtection: true,
+          entanglementValidation: true
+        },
+        explainabilityRequirements: {
+          minimumScore: 0.90 as ExplainabilityScore,
+          requiredMethods: ['mathematical_proof', 'causal_tracing', 'counterfactual_analysis'],
+          humanReadableDescription: true,
+          auditTrail: true
+        },
+        metadata: {
+          createdAt: Date.now(),
+          lastUpdated: Date.now(),
+          version: '1.0.0',
+          creator: 'singularis_interpreter'
+        }
+      };
+
+      const binding = await quantumGlyphInterface.createBinding(bindingConfig);
+      
+      this.log(`  Quantum-glyph binding: ${glyphId} ↔ ${quantumStateId} (${bindingType}, strength: ${bindingConfig.bindingStrength})`);
+      return true;
+
+    } catch (error) {
+      this.addRuntimeError({
+        type: 'execution',
+        message: `Glyph binding failed: ${error instanceof Error ? error.message : String(error)}`,
+        location: astNode.location
+      });
+      return false;
+    }
+  }
+
+  /**
+   * Execute glyph space creation
+   */
+  private async executeGlyphSpace(parts: string[], astNode: ASTNode, typeResult: TypeInferenceResult): Promise<boolean> {
+    const spaceId = parts[1] as GlyphSpaceId;
+    const dimensions = parseInt(parts[2]);
+    const coordinateSystem = parts[3];
+
+    try {
+      // Validate dimension parameters
+      if (dimensions < 2 || dimensions > 37) {
+        this.addRuntimeError({
+          type: 'execution',
+          message: `Invalid dimensions for glyph space: ${dimensions}. Must be between 2 and 37`,
+          location: astNode.location
+        });
+        return false;
+      }
+
+      // AI Verification for multi-dimensional space creation
+      const verificationOperation: VerificationOperation = {
+        id: `glyph_space_${this.operationCounter++}`,
+        type: 'glyph_operation',
+        description: `Create ${dimensions}D glyph space ${spaceId} with ${coordinateSystem} coordinates`,
+        criticality: dimensions > 10 ? OperationCriticality.HIGH : OperationCriticality.MEDIUM,
+        explainabilityRequirement: 0.85 as ExplainabilityScore,
+        oversightLevel: dimensions > 20 ? HumanOversightLevel.SUPERVISION : HumanOversightLevel.MONITORING,
+        context: {
+          sourceLocation: astNode.location,
+          codeFragment: `glyphSpace ${spaceId} ${dimensions} ${coordinateSystem}`,
+          parameters: { spaceId, dimensions, coordinateSystem }
+        }
+      };
+
+      const verificationResult = await aiVerificationService.verifyOperation(verificationOperation);
+      if (!verificationResult.success) {
+        this.addRuntimeError({
+          type: 'ai_safety',
+          message: `Glyph space creation verification failed: ${verificationResult.violations.map(v => v.message).join(', ')}`,
+          location: astNode.location
+        });
+        return false;
+      }
+
+      // Execute glyph space creation
+      const space = await glyphSpaceManager.createSpace({
+        id: spaceId,
+        dimensions,
+        coordinateSystem: coordinateSystem as any,
+        bounds: {
+          min: new Array(dimensions).fill(-1000),
+          max: new Array(dimensions).fill(1000),
+          periodic: new Array(dimensions).fill(false),
+          boundaryConditions: new Array(dimensions).fill('open')
+        },
+        properties: {
+          metric: 'euclidean',
+          topology: 'manifold',
+          curvature: 0,
+          traversable: true,
+          dynamicResize: true
+        },
+        metadata: {
+          created: Date.now(),
+          version: '1.0.0'
+        }
+      });
+
+      this.log(`  Glyph space created: ${spaceId} (${dimensions}D ${coordinateSystem})`);
+      return true;
+
+    } catch (error) {
+      this.addRuntimeError({
+        type: 'execution',
+        message: `Glyph space creation failed: ${error instanceof Error ? error.message : String(error)}`,
+        location: astNode.location
+      });
+      return false;
+    }
+  }
+
+  /**
+   * Execute glyph transformation
+   */
+  private async executeGlyphTransform(parts: string[], astNode: ASTNode, typeResult: TypeInferenceResult): Promise<boolean> {
+    const glyphId = parts[1] as GlyphId;
+    const transformType = parts[2];
+    const parameters = parts[3];
+
+    try {
+      // AI Verification for glyph transformation
+      const verificationOperation: VerificationOperation = {
+        id: `glyph_transform_${this.operationCounter++}`,
+        type: 'glyph_operation',
+        description: `Transform glyph ${glyphId} using ${transformType}`,
+        criticality: astNode.metadata?.criticality || OperationCriticality.MEDIUM,
+        explainabilityRequirement: 0.85 as ExplainabilityScore,
+        oversightLevel: HumanOversightLevel.MONITORING,
+        context: {
+          sourceLocation: astNode.location,
+          codeFragment: `glyphTransform ${glyphId} ${transformType} ${parameters}`,
+          parameters: { glyphId, transformType, parameters }
+        }
+      };
+
+      const verificationResult = await aiVerificationService.verifyOperation(verificationOperation);
+      if (!verificationResult.success) {
+        this.addRuntimeError({
+          type: 'ai_safety',
+          message: `Glyph transformation verification failed: ${verificationResult.violations.map(v => v.message).join(', ')}`,
+          location: astNode.location
+        });
+        return false;
+      }
+
+      // Execute glyph transformation
+      const transformation = await advancedGlyphEngine.transformGlyph(glyphId, {
+        type: transformType as any,
+        parameters: JSON.parse(parameters || '{}'),
+        preserveTopology: true,
+        animatable: true,
+        reversible: true
+      });
+
+      this.log(`  Glyph transformation: ${glyphId} → ${transformType} (transformation ID: ${transformation.id})`);
+      return true;
+
+    } catch (error) {
+      this.addRuntimeError({
+        type: 'execution',
+        message: `Glyph transformation failed: ${error instanceof Error ? error.message : String(error)}`,
+        location: astNode.location
+      });
+      return false;
+    }
+  }
+
+  /**
+   * Execute glyph pattern creation
+   */
+  private async executeGlyphPattern(parts: string[], astNode: ASTNode, typeResult: TypeInferenceResult): Promise<boolean> {
+    const patternId = parts[1];
+    const patternType = parts[2];
+    const matchCriteria = parts[3];
+
+    try {
+      // AI Verification for pattern creation
+      const verificationOperation: VerificationOperation = {
+        id: `glyph_pattern_${this.operationCounter++}`,
+        type: 'glyph_operation',
+        description: `Create glyph pattern ${patternId} of type ${patternType}`,
+        criticality: OperationCriticality.LOW,
+        explainabilityRequirement: 0.80 as ExplainabilityScore,
+        oversightLevel: HumanOversightLevel.MONITORING,
+        context: {
+          sourceLocation: astNode.location,
+          codeFragment: `glyphPattern ${patternId} ${patternType} ${matchCriteria}`,
+          parameters: { patternId, patternType, matchCriteria }
+        }
+      };
+
+      const verificationResult = await aiVerificationService.verifyOperation(verificationOperation);
+      if (!verificationResult.success) {
+        this.addRuntimeError({
+          type: 'ai_safety',
+          message: `Glyph pattern verification failed: ${verificationResult.violations.map(v => v.message).join(', ')}`,
+          location: astNode.location
+        });
+        return false;
+      }
+
+      // Execute pattern creation
+      const pattern = await advancedGlyphEngine.createPattern({
+        id: patternId,
+        type: patternType as any,
+        matchCriteria: JSON.parse(matchCriteria || '{}'),
+        accuracy: 0.95,
+        performance: 'optimized'
+      });
+
+      this.log(`  Glyph pattern created: ${patternId} (${patternType})`);
+      return true;
+
+    } catch (error) {
+      this.addRuntimeError({
+        type: 'execution',
+        message: `Glyph pattern creation failed: ${error instanceof Error ? error.message : String(error)}`,
+        location: astNode.location
+      });
+      return false;
+    }
+  }
+
+  /**
+   * Execute glyph animation
+   */
+  private async executeGlyphAnimate(parts: string[], astNode: ASTNode, typeResult: TypeInferenceResult): Promise<boolean> {
+    const glyphId = parts[1] as GlyphId;
+    const animationType = parts[2];
+    const duration = parseInt(parts[3]);
+
+    try {
+      // AI Verification for glyph animation
+      const verificationOperation: VerificationOperation = {
+        id: `glyph_animate_${this.operationCounter++}`,
+        type: 'glyph_operation',
+        description: `Animate glyph ${glyphId} with ${animationType} for ${duration}ms`,
+        criticality: OperationCriticality.LOW,
+        explainabilityRequirement: 0.80 as ExplainabilityScore,
+        oversightLevel: HumanOversightLevel.MONITORING,
+        context: {
+          sourceLocation: astNode.location,
+          codeFragment: `glyphAnimate ${glyphId} ${animationType} ${duration}`,
+          parameters: { glyphId, animationType, duration }
+        }
+      };
+
+      const verificationResult = await aiVerificationService.verifyOperation(verificationOperation);
+      if (!verificationResult.success) {
+        this.addRuntimeError({
+          type: 'ai_safety',
+          message: `Glyph animation verification failed: ${verificationResult.violations.map(v => v.message).join(', ')}`,
+          location: astNode.location
+        });
+        return false;
+      }
+
+      // Execute glyph animation
+      const animation = await advancedGlyphEngine.animateGlyph(glyphId, {
+        type: animationType as any,
+        duration,
+        easing: 'smooth',
+        loop: false,
+        reversible: true
+      });
+
+      this.log(`  Glyph animation: ${glyphId} → ${animationType} (${duration}ms)`);
+      return true;
+
+    } catch (error) {
+      this.addRuntimeError({
+        type: 'execution',
+        message: `Glyph animation failed: ${error instanceof Error ? error.message : String(error)}`,
+        location: astNode.location
+      });
+      return false;
+    }
+  }
+
+  /**
+   * Execute glyph reactive behavior
+   */
+  private async executeGlyphReact(parts: string[], astNode: ASTNode, typeResult: TypeInferenceResult): Promise<boolean> {
+    const glyphId = parts[1] as GlyphId;
+    const trigger = parts[2];
+    const response = parts[3];
+
+    try {
+      // AI Verification for reactive behavior
+      const verificationOperation: VerificationOperation = {
+        id: `glyph_react_${this.operationCounter++}`,
+        type: 'glyph_operation',
+        description: `Set reactive behavior for glyph ${glyphId}: ${trigger} → ${response}`,
+        criticality: OperationCriticality.MEDIUM,
+        explainabilityRequirement: 0.85 as ExplainabilityScore,
+        oversightLevel: HumanOversightLevel.MONITORING,
+        context: {
+          sourceLocation: astNode.location,
+          codeFragment: `glyphReact ${glyphId} ${trigger} ${response}`,
+          parameters: { glyphId, trigger, response }
+        }
+      };
+
+      const verificationResult = await aiVerificationService.verifyOperation(verificationOperation);
+      if (!verificationResult.success) {
+        this.addRuntimeError({
+          type: 'ai_safety',
+          message: `Glyph reactive behavior verification failed: ${verificationResult.violations.map(v => v.message).join(', ')}`,
+          location: astNode.location
+        });
+        return false;
+      }
+
+      // Execute reactive behavior setup
+      const reactiveBehavior = await advancedGlyphEngine.setReactiveBehavior(glyphId, {
+        trigger: trigger as any,
+        response: response as any,
+        sensitivity: 0.8,
+        debounceMs: 100,
+        persistent: true
+      });
+
+      this.log(`  Glyph reactive behavior: ${glyphId} responds to ${trigger} with ${response}`);
+      return true;
+
+    } catch (error) {
+      this.addRuntimeError({
+        type: 'execution',
+        message: `Glyph reactive behavior setup failed: ${error instanceof Error ? error.message : String(error)}`,
+        location: astNode.location
+      });
+      return false;
+    }
+  }
+
+  /**
+   * Execute glyph optimization
+   */
+  private async executeGlyphOptimize(parts: string[], astNode: ASTNode, typeResult: TypeInferenceResult): Promise<boolean> {
+    const target = parts[1];
+    const strategy = parts[2];
+    const parameters = parts[3];
+
+    try {
+      // AI Verification for optimization
+      const verificationOperation: VerificationOperation = {
+        id: `glyph_optimize_${this.operationCounter++}`,
+        type: 'glyph_operation',
+        description: `Optimize ${target} using ${strategy} strategy`,
+        criticality: OperationCriticality.HIGH, // Optimizations can affect system performance
+        explainabilityRequirement: 0.90 as ExplainabilityScore,
+        oversightLevel: HumanOversightLevel.SUPERVISION,
+        context: {
+          sourceLocation: astNode.location,
+          codeFragment: `glyphOptimize ${target} ${strategy} ${parameters}`,
+          parameters: { target, strategy, parameters }
+        }
+      };
+
+      const verificationResult = await aiVerificationService.verifyOperation(verificationOperation);
+      if (!verificationResult.success) {
+        this.addRuntimeError({
+          type: 'ai_safety',
+          message: `Glyph optimization verification failed: ${verificationResult.violations.map(v => v.message).join(', ')}`,
+          location: astNode.location
+        });
+        return false;
+      }
+
+      // Execute optimization
+      const optimization = await glyphOptimizer.optimize({
+        target: target as any,
+        strategy: strategy as any,
+        parameters: JSON.parse(parameters || '{}'),
+        constraints: {
+          preserveSemantics: true,
+          maxPerformanceDegradation: 0.05,
+          explainabilityMinimum: 0.85
+        }
+      });
+
+      this.log(`  Glyph optimization: ${target} optimized using ${strategy} (improvement: ${optimization.performanceGain}%)`);
+      return true;
+
+    } catch (error) {
+      this.addRuntimeError({
+        type: 'execution',
+        message: `Glyph optimization failed: ${error instanceof Error ? error.message : String(error)}`,
+        location: astNode.location
+      });
+      return false;
+    }
+  }
+
+  /**
+   * Execute glyph unbinding from quantum state
+   */
+  private async executeGlyphUnbind(parts: string[], astNode: ASTNode, typeResult: TypeInferenceResult): Promise<boolean> {
+    const glyphId = parts[1] as GlyphId;
+    const quantumStateId = parts[2] as QuantumReferenceId;
+
+    try {
+      // AI Verification for unbinding
+      const verificationOperation: VerificationOperation = {
+        id: `glyph_unbind_${this.operationCounter++}`,
+        type: 'glyph_operation',
+        description: `Unbind glyph ${glyphId} from quantum state ${quantumStateId}`,
+        criticality: OperationCriticality.HIGH, // Quantum unbinding is critical
+        explainabilityRequirement: 0.90 as ExplainabilityScore,
+        oversightLevel: HumanOversightLevel.APPROVAL,
+        context: {
+          sourceLocation: astNode.location,
+          codeFragment: `glyphUnbind ${glyphId} ${quantumStateId}`,
+          parameters: { glyphId, quantumStateId },
+          quantumState: quantumStateId
+        }
+      };
+
+      const verificationResult = await aiVerificationService.verifyOperation(verificationOperation);
+      if (!verificationResult.success || verificationResult.humanOversightRequired) {
+        this.addRuntimeError({
+          type: 'ai_safety',
+          message: `Quantum-glyph unbinding requires human approval: ${verificationResult.violations.map(v => v.message).join(', ')}`,
+          location: astNode.location
+        });
+        return false;
+      }
+
+      // Execute unbinding
+      const bindingId = `binding_${glyphId}_${quantumStateId}` as QuantumGlyphBindingId;
+      await quantumGlyphInterface.destroyBinding(bindingId);
+
+      this.log(`  Quantum-glyph unbinding: ${glyphId} ⊥ ${quantumStateId}`);
+      return true;
+
+    } catch (error) {
+      this.addRuntimeError({
+        type: 'execution',
+        message: `Glyph unbinding failed: ${error instanceof Error ? error.message : String(error)}`,
+        location: astNode.location
+      });
+      return false;
+    }
+  }
+
+  /**
+   * Execute glyph destruction
+   */
+  private async executeGlyphDestroy(parts: string[], astNode: ASTNode, typeResult: TypeInferenceResult): Promise<boolean> {
+    const glyphId = parts[1] as GlyphId;
+
+    try {
+      // AI Verification for glyph destruction
+      const verificationOperation: VerificationOperation = {
+        id: `glyph_destroy_${this.operationCounter++}`,
+        type: 'glyph_operation',
+        description: `Destroy glyph ${glyphId}`,
+        criticality: OperationCriticality.HIGH, // Destruction is irreversible
+        explainabilityRequirement: 0.90 as ExplainabilityScore,
+        oversightLevel: HumanOversightLevel.APPROVAL,
+        context: {
+          sourceLocation: astNode.location,
+          codeFragment: `glyphDestroy ${glyphId}`,
+          parameters: { glyphId }
+        }
+      };
+
+      const verificationResult = await aiVerificationService.verifyOperation(verificationOperation);
+      if (!verificationResult.success || verificationResult.humanOversightRequired) {
+        this.addRuntimeError({
+          type: 'ai_safety',
+          message: `Glyph destruction requires human approval: ${verificationResult.violations.map(v => v.message).join(', ')}`,
+          location: astNode.location
+        });
+        return false;
+      }
+
+      // Execute destruction
+      await advancedGlyphEngine.destroyGlyph(glyphId);
+
+      this.log(`  Glyph destroyed: ${glyphId}`);
+      return true;
+
+    } catch (error) {
+      this.addRuntimeError({
+        type: 'execution',
+        message: `Glyph destruction failed: ${error instanceof Error ? error.message : String(error)}`,
         location: astNode.location
       });
       return false;

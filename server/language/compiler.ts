@@ -574,6 +574,124 @@ export class SingularisPrimeCompiler {
             i += 1;
           }
           break;
+
+        // Advanced Glyph Binding System Language Constructs
+        case 'glyphCompose':
+          if (i + 4 < tokens.length) {
+            const resultGlyph = tokens[i + 1];
+            const sourceGlyph1 = tokens[i + 3];
+            const sourceGlyph2 = tokens[i + 4].replace(/[;]/g, '');
+            parsed.push(['GLYPH_COMPOSE', resultGlyph, sourceGlyph1, sourceGlyph2]);
+            i += 5;
+          } else {
+            i += 1;
+          }
+          break;
+
+        case 'glyphBind':
+          if (i + 4 < tokens.length) {
+            const glyphId = tokens[i + 1];
+            const quantumStateId = tokens[i + 3];
+            const bindingType = tokens[i + 4].replace(/[;]/g, '');
+            parsed.push(['GLYPH_BIND', glyphId, quantumStateId, bindingType]);
+            i += 5;
+          } else {
+            i += 1;
+          }
+          break;
+
+        case 'glyphSpace':
+          if (i + 3 < tokens.length) {
+            const spaceId = tokens[i + 1];
+            const dimensions = tokens[i + 2];
+            const coordinateSystem = tokens[i + 3].replace(/[;]/g, '');
+            parsed.push(['GLYPH_SPACE', spaceId, dimensions, coordinateSystem]);
+            i += 4;
+          } else {
+            i += 1;
+          }
+          break;
+
+        case 'glyphTransform':
+          if (i + 4 < tokens.length) {
+            const glyphId = tokens[i + 1];
+            const transformType = tokens[i + 3];
+            const parameters = tokens[i + 4].replace(/[;]/g, '');
+            parsed.push(['GLYPH_TRANSFORM', glyphId, transformType, parameters]);
+            i += 5;
+          } else {
+            i += 1;
+          }
+          break;
+
+        case 'glyphPattern':
+          if (i + 3 < tokens.length) {
+            const patternId = tokens[i + 1];
+            const patternType = tokens[i + 2];
+            const matchCriteria = tokens[i + 3].replace(/[;]/g, '');
+            parsed.push(['GLYPH_PATTERN', patternId, patternType, matchCriteria]);
+            i += 4;
+          } else {
+            i += 1;
+          }
+          break;
+
+        case 'glyphAnimate':
+          if (i + 4 < tokens.length) {
+            const glyphId = tokens[i + 1];
+            const animationType = tokens[i + 3];
+            const duration = tokens[i + 4].replace(/[;]/g, '');
+            parsed.push(['GLYPH_ANIMATE', glyphId, animationType, duration]);
+            i += 5;
+          } else {
+            i += 1;
+          }
+          break;
+
+        case 'glyphReact':
+          if (i + 4 < tokens.length) {
+            const glyphId = tokens[i + 1];
+            const trigger = tokens[i + 3];
+            const response = tokens[i + 4].replace(/[;]/g, '');
+            parsed.push(['GLYPH_REACT', glyphId, trigger, response]);
+            i += 5;
+          } else {
+            i += 1;
+          }
+          break;
+
+        case 'glyphOptimize':
+          if (i + 3 < tokens.length) {
+            const target = tokens[i + 1];
+            const strategy = tokens[i + 2];
+            const parameters = tokens[i + 3].replace(/[;]/g, '');
+            parsed.push(['GLYPH_OPTIMIZE', target, strategy, parameters]);
+            i += 4;
+          } else {
+            i += 1;
+          }
+          break;
+
+        case 'glyphUnbind':
+          if (i + 2 < tokens.length) {
+            const glyphId = tokens[i + 1];
+            const quantumStateId = tokens[i + 2].replace(/[;]/g, '');
+            parsed.push(['GLYPH_UNBIND', glyphId, quantumStateId]);
+            i += 3;
+          } else {
+            i += 1;
+          }
+          break;
+
+        case 'glyphDestroy':
+          if (i + 1 < tokens.length) {
+            const glyphId = tokens[i + 1].replace(/[;]/g, '');
+            parsed.push(['GLYPH_DESTROY', glyphId]);
+            i += 2;
+          } else {
+            i += 1;
+          }
+          break;
           
         default:
           // Enhanced error handling for unknown tokens
@@ -753,6 +871,47 @@ export class SingularisPrimeCompiler {
 
         case 'DISABLE_MONITORING':
           bytecode.push(`DISABLE_MONITORING ${args[0]}`);
+          break;
+
+        // Advanced Glyph Binding System Bytecode Generation
+        case 'GLYPH_COMPOSE':
+          bytecode.push(`GLYPH_COMPOSE ${args[0]} ${args[1]} ${args[2]}`);
+          break;
+
+        case 'GLYPH_BIND':
+          bytecode.push(`GLYPH_BIND ${args[0]} ${args[1]} ${args[2]}`);
+          break;
+
+        case 'GLYPH_SPACE':
+          bytecode.push(`GLYPH_SPACE ${args[0]} ${args[1]} ${args[2]}`);
+          break;
+
+        case 'GLYPH_TRANSFORM':
+          bytecode.push(`GLYPH_TRANSFORM ${args[0]} ${args[1]} ${args[2]}`);
+          break;
+
+        case 'GLYPH_PATTERN':
+          bytecode.push(`GLYPH_PATTERN ${args[0]} ${args[1]} ${args[2]}`);
+          break;
+
+        case 'GLYPH_ANIMATE':
+          bytecode.push(`GLYPH_ANIMATE ${args[0]} ${args[1]} ${args[2]}`);
+          break;
+
+        case 'GLYPH_REACT':
+          bytecode.push(`GLYPH_REACT ${args[0]} ${args[1]} ${args[2]}`);
+          break;
+
+        case 'GLYPH_OPTIMIZE':
+          bytecode.push(`GLYPH_OPTIMIZE ${args[0]} ${args[1]} ${args[2]}`);
+          break;
+
+        case 'GLYPH_UNBIND':
+          bytecode.push(`GLYPH_UNBIND ${args[0]} ${args[1]}`);
+          break;
+
+        case 'GLYPH_DESTROY':
+          bytecode.push(`GLYPH_DESTROY ${args[0]}`);
           break;
       }
     }

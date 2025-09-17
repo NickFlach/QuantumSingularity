@@ -74,7 +74,7 @@ export interface VerificationEvent {
 
 export interface VerificationOperation {
   readonly id: string;
-  readonly type: 'ai_contract' | 'model_deployment' | 'decision_point' | 'quantum_operation' | 'quantum_memory' | 'verification_check' | 'distributed_quantum' | 'paradox_resolution' | 'loop_optimization' | 'recursive_evaluation' | 'quantum_paradox_handling' | 'self_optimization';
+  readonly type: 'ai_contract' | 'model_deployment' | 'decision_point' | 'quantum_operation' | 'quantum_memory' | 'verification_check' | 'distributed_quantum' | 'paradox_resolution' | 'loop_optimization' | 'recursive_evaluation' | 'quantum_paradox_handling' | 'self_optimization' | 'glyph_operation';
   readonly description: string;
   readonly criticality: OperationCriticality;
   readonly explainabilityRequirement: ExplainabilityScore;
@@ -107,6 +107,29 @@ export interface VerificationOperation {
       readonly recursionDepth?: number;
       readonly loopId?: string;
       readonly optimizationGoals?: string[];
+    };
+    readonly glyphOperation?: {
+      readonly operation: 'compose' | 'bind' | 'space' | 'transform' | 'pattern' | 'animate' | 'react' | 'optimize' | 'unbind' | 'destroy';
+      readonly glyphId?: string;
+      readonly glyphIds?: string[];
+      readonly quantumStateId?: QuantumReferenceId;
+      readonly dimensions?: number;
+      readonly bindingType?: string;
+      readonly transformationType?: string;
+      readonly animationType?: string;
+      readonly optimizationStrategy?: string;
+      readonly spatialRelationships?: string[];
+      readonly coherenceRequirements?: {
+        readonly minimumCoherence: number;
+        readonly maximumDecoherenceRate: number;
+        readonly preserveEntanglement: boolean;
+      };
+      readonly explainabilityMethods?: string[];
+      readonly performanceTargets?: {
+        readonly maxExecutionTime?: number;
+        readonly minAccuracy?: number;
+        readonly resourceConstraints?: Record<string, number>;
+      };
     };
   };
 }
@@ -378,7 +401,200 @@ export class AIVerificationService extends EventEmitter {
         }
       }
 
-      // 7. Compliance validation
+      // 7. Glyph operation-specific validation
+      if (operation.type === 'glyph_operation') {
+        const glyphOp = operation.context.glyphOperation;
+        if (!glyphOp) {
+          violations.push({
+            type: 'safety_constraint',
+            severity: 'error',
+            message: 'Glyph operation context is required for glyph operations',
+            suggestion: 'Provide complete glyph operation context information',
+            location: operation.context.sourceLocation
+          });
+        } else {
+          // Validate explainability requirements for different glyph operations
+          const requiredExplainability = this.getGlyphOperationExplainabilityThreshold(glyphOp.operation);
+          if (explainabilityScore < requiredExplainability) {
+            violations.push({
+              type: 'explainability_threshold',
+              severity: explainabilityScore < 0.80 ? 'critical' : 'error',
+              message: `Glyph ${glyphOp.operation} operation requires explainability score ≥ ${requiredExplainability}, got ${explainabilityScore}`,
+              suggestion: 'Improve glyph operation explainability through detailed parameter documentation and step-by-step reasoning',
+              location: operation.context.sourceLocation
+            });
+          }
+
+          // Multi-dimensional space validation (critical for high dimensions)
+          if (glyphOp.operation === 'space' && glyphOp.dimensions && glyphOp.dimensions > 20) {
+            if (operation.oversightLevel === HumanOversightLevel.NONE) {
+              violations.push({
+                type: 'human_oversight_missing',
+                severity: 'critical',
+                message: `High-dimensional glyph space (${glyphOp.dimensions}D) requires human oversight`,
+                suggestion: 'Add human supervision for spaces with >20 dimensions due to computational complexity',
+                location: operation.context.sourceLocation
+              });
+              humanOversightRequired = true;
+            }
+
+            if (explainabilityScore < 0.90) {
+              violations.push({
+                type: 'explainability_threshold',
+                severity: 'critical',
+                message: `High-dimensional spaces require explainability score ≥ 0.90 for mathematical validity`,
+                suggestion: 'Provide mathematical proofs and dimensional analysis for high-D spaces',
+                location: operation.context.sourceLocation
+              });
+            }
+          }
+
+          // Quantum-glyph binding safety checks (highest criticality)
+          if ((glyphOp.operation === 'bind' || glyphOp.operation === 'unbind') && glyphOp.quantumStateId) {
+            if (operation.oversightLevel !== HumanOversightLevel.APPROVAL) {
+              violations.push({
+                type: 'human_oversight_missing',
+                severity: 'critical',
+                message: 'Quantum-glyph binding operations require explicit human approval',
+                suggestion: 'All quantum-glyph bindings must have human approval due to quantum no-cloning implications',
+                location: operation.context.sourceLocation
+              });
+              humanOversightRequired = true;
+            }
+
+            if (explainabilityScore < 0.95) {
+              violations.push({
+                type: 'explainability_threshold',
+                severity: 'critical',
+                message: `Quantum-glyph binding requires explainability score ≥ 0.95, got ${explainabilityScore}`,
+                suggestion: 'Provide complete quantum state analysis and binding mechanism explanation',
+                location: operation.context.sourceLocation
+              });
+            }
+
+            // Validate coherence requirements for quantum bindings
+            if (glyphOp.coherenceRequirements) {
+              if (glyphOp.coherenceRequirements.minimumCoherence < 0.8) {
+                violations.push({
+                  type: 'safety_constraint',
+                  severity: 'error',
+                  message: `Minimum coherence ${glyphOp.coherenceRequirements.minimumCoherence} too low for quantum-glyph binding (≥0.8 required)`,
+                  suggestion: 'Increase minimum coherence requirement to ensure stable quantum-glyph binding',
+                  location: operation.context.sourceLocation
+                });
+              }
+
+              if (glyphOp.coherenceRequirements.maximumDecoherenceRate > 0.05) {
+                violations.push({
+                  type: 'safety_constraint',
+                  severity: 'warning',
+                  message: `High decoherence rate ${glyphOp.coherenceRequirements.maximumDecoherenceRate} may compromise quantum-glyph binding`,
+                  suggestion: 'Consider lowering maximum decoherence rate to ≤0.05 for stable bindings',
+                  location: operation.context.sourceLocation
+                });
+              }
+            }
+          }
+
+          // Glyph optimization safety and correctness monitoring
+          if (glyphOp.operation === 'optimize') {
+            if (explainabilityScore < 0.88) {
+              violations.push({
+                type: 'explainability_threshold',
+                severity: 'error',
+                message: `Glyph optimization requires explainability score ≥ 0.88, got ${explainabilityScore}`,
+                suggestion: 'Provide detailed optimization algorithm explanation and performance metrics',
+                location: operation.context.sourceLocation
+              });
+            }
+
+            // Validate optimization strategy is safe and bounded
+            if (!glyphOp.optimizationStrategy || glyphOp.optimizationStrategy === 'aggressive') {
+              violations.push({
+                type: 'safety_constraint',
+                severity: 'warning',
+                message: 'Aggressive optimization strategies require additional validation',
+                suggestion: 'Use conservative optimization strategies or provide safety guarantees',
+                location: operation.context.sourceLocation
+              });
+            }
+
+            // Validate performance targets are realistic
+            if (glyphOp.performanceTargets) {
+              if (glyphOp.performanceTargets.minAccuracy && glyphOp.performanceTargets.minAccuracy < 0.85) {
+                violations.push({
+                  type: 'safety_constraint',
+                  severity: 'warning',
+                  message: `Low accuracy target ${glyphOp.performanceTargets.minAccuracy} may compromise glyph operation quality`,
+                  suggestion: 'Consider increasing minimum accuracy target to ≥0.85',
+                  location: operation.context.sourceLocation
+                });
+              }
+            }
+          }
+
+          // Complex glyph composition validation
+          if (glyphOp.operation === 'compose' && glyphOp.glyphIds && glyphOp.glyphIds.length > 5) {
+            if (operation.oversightLevel === HumanOversightLevel.NONE) {
+              violations.push({
+                type: 'human_oversight_missing',
+                severity: 'error',
+                message: `Complex glyph composition (${glyphOp.glyphIds.length} glyphs) requires oversight`,
+                suggestion: 'Add human supervision for compositions involving >5 glyphs',
+                location: operation.context.sourceLocation
+              });
+              humanOversightRequired = true;
+            }
+          }
+
+          // Glyph transformation safety checks
+          if (glyphOp.operation === 'transform' && glyphOp.transformationType) {
+            const criticalTransforms = ['nonlinear', 'dimensionality_change', 'topology_change'];
+            if (criticalTransforms.includes(glyphOp.transformationType)) {
+              if (explainabilityScore < 0.90) {
+                violations.push({
+                  type: 'explainability_threshold',
+                  severity: 'critical',
+                  message: `Critical transformation ${glyphOp.transformationType} requires explainability score ≥ 0.90`,
+                  suggestion: 'Provide mathematical proof of transformation correctness and reversibility',
+                  location: operation.context.sourceLocation
+                });
+              }
+
+              if (operation.oversightLevel === HumanOversightLevel.NONE) {
+                violations.push({
+                  type: 'human_oversight_missing',
+                  severity: 'error',
+                  message: `Critical glyph transformation ${glyphOp.transformationType} requires human oversight`,
+                  suggestion: 'Add human supervision for topology-changing or high-complexity transformations',
+                  location: operation.context.sourceLocation
+                });
+                humanOversightRequired = true;
+              }
+            }
+          }
+
+          // Validate explainability methods are appropriate for glyph operations
+          if (glyphOp.explainabilityMethods && glyphOp.explainabilityMethods.length > 0) {
+            const requiredMethods = ['mathematical_proof', 'step_by_step_reasoning'];
+            const hasRequiredMethods = requiredMethods.some(method => 
+              glyphOp.explainabilityMethods!.includes(method)
+            );
+            
+            if (!hasRequiredMethods) {
+              violations.push({
+                type: 'explainability_threshold',
+                severity: 'warning',
+                message: 'Glyph operations should include mathematical proof or step-by-step reasoning for explainability',
+                suggestion: 'Add mathematical_proof or step_by_step_reasoning to explainability methods',
+                location: operation.context.sourceLocation
+              });
+            }
+          }
+        }
+      }
+
+      // 8. Compliance validation
       const complianceStatus = this.validateCompliance(operation);
       if (complianceStatus !== ComplianceStatus.COMPLIANT) {
         violations.push({
@@ -1326,6 +1542,83 @@ export class AIVerificationService extends EventEmitter {
       }
       
     }, 60000); // Run every minute
+  }
+
+  // ============================================================================
+  // GLYPH OPERATION HELPER METHODS
+  // ============================================================================
+
+  /**
+   * Get the minimum explainability threshold for different glyph operations
+   */
+  private getGlyphOperationExplainabilityThreshold(operation: string): ExplainabilityScore {
+    switch (operation) {
+      case 'bind':
+      case 'unbind':
+        // Quantum-glyph bindings require highest explainability due to quantum no-cloning implications
+        return 0.95 as ExplainabilityScore;
+      
+      case 'space':
+        // Multi-dimensional spaces require high mathematical rigor
+        return 0.90 as ExplainabilityScore;
+      
+      case 'transform':
+        // Transformations can be complex, especially topology-changing ones
+        return 0.88 as ExplainabilityScore;
+      
+      case 'optimize':
+        // Optimizations need clear justification and performance metrics
+        return 0.88 as ExplainabilityScore;
+      
+      case 'compose':
+        // Compositions need logical reasoning about how glyphs combine
+        return 0.85 as ExplainabilityScore;
+      
+      case 'pattern':
+        // Pattern matching needs clear criteria and accuracy metrics
+        return 0.83 as ExplainabilityScore;
+      
+      case 'animate':
+      case 'react':
+        // Animation and reactive behaviors need clear temporal logic
+        return 0.82 as ExplainabilityScore;
+      
+      case 'destroy':
+        // Destruction needs clear justification but is conceptually simple
+        return 0.80 as ExplainabilityScore;
+      
+      default:
+        // Default threshold for unknown glyph operations
+        return 0.85 as ExplainabilityScore;
+    }
+  }
+
+  /**
+   * Validate that a glyph operation meets safety and explainability requirements
+   */
+  private validateGlyphOperationSafety(
+    operation: string, 
+    glyphContext: any, 
+    explainabilityScore: ExplainabilityScore
+  ): VerificationViolation[] {
+    const violations: VerificationViolation[] = [];
+    
+    // Additional safety validations can be added here as needed
+    // For example, checking for dangerous parameter combinations
+    
+    if (operation === 'bind' && glyphContext?.quantumStateId) {
+      // Extra safety check for quantum bindings
+      if (!glyphContext.coherenceRequirements) {
+        violations.push({
+          type: 'safety_constraint',
+          severity: 'error',
+          message: 'Quantum-glyph binding requires explicit coherence requirements',
+          suggestion: 'Specify minimum coherence and decoherence rate thresholds'
+        });
+      }
+    }
+    
+    return violations;
   }
 }
 
