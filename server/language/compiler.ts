@@ -35,29 +35,13 @@ import {
 
 import { QuantumDimension, QuantumOperationType } from '../../shared/schema';
 import { HumanOversightLevel, OperationCriticality } from '../../shared/types/ai-types';
+import { InstructionOpcode, PARSER_TOKEN_TO_OPCODE, isValidOpcode } from '../../shared/instruction-opcodes';
 
-// Instruction types
-export type InstructionType = 
-  | 'QKD_INIT'
-  | 'CONTRACT_START'
-  | 'MODEL_DEPLOY'
-  | 'LEDGER_SYNC'
-  | 'PARADOX_RESOLVE'
-  | 'AI_NEGOTIATE'
-  | 'AI_VERIFY'
-  | 'QUANTUM_DECISION'
-  | 'ENFORCE'
-  // Distributed Quantum Operations
-  | 'WITH_NODE'
-  | 'WITH_CHANNEL' 
-  | 'ENTANGLE_REMOTE'
-  | 'TELEPORT'
-  | 'SWAP'
-  | 'BARRIER'
-  | 'SCHEDULE_WINDOW';
+// Use shared instruction types to prevent compiler/interpreter drift
+export type InstructionType = InstructionOpcode;
 
 // Parsed instruction
-export type ParsedInstruction = [InstructionType, ...string[]];
+export type ParsedInstruction = [InstructionOpcode, ...string[]];
 
 // Token type
 export type Token = string;
@@ -296,16 +280,6 @@ export class SingularisPrimeCompiler {
           }
           break;
           
-        case 'resolveParadox':
-          if (i + 3 < tokens.length) {
-            const dataSource = tokens[i + 1];
-            const method = tokens[i + 3].replace(/[;]/g, '');
-            parsed.push(['PARADOX_RESOLVE', dataSource, method]);
-            i += 4;
-          } else {
-            i += 1;
-          }
-          break;
           
         case 'negotiateAI':
           if (i + 5 < tokens.length) {
@@ -422,6 +396,184 @@ export class SingularisPrimeCompiler {
             i += 1;
           }
           break;
+
+        // Paradox Resolution Engine Language Constructs
+        case 'paradoxCheck':
+          if (i + 1 < tokens.length) {
+            const sensitivity = tokens[i + 1].replace(/[;]/g, '');
+            parsed.push(['PARADOX_CHECK', sensitivity || 'medium']);
+            i += 2;
+          } else {
+            parsed.push(['PARADOX_CHECK', 'medium']);
+            i += 1;
+          }
+          break;
+
+        case 'resolveParadox':
+          if (i + 3 < tokens.length) {
+            const paradoxType = tokens[i + 1];
+            const strategy = tokens[i + 3].replace(/[;]/g, '');
+            parsed.push(['RESOLVE_PARADOX', paradoxType, strategy]);
+            i += 4;
+          } else {
+            i += 1;
+          }
+          break;
+
+        case 'optimizeLoop':
+          if (i + 2 < tokens.length) {
+            const loopId = tokens[i + 1];
+            const strategy = tokens[i + 2].replace(/[;]/g, '');
+            parsed.push(['OPTIMIZE_LOOP', loopId, strategy || 'automatic']);
+            i += 3;
+          } else {
+            i += 1;
+          }
+          break;
+
+        case 'recursive':
+          if (i + 4 < tokens.length) {
+            const functionName = tokens[i + 1];
+            const maxDepth = tokens[i + 3];
+            const memoize = tokens[i + 4].replace(/[;]/g, '');
+            parsed.push(['RECURSIVE', functionName, maxDepth, memoize]);
+            i += 5;
+          } else {
+            i += 1;
+          }
+          break;
+
+        case 'convergence':
+          if (i + 2 < tokens.length) {
+            const threshold = tokens[i + 1];
+            const timeout = tokens[i + 2].replace(/[;]/g, '');
+            parsed.push(['CONVERGENCE', threshold, timeout]);
+            i += 3;
+          } else {
+            i += 1;
+          }
+          break;
+
+        case 'temporalLoopCheck':
+          if (i + 1 < tokens.length) {
+            const enabled = tokens[i + 1].replace(/[;]/g, '');
+            parsed.push(['TEMPORAL_LOOP_CHECK', enabled]);
+            i += 2;
+          } else {
+            parsed.push(['TEMPORAL_LOOP_CHECK', 'true']);
+            i += 1;
+          }
+          break;
+
+        case 'causalConsistencyCheck':
+          if (i + 1 < tokens.length) {
+            const enabled = tokens[i + 1].replace(/[;]/g, '');
+            parsed.push(['CAUSAL_CONSISTENCY_CHECK', enabled]);
+            i += 2;
+          } else {
+            parsed.push(['CAUSAL_CONSISTENCY_CHECK', 'true']);
+            i += 1;
+          }
+          break;
+
+        case 'quantumParadoxHandle':
+          if (i + 3 < tokens.length) {
+            const paradoxType = tokens[i + 1];
+            const strategy = tokens[i + 3].replace(/[;]/g, '');
+            parsed.push(['QUANTUM_PARADOX_HANDLE', paradoxType, strategy]);
+            i += 4;
+          } else {
+            i += 1;
+          }
+          break;
+
+        case 'selfOptimize':
+          if (i + 2 < tokens.length) {
+            const target = tokens[i + 1];
+            const sensitivity = tokens[i + 2].replace(/[;]/g, '');
+            parsed.push(['SELF_OPTIMIZE', target, sensitivity || 'moderate']);
+            i += 3;
+          } else {
+            i += 1;
+          }
+          break;
+
+        case 'recursiveEval':
+          if (i + 3 < tokens.length) {
+            const functionId = tokens[i + 1];
+            const context = tokens[i + 3].replace(/[;]/g, '');
+            parsed.push(['RECURSIVE_EVAL', functionId, context]);
+            i += 4;
+          } else {
+            i += 1;
+          }
+          break;
+
+        case 'memoize':
+          if (i + 2 < tokens.length) {
+            const functionId = tokens[i + 1];
+            const cacheSize = tokens[i + 2].replace(/[;]/g, '');
+            parsed.push(['MEMOIZE', functionId, cacheSize || '1000']);
+            i += 3;
+          } else {
+            i += 1;
+          }
+          break;
+
+        case 'tailCallOptimize':
+          if (i + 1 < tokens.length) {
+            const enabled = tokens[i + 1].replace(/[;]/g, '');
+            parsed.push(['TAIL_CALL_OPTIMIZE', enabled]);
+            i += 2;
+          } else {
+            parsed.push(['TAIL_CALL_OPTIMIZE', 'true']);
+            i += 1;
+          }
+          break;
+
+        case 'stackOverflowCheck':
+          if (i + 1 < tokens.length) {
+            const threshold = tokens[i + 1].replace(/[;]/g, '');
+            parsed.push(['STACK_OVERFLOW_CHECK', threshold || '1000']);
+            i += 2;
+          } else {
+            parsed.push(['STACK_OVERFLOW_CHECK', '1000']);
+            i += 1;
+          }
+          break;
+
+        case 'rollbackPoint':
+          if (i + 2 < tokens.length) {
+            const pointId = tokens[i + 1];
+            const description = tokens[i + 2].replace(/[;]/g, '');
+            parsed.push(['ROLLBACK_POINT', pointId, description]);
+            i += 3;
+          } else {
+            i += 1;
+          }
+          break;
+
+        case 'enableMonitoring':
+          if (i + 1 < tokens.length) {
+            const type = tokens[i + 1].replace(/[;]/g, '');
+            parsed.push(['ENABLE_MONITORING', type || 'all']);
+            i += 2;
+          } else {
+            parsed.push(['ENABLE_MONITORING', 'all']);
+            i += 1;
+          }
+          break;
+
+        case 'disableMonitoring':
+          if (i + 1 < tokens.length) {
+            const type = tokens[i + 1].replace(/[;]/g, '');
+            parsed.push(['DISABLE_MONITORING', type || 'all']);
+            i += 2;
+          } else {
+            parsed.push(['DISABLE_MONITORING', 'all']);
+            i += 1;
+          }
+          break;
           
         default:
           // Enhanced error handling for unknown tokens
@@ -493,7 +645,7 @@ export class SingularisPrimeCompiler {
           bytecode.push(`SYNC_LEDGER ${args[0]}`);
           break;
           
-        case 'PARADOX_RESOLVE':
+        case 'RESOLVE_PARADOX':
           bytecode.push(`RESOLVE_PARADOX ${args[0]} ${args[1]}`);
           break;
           
@@ -536,6 +688,71 @@ export class SingularisPrimeCompiler {
           
         case 'SCHEDULE_WINDOW':
           bytecode.push(`SCHEDULE_EXECUTION ${args[0]} ${args[1]} ${args[2]}`);
+          break;
+
+        // Paradox Resolution Engine Bytecode Generation (CANONICAL OPCODES)
+        case 'PARADOX_CHECK':
+          bytecode.push(`PARADOX_CHECK ${args[0]}`);
+          break;
+
+        case 'RESOLVE_PARADOX':
+          bytecode.push(`RESOLVE_PARADOX ${args[0]} ${args[1]}`);
+          break;
+
+        case 'OPTIMIZE_LOOP':
+          bytecode.push(`OPTIMIZE_LOOP ${args[0]} ${args[1]}`);
+          break;
+
+        case 'RECURSIVE':
+          bytecode.push(`RECURSIVE ${args[0]} ${args[1]} ${args[2]}`);
+          break;
+
+        case 'CONVERGENCE':
+          bytecode.push(`CONVERGENCE ${args[0]} ${args[1]}`);
+          break;
+
+        case 'TEMPORAL_LOOP_CHECK':
+          bytecode.push(`TEMPORAL_LOOP_CHECK ${args[0]}`);
+          break;
+
+        case 'CAUSAL_CONSISTENCY_CHECK':
+          bytecode.push(`CAUSAL_CONSISTENCY_CHECK ${args[0]}`);
+          break;
+
+        case 'QUANTUM_PARADOX_HANDLE':
+          bytecode.push(`QUANTUM_PARADOX_HANDLE ${args[0]} ${args[1]}`);
+          break;
+
+        case 'SELF_OPTIMIZE':
+          bytecode.push(`SELF_OPTIMIZE ${args[0]} ${args[1]}`);
+          break;
+
+        case 'RECURSIVE_EVAL':
+          bytecode.push(`RECURSIVE_EVAL ${args[0]} ${args[1]}`);
+          break;
+
+        case 'MEMOIZE':
+          bytecode.push(`MEMOIZE ${args[0]} ${args[1]}`);
+          break;
+
+        case 'TAIL_CALL_OPTIMIZE':
+          bytecode.push(`TAIL_CALL_OPTIMIZE ${args[0]}`);
+          break;
+
+        case 'STACK_OVERFLOW_CHECK':
+          bytecode.push(`STACK_OVERFLOW_CHECK ${args[0]}`);
+          break;
+
+        case 'ROLLBACK_POINT':
+          bytecode.push(`ROLLBACK_POINT ${args[0]} ${args[1]}`);
+          break;
+
+        case 'ENABLE_MONITORING':
+          bytecode.push(`ENABLE_MONITORING ${args[0]}`);
+          break;
+
+        case 'DISABLE_MONITORING':
+          bytecode.push(`DISABLE_MONITORING ${args[0]}`);
           break;
       }
     }
@@ -699,7 +916,7 @@ export class SingularisPrimeCompiler {
       'CONTRACT_START': 'AIContractDeclaration',
       'MODEL_DEPLOY': 'AIEntityDeclaration',
       'LEDGER_SYNC': 'VariableReference',
-      'PARADOX_RESOLVE': 'QuantumOperationCall',
+      'RESOLVE_PARADOX': 'QuantumOperationCall',
       'AI_NEGOTIATE': 'AIDecisionCall',
       'AI_VERIFY': 'AIDecisionCall',
       'QUANTUM_DECISION': 'QuantumOperationCall',
@@ -903,7 +1120,7 @@ export class SingularisPrimeCompiler {
           break;
         }
           
-        case 'PARADOX_RESOLVE': {
+        case 'RESOLVE_PARADOX': {
           const resolver = new ParadoxResolver(args[0], args[1]);
           context[args[0] + '_resolver'] = resolver;
           objects.push({

@@ -1201,3 +1201,529 @@ export type EPRPair = typeof eprPairs.$inferSelect;
 
 export type InsertDistributedQuantumState = z.infer<typeof insertDistributedQuantumStateSchema>;
 export type DistributedQuantumState = typeof distributedQuantumStates.$inferSelect;
+
+// =============================================================================
+// PARADOX RESOLUTION ENGINE SCHEMAS
+// =============================================================================
+
+// Paradox Resolution Types
+export enum ParadoxResolutionType {
+  QUANTUM_INFORMATION = "quantum_information",
+  TEMPORAL_LOOP = "temporal_loop",
+  CAUSAL_VIOLATION = "causal_violation",
+  MEASUREMENT_OBSERVER = "measurement_observer",
+  ENTANGLEMENT_CONTRADICTION = "entanglement_contradiction",
+  INFORMATION_CONSERVATION = "information_conservation",
+  BOOTSTRAP_PARADOX = "bootstrap_paradox",
+  SCHRODINGERS_CAT = "schrodingers_cat",
+  EPR_PARADOX = "epr_paradox"
+}
+
+export enum ParadoxSeverityLevel {
+  LOW = "low",
+  MEDIUM = "medium", 
+  HIGH = "high",
+  CRITICAL = "critical",
+  FATAL = "fatal"
+}
+
+export enum ResolutionStrategyType {
+  AUTOMATIC = "automatic",
+  STATISTICAL = "statistical",
+  QUANTUM_DECOHERENCE = "quantum_decoherence",
+  MEASUREMENT_COLLAPSE = "measurement_collapse",
+  ROLLBACK = "rollback",
+  RECOMPUTE = "recompute",
+  HUMAN_OVERSIGHT = "human_oversight",
+  GRACEFUL_DEGRADATION = "graceful_degradation",
+  MANY_WORLDS_BRANCHING = "many_worlds_branching",
+  INFORMATION_PRESERVATION = "information_preservation"
+}
+
+// Detected Paradoxes
+export const detectedParadoxes = pgTable("detected_paradoxes", {
+  id: serial("id").primaryKey(),
+  paradoxId: text("paradox_id").notNull().unique(),
+  projectId: integer("project_id").references(() => singularisProjects.id),
+  type: text("type").notNull(), // ParadoxResolutionType enum
+  severity: text("severity").notNull(), // ParadoxSeverityLevel enum
+  description: text("description").notNull(),
+  
+  // Detection context
+  detectionMethod: text("detection_method").notNull(),
+  sourceLocation: jsonb("source_location"), // {line, column, file}
+  codeFragment: text("code_fragment"),
+  algorithmicContext: text("algorithmic_context"),
+  
+  // Affected quantum states
+  involvedStates: jsonb("involved_states"), // Array of QuantumReferenceId
+  quantumOperations: jsonb("quantum_operations"), // Array of operation traces
+  entanglementHistory: jsonb("entanglement_history"), // Array of entanglement events
+  measurementHistory: jsonb("measurement_history"), // Array of measurement events
+  temporalSequence: jsonb("temporal_sequence"), // Array of temporal events
+  
+  // Causal analysis
+  causalChain: jsonb("causal_chain"), // Array of causal events
+  causalViolations: jsonb("causal_violations"), // Array of violations
+  lightconeValid: boolean("lightcone_valid").default(true),
+  spacelikeEvents: jsonb("spacelike_events"), // Array of spacelike events
+  
+  // Resolution tracking
+  resolved: boolean("resolved").default(false),
+  resolutionStrategy: text("resolution_strategy"), // ResolutionStrategyType enum
+  resolutionAttempts: integer("resolution_attempts").default(0),
+  lastResolutionAttempt: timestamp("last_resolution_attempt"),
+  
+  // Explainability and oversight
+  explainabilityScore: text("explainability_score").notNull(), // decimal as string
+  humanOversightRequired: boolean("human_oversight_required").default(false),
+  humanOversightCompleted: boolean("human_oversight_completed").default(false),
+  oversightUserId: integer("oversight_user_id").references(() => users.id),
+  oversightNotes: text("oversight_notes"),
+  
+  // Metadata
+  detectedAt: timestamp("detected_at").notNull().defaultNow(),
+  resolvedAt: timestamp("resolved_at"),
+  lastUpdated: timestamp("last_updated").notNull().defaultNow(),
+});
+
+// Paradox Resolution History
+export const paradoxResolutions = pgTable("paradox_resolutions", {
+  id: serial("id").primaryKey(),
+  resolutionId: text("resolution_id").notNull().unique(),
+  paradoxId: text("paradox_id").notNull().references(() => detectedParadoxes.paradoxId),
+  projectId: integer("project_id").references(() => singularisProjects.id),
+  
+  // Resolution details
+  strategy: text("strategy").notNull(), // ResolutionStrategyType enum
+  success: boolean("success").notNull(),
+  explanation: text("explanation").notNull(),
+  explainabilityScore: text("explainability_score").notNull(), // decimal as string
+  
+  // Resolution steps
+  stepsExecuted: jsonb("steps_executed").notNull(), // Array of resolution steps
+  statesModified: jsonb("states_modified"), // Array of QuantumReferenceId
+  entanglementChanges: jsonb("entanglement_changes"), // Array of entanglement events
+  measurementsCaused: jsonb("measurements_caused"), // Array of measurement events
+  
+  // Performance metrics
+  executionTime: integer("execution_time").notNull(), // milliseconds
+  memoryUsed: integer("memory_used").notNull(), // bytes
+  quantumOperations: integer("quantum_operations").default(0),
+  classicalOperations: integer("classical_operations").default(0),
+  
+  // Impact assessment
+  quantumStatesAffected: integer("quantum_states_affected").default(0),
+  entanglementChanged: boolean("entanglement_changed").default(false),
+  coherenceLoss: text("coherence_loss").default("0"), // decimal as string
+  informationPreserved: boolean("information_preserved").default(true),
+  unitarityMaintained: boolean("unitarity_maintained").default(true),
+  causalConsistency: boolean("causal_consistency").default(true),
+  
+  // Rollback information
+  rollbackPoints: jsonb("rollback_points"), // Array of rollback points
+  rollbackUsed: boolean("rollback_used").default(false),
+  rollbackReason: text("rollback_reason"),
+  
+  // Human oversight
+  humanInteractions: integer("human_interactions").default(0),
+  humanApprovalRequired: boolean("human_approval_required").default(false),
+  humanApprovalReceived: boolean("human_approval_received").default(false),
+  approvedBy: integer("approved_by").references(() => users.id),
+  approvalNotes: text("approval_notes"),
+  
+  // Warnings and issues
+  warnings: jsonb("warnings"), // Array of resolution warnings
+  errors: jsonb("errors"), // Array of resolution errors
+  
+  // Metadata
+  startTime: timestamp("start_time").notNull(),
+  endTime: timestamp("end_time"),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+});
+
+// Self-Optimizing Loop Patterns
+export const loopOptimizationPatterns = pgTable("loop_optimization_patterns", {
+  id: serial("id").primaryKey(),
+  patternId: text("pattern_id").notNull().unique(),
+  projectId: integer("project_id").references(() => singularisProjects.id),
+  
+  // Pattern identification
+  loopSignature: text("loop_signature").notNull(),
+  patternType: text("pattern_type").notNull(), // LoopPatternType enum
+  functionName: text("function_name"),
+  sourceLocation: jsonb("source_location"), // {line, column, file}
+  
+  // Loop characteristics
+  iterationBounds: jsonb("iteration_bounds").notNull(), // IterationBounds
+  convergenceProperties: jsonb("convergence_properties").notNull(), // ConvergenceProperties
+  resourcePattern: jsonb("resource_pattern").notNull(), // ResourcePattern
+  quantumFeatures: jsonb("quantum_features").notNull(), // QuantumLoopFeatures
+  temporalFeatures: jsonb("temporal_features").notNull(), // TemporalFeatures
+  complexityMetrics: jsonb("complexity_metrics").notNull(), // ComplexityMetrics
+  
+  // Optimization opportunities
+  optimizationStrategies: jsonb("optimization_strategies"), // Array of strategies
+  optimizationRecommendations: jsonb("optimization_recommendations"), // Array of recommendations
+  riskAssessment: jsonb("risk_assessment").notNull(), // LoopRiskAssessment
+  
+  // Performance baselines
+  baselineMetrics: jsonb("baseline_metrics"), // LoopPerformanceMetrics
+  optimizedMetrics: jsonb("optimized_metrics"), // LoopPerformanceMetrics
+  performanceGain: text("performance_gain").default("0"), // decimal as string
+  resourceSaving: text("resource_saving").default("0"), // decimal as string
+  
+  // Pattern recognition confidence
+  confidenceScore: text("confidence_score").notNull(), // decimal as string
+  detectionMethod: text("detection_method").notNull(),
+  patternMatches: integer("pattern_matches").default(1),
+  falsePositives: integer("false_positives").default(0),
+  
+  // Usage tracking
+  timesOptimized: integer("times_optimized").default(0),
+  lastOptimization: timestamp("last_optimization"),
+  averageOptimizationGain: text("average_optimization_gain").default("0"), // decimal as string
+  
+  // Metadata
+  detectedAt: timestamp("detected_at").notNull().defaultNow(),
+  lastUpdated: timestamp("last_updated").notNull().defaultNow(),
+});
+
+// Recursive Function Evaluations
+export const recursiveEvaluations = pgTable("recursive_evaluations", {
+  id: serial("id").primaryKey(),
+  evaluationId: text("evaluation_id").notNull().unique(),
+  projectId: integer("project_id").references(() => singularisProjects.id),
+  
+  // Function context
+  functionId: text("function_id").notNull(),
+  functionName: text("function_name").notNull(),
+  recursionType: text("recursion_type").notNull(), // RecursionType enum
+  maxDepth: integer("max_depth").notNull(),
+  maxDepthReached: integer("max_depth_reached").notNull(),
+  
+  // Execution context
+  parameters: jsonb("parameters").notNull(),
+  quantumStates: jsonb("quantum_states"), // Array of QuantumReferenceId
+  callSite: jsonb("call_site").notNull(), // CallSite information
+  parentEvaluationId: text("parent_evaluation_id"),
+  
+  // Execution results
+  success: boolean("success").notNull(),
+  result: jsonb("result"),
+  errors: jsonb("errors"), // Array of recursion errors
+  
+  // Performance metrics
+  totalCalls: integer("total_calls").notNull(),
+  executionTime: integer("execution_time").notNull(), // milliseconds
+  memoryUsage: integer("memory_usage").notNull(), // bytes
+  quantumResourceUsage: jsonb("quantum_resource_usage").notNull(), // QuantumResourceUsage
+  stackOverflowPrevented: boolean("stack_overflow_prevented").default(false),
+  
+  // Optimizations applied
+  optimizationsApplied: jsonb("optimizations_applied"), // Array of optimizations
+  cacheHits: integer("cache_hits").default(0),
+  cacheMisses: integer("cache_misses").default(0),
+  cacheEfficiency: text("cache_efficiency").default("0"), // decimal as string
+  tailCallsOptimized: integer("tail_calls_optimized").default(0),
+  
+  // Quantum state changes
+  quantumStateChanges: jsonb("quantum_state_changes"), // Array of state changes
+  coherencePreservation: text("coherence_preservation").default("1.0"), // decimal as string
+  entanglementMaintained: boolean("entanglement_maintained").default(true),
+  
+  // Memoization data
+  memoizationUsed: boolean("memoization_used").default(false),
+  memoizationKey: text("memoization_key"),
+  computationCost: integer("computation_cost").default(0),
+  
+  // Explainability
+  explanation: text("explanation").notNull(),
+  explainabilityScore: text("explainability_score").notNull(), // decimal as string
+  
+  // Metadata
+  startTime: timestamp("start_time").notNull(),
+  endTime: timestamp("end_time"),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+});
+
+// Quantum Paradox Handler Results
+export const quantumParadoxHandlerResults = pgTable("quantum_paradox_handler_results", {
+  id: serial("id").primaryKey(),
+  handlerResultId: text("handler_result_id").notNull().unique(),
+  paradoxId: text("paradox_id").notNull().references(() => detectedParadoxes.paradoxId),
+  projectId: integer("project_id").references(() => singularisProjects.id),
+  
+  // Paradox specifics
+  quantumParadoxType: text("quantum_paradox_type").notNull(), // QuantumParadoxType enum
+  paradoxData: jsonb("paradox_data").notNull(), // Specific paradox state data
+  
+  // Resolution details
+  resolutionStrategy: text("resolution_strategy").notNull(), // QuantumResolutionStrategy enum
+  success: boolean("success").notNull(),
+  explanation: text("explanation").notNull(),
+  explainabilityScore: text("explainability_score").notNull(), // decimal as string
+  
+  // Quantum effects
+  quantumStateChanges: jsonb("quantum_state_changes"), // Array of quantum state changes
+  informationPreserved: boolean("information_preserved").default(true),
+  unitarityMaintained: boolean("unitarity_maintained").default(true),
+  causalConsistency: boolean("causal_consistency").default(true),
+  
+  // Schrödinger's Cat specific
+  catStates: jsonb("cat_states"), // SchrodingersCatState data
+  observationAttempts: jsonb("observation_attempts"), // Array of observation attempts
+  collapseEvents: jsonb("collapse_events"), // Array of collapse events
+  superpositionResolved: boolean("superposition_resolved").default(false),
+  
+  // EPR Paradox specific
+  eprStates: jsonb("epr_states"), // EPRParadoxState data
+  entangledPairs: jsonb("entangled_pairs"), // Array of entangled pairs
+  simultaneousMeasurements: jsonb("simultaneous_measurements"), // Array of measurements
+  localRealismViolations: jsonb("local_realism_violations"), // Array of violations
+  bellInequalityResults: jsonb("bell_inequality_results"), // Array of test results
+  
+  // Information Paradox specific
+  informationFlow: jsonb("information_flow"), // Array of information flow events
+  conservationViolations: jsonb("conservation_violations"), // Array of violations
+  unitarityTests: jsonb("unitarity_tests"), // Array of unitarity tests
+  entanglementEntropy: jsonb("entanglement_entropy"), // Array of entropy measures
+  
+  // Bootstrap Paradox specific
+  informationLoops: jsonb("information_loops"), // Array of information loops
+  causalLoops: jsonb("causal_loops"), // Array of causal loops
+  selfConsistencyAnalysis: jsonb("self_consistency_analysis"), // SelfConsistencyAnalysis
+  retroactiveEffects: jsonb("retroactive_effects"), // Array of retroactive effects
+  
+  // Performance metrics
+  processingTime: integer("processing_time").notNull(), // milliseconds
+  quantumResourcesUsed: jsonb("quantum_resources_used"), // QuantumResourceUsage
+  classicalResourcesUsed: jsonb("classical_resources_used"), // Classical resource usage
+  
+  // Human oversight
+  humanOversightRequired: boolean("human_oversight_required").default(false),
+  humanOversightProvided: boolean("human_oversight_provided").default(false),
+  oversightUserId: integer("oversight_user_id").references(() => users.id),
+  oversightDecision: text("oversight_decision"), // approve/reject/modify
+  oversightReasoning: text("oversight_reasoning"),
+  
+  // Metadata
+  handledAt: timestamp("handled_at").notNull().defaultNow(),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+});
+
+// Paradox Resolution System Configuration
+export const paradoxResolutionConfig = pgTable("paradox_resolution_config", {
+  id: serial("id").primaryKey(),
+  configId: text("config_id").notNull().unique(),
+  projectId: integer("project_id").references(() => singularisProjects.id),
+  
+  // Detection configuration
+  enableRealTimeDetection: boolean("enable_real_time_detection").default(true),
+  detectionSensitivity: text("detection_sensitivity").default("high"), // low/medium/high/maximum
+  monitoringInterval: integer("monitoring_interval").default(100), // milliseconds
+  
+  // Resolution thresholds
+  autoResolutionThreshold: text("auto_resolution_threshold").default("medium"), // ParadoxSeverityLevel
+  humanOversightThreshold: text("human_oversight_threshold").default("high"), // ParadoxSeverityLevel
+  explainabilityThreshold: text("explainability_threshold").default("0.85"), // decimal as string
+  maxResolutionTime: integer("max_resolution_time").default(30000), // milliseconds
+  
+  // Loop optimization settings
+  enableLoopOptimization: boolean("enable_loop_optimization").default(true),
+  optimizationSensitivity: text("optimization_sensitivity").default("moderate"), // conservative/moderate/aggressive
+  performanceThreshold: text("performance_threshold").default("0.1"), // decimal as string
+  maxOptimizationAttempts: integer("max_optimization_attempts").default(3),
+  
+  // Recursion settings
+  maxRecursionDepth: integer("max_recursion_depth").default(1000),
+  enableMemoization: boolean("enable_memoization").default(true),
+  enableTailCallOptimization: boolean("enable_tail_call_optimization").default(true),
+  memoizationCacheSize: integer("memoization_cache_size").default(1000),
+  
+  // Quantum specific settings
+  enableTemporalLoopDetection: boolean("enable_temporal_loop_detection").default(true),
+  enableCausalConsistencyChecking: boolean("enable_causal_consistency_checking").default(true),
+  coherencePreservationThreshold: text("coherence_preservation_threshold").default("0.9"), // decimal as string
+  quantumStackLimit: integer("quantum_stack_limit").default(100),
+  
+  // Rollback settings
+  rollbackCapacity: integer("rollback_capacity").default(10),
+  enableAutoRollback: boolean("enable_auto_rollback").default(true),
+  rollbackOnCriticalParadox: boolean("rollback_on_critical_paradox").default(true),
+  
+  // Notification settings
+  notifyOnParadoxDetection: boolean("notify_on_paradox_detection").default(true),
+  notifyOnResolutionFailure: boolean("notify_on_resolution_failure").default(true),
+  notifyOnHumanOversightRequired: boolean("notify_on_human_oversight_required").default(true),
+  
+  // Metadata
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
+  isActive: boolean("is_active").default(true),
+});
+
+// Insert schemas for paradox resolution tables
+export const insertDetectedParadoxSchema = createInsertSchema(detectedParadoxes).pick({
+  paradoxId: true,
+  projectId: true,
+  type: true,
+  severity: true,
+  description: true,
+  detectionMethod: true,
+  sourceLocation: true,
+  codeFragment: true,
+  algorithmicContext: true,
+  involvedStates: true,
+  quantumOperations: true,
+  entanglementHistory: true,
+  measurementHistory: true,
+  temporalSequence: true,
+  causalChain: true,
+  causalViolations: true,
+  lightconeValid: true,
+  spacelikeEvents: true,
+  explainabilityScore: true,
+  humanOversightRequired: true,
+});
+
+export const insertParadoxResolutionSchema = createInsertSchema(paradoxResolutions).pick({
+  resolutionId: true,
+  paradoxId: true,
+  projectId: true,
+  strategy: true,
+  success: true,
+  explanation: true,
+  explainabilityScore: true,
+  stepsExecuted: true,
+  statesModified: true,
+  entanglementChanges: true,
+  measurementsCaused: true,
+  executionTime: true,
+  memoryUsed: true,
+  quantumOperations: true,
+  classicalOperations: true,
+  quantumStatesAffected: true,
+  entanglementChanged: true,
+  coherenceLoss: true,
+  informationPreserved: true,
+  unitarityMaintained: true,
+  causalConsistency: true,
+  rollbackPoints: true,
+  humanInteractions: true,
+  warnings: true,
+  startTime: true,
+  endTime: true,
+});
+
+export const insertLoopOptimizationPatternSchema = createInsertSchema(loopOptimizationPatterns).pick({
+  patternId: true,
+  projectId: true,
+  loopSignature: true,
+  patternType: true,
+  functionName: true,
+  sourceLocation: true,
+  iterationBounds: true,
+  convergenceProperties: true,
+  resourcePattern: true,
+  quantumFeatures: true,
+  temporalFeatures: true,
+  complexityMetrics: true,
+  optimizationStrategies: true,
+  optimizationRecommendations: true,
+  riskAssessment: true,
+  baselineMetrics: true,
+  confidenceScore: true,
+  detectionMethod: true,
+});
+
+export const insertRecursiveEvaluationSchema = createInsertSchema(recursiveEvaluations).pick({
+  evaluationId: true,
+  projectId: true,
+  functionId: true,
+  functionName: true,
+  recursionType: true,
+  maxDepth: true,
+  maxDepthReached: true,
+  parameters: true,
+  quantumStates: true,
+  callSite: true,
+  parentEvaluationId: true,
+  success: true,
+  result: true,
+  totalCalls: true,
+  executionTime: true,
+  memoryUsage: true,
+  quantumResourceUsage: true,
+  optimizationsApplied: true,
+  quantumStateChanges: true,
+  explanation: true,
+  explainabilityScore: true,
+  startTime: true,
+  endTime: true,
+});
+
+export const insertQuantumParadoxHandlerResultSchema = createInsertSchema(quantumParadoxHandlerResults).pick({
+  handlerResultId: true,
+  paradoxId: true,
+  projectId: true,
+  quantumParadoxType: true,
+  paradoxData: true,
+  resolutionStrategy: true,
+  success: true,
+  explanation: true,
+  explainabilityScore: true,
+  quantumStateChanges: true,
+  informationPreserved: true,
+  unitarityMaintained: true,
+  causalConsistency: true,
+  processingTime: true,
+  quantumResourcesUsed: true,
+  humanOversightRequired: true,
+});
+
+export const insertParadoxResolutionConfigSchema = createInsertSchema(paradoxResolutionConfig).pick({
+  configId: true,
+  projectId: true,
+  enableRealTimeDetection: true,
+  detectionSensitivity: true,
+  monitoringInterval: true,
+  autoResolutionThreshold: true,
+  humanOversightThreshold: true,
+  explainabilityThreshold: true,
+  maxResolutionTime: true,
+  enableLoopOptimization: true,
+  optimizationSensitivity: true,
+  performanceThreshold: true,
+  maxOptimizationAttempts: true,
+  maxRecursionDepth: true,
+  enableMemoization: true,
+  enableTailCallOptimization: true,
+  memoizationCacheSize: true,
+  enableTemporalLoopDetection: true,
+  enableCausalConsistencyChecking: true,
+  coherencePreservationThreshold: true,
+  quantumStackLimit: true,
+  rollbackCapacity: true,
+  enableAutoRollback: true,
+  rollbackOnCriticalParadox: true,
+});
+
+// Paradox resolution types
+export type InsertDetectedParadox = z.infer<typeof insertDetectedParadoxSchema>;
+export type DetectedParadox = typeof detectedParadoxes.$inferSelect;
+
+export type InsertParadoxResolution = z.infer<typeof insertParadoxResolutionSchema>;
+export type ParadoxResolution = typeof paradoxResolutions.$inferSelect;
+
+export type InsertLoopOptimizationPattern = z.infer<typeof insertLoopOptimizationPatternSchema>;
+export type LoopOptimizationPattern = typeof loopOptimizationPatterns.$inferSelect;
+
+export type InsertRecursiveEvaluation = z.infer<typeof insertRecursiveEvaluationSchema>;
+export type RecursiveEvaluation = typeof recursiveEvaluations.$inferSelect;
+
+export type InsertQuantumParadoxHandlerResult = z.infer<typeof insertQuantumParadoxHandlerResultSchema>;
+export type QuantumParadoxHandlerResult = typeof quantumParadoxHandlerResults.$inferSelect;
+
+export type InsertParadoxResolutionConfig = z.infer<typeof insertParadoxResolutionConfigSchema>;
+export type ParadoxResolutionConfig = typeof paradoxResolutionConfig.$inferSelect;

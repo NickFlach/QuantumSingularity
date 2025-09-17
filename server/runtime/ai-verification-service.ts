@@ -74,7 +74,7 @@ export interface VerificationEvent {
 
 export interface VerificationOperation {
   readonly id: string;
-  readonly type: 'ai_contract' | 'model_deployment' | 'decision_point' | 'quantum_operation' | 'quantum_memory' | 'verification_check' | 'distributed_quantum';
+  readonly type: 'ai_contract' | 'model_deployment' | 'decision_point' | 'quantum_operation' | 'quantum_memory' | 'verification_check' | 'distributed_quantum' | 'paradox_resolution' | 'loop_optimization' | 'recursive_evaluation' | 'quantum_paradox_handling' | 'self_optimization';
   readonly description: string;
   readonly criticality: OperationCriticality;
   readonly explainabilityRequirement: ExplainabilityScore;
@@ -97,6 +97,16 @@ export interface VerificationOperation {
       readonly requiredChannels: Set<ChannelId>;
       readonly networkMetadata: NetworkMetadata;
       readonly coherenceBudget: CoherenceBudget;
+    };
+    readonly paradoxOperation?: {
+      readonly operation: 'detection' | 'resolution' | 'loop_optimization' | 'recursive_evaluation' | 'quantum_paradox_handling' | 'self_optimization';
+      readonly paradoxType?: string;
+      readonly resolutionStrategy?: string;
+      readonly affectedQuantumStates: QuantumReferenceId[];
+      readonly temporalDependencies: string[];
+      readonly recursionDepth?: number;
+      readonly loopId?: string;
+      readonly optimizationGoals?: string[];
     };
   };
 }
@@ -295,7 +305,80 @@ export class AIVerificationService extends EventEmitter {
         }
       }
       
-      // 4. Compliance validation
+      // 4. Paradox operation-specific validation
+      if (operation.type === 'paradox_resolution' || operation.type === 'quantum_paradox_handling') {
+        if (explainabilityScore < 0.90) {
+          violations.push({
+            type: 'explainability_threshold',
+            severity: 'critical',
+            message: `Paradox resolution operations require explainability score ≥ 0.90, got ${explainabilityScore}`,
+            suggestion: 'Improve paradox resolution explainability or add human oversight',
+            location: operation.context.sourceLocation
+          });
+        }
+        
+        if (operation.oversightLevel === HumanOversightLevel.NONE && operation.criticality >= OperationCriticality.HIGH) {
+          violations.push({
+            type: 'human_oversight_missing',
+            severity: 'critical',
+            message: 'Complex paradox resolutions require human oversight',
+            suggestion: 'Add human supervision for paradox resolution operations',
+            location: operation.context.sourceLocation
+          });
+          humanOversightRequired = true;
+        }
+      }
+      
+      // 5. Loop optimization validation
+      if (operation.type === 'loop_optimization' || operation.type === 'self_optimization') {
+        if (explainabilityScore < 0.85) {
+          violations.push({
+            type: 'explainability_threshold',
+            severity: 'error',
+            message: `Loop optimization requires explainability score ≥ 0.85, got ${explainabilityScore}`,
+            suggestion: 'Provide clear optimization justification and metrics',
+            location: operation.context.sourceLocation
+          });
+        }
+        
+        // Validate optimization goals are clearly defined
+        if (operation.context.paradoxOperation?.optimizationGoals?.length === 0) {
+          violations.push({
+            type: 'safety_constraint',
+            severity: 'warning',
+            message: 'Loop optimization should have clearly defined optimization goals',
+            suggestion: 'Specify concrete performance or resource optimization targets',
+            location: operation.context.sourceLocation
+          });
+        }
+      }
+      
+      // 6. Recursive evaluation validation
+      if (operation.type === 'recursive_evaluation') {
+        const recursionDepth = operation.context.paradoxOperation?.recursionDepth || 0;
+        
+        if (recursionDepth > 1000) {
+          violations.push({
+            type: 'safety_constraint',
+            severity: 'critical',
+            message: `Recursive depth ${recursionDepth} exceeds safety threshold of 1000`,
+            suggestion: 'Reduce recursion depth or implement iterative approach',
+            location: operation.context.sourceLocation
+          });
+        }
+        
+        if (explainabilityScore < 0.80) {
+          violations.push({
+            type: 'explainability_threshold',
+            severity: 'error',
+            message: `Recursive evaluation requires explainability score ≥ 0.80, got ${explainabilityScore}`,
+            suggestion: 'Provide clear recursion termination and convergence explanation',
+            location: operation.context.sourceLocation
+          });
+        }
+      }
+
+      // 7. Compliance validation
       const complianceStatus = this.validateCompliance(operation);
       if (complianceStatus !== ComplianceStatus.COMPLIANT) {
         violations.push({

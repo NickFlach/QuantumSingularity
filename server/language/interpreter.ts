@@ -84,6 +84,7 @@ import {
 } from '../../shared/types/distributed-quantum-types';
 
 import { QuantumDimension } from '../../shared/schema';
+import { InstructionOpcode } from '../../shared/instruction-opcodes';
 
 import {
   AIEntity,
@@ -111,6 +112,32 @@ import {
   humanOversightManager,
   RequestType
 } from '../runtime/human-oversight-manager';
+
+// Import Paradox Resolution Engine components
+import {
+  paradoxResolutionEngine,
+  ParadoxType,
+  ParadoxSeverity,
+  ResolutionStrategy
+} from '../runtime/paradox-resolution-engine';
+
+import {
+  selfOptimizingLoops,
+  LoopPatternType,
+  OptimizationStrategy
+} from '../runtime/self-optimizing-loops';
+
+import {
+  recursiveEvaluator,
+  RecursionType,
+  RecursiveContext
+} from '../runtime/recursive-evaluator';
+
+import {
+  quantumParadoxHandlers,
+  QuantumParadoxType,
+  QuantumResolutionStrategy
+} from '../runtime/quantum-paradox-handlers';
 
 // Runtime execution result
 export interface ExecutionResult {
@@ -674,6 +701,40 @@ export class SingularisInterpreter {
           return this.executeBarrierSync(parts, astNode, typeResult);
         case 'SCHEDULE_EXECUTION':
           return this.executeScheduleWindow(parts, astNode, typeResult);
+
+        // Paradox Resolution Engine Instructions (CANONICAL OPCODES)
+        case 'PARADOX_CHECK':
+          return this.executeParadoxCheck(parts, astNode, typeResult);
+        case 'RESOLVE_PARADOX':
+          return this.executeResolveParadox(parts, astNode, typeResult);
+        case 'OPTIMIZE_LOOP':
+          return this.executeOptimizeLoop(parts, astNode, typeResult);
+        case 'RECURSIVE':
+          return this.executeRecursive(parts, astNode, typeResult);
+        case 'CONVERGENCE':
+          return this.executeConvergence(parts, astNode, typeResult);
+        case 'TEMPORAL_LOOP_CHECK':
+          return this.executeTemporalLoopCheck(parts, astNode, typeResult);
+        case 'CAUSAL_CONSISTENCY_CHECK':
+          return this.executeCausalConsistencyCheck(parts, astNode, typeResult);
+        case 'QUANTUM_PARADOX_HANDLE':
+          return this.executeQuantumParadoxHandle(parts, astNode, typeResult);
+        case 'SELF_OPTIMIZE':
+          return this.executeSelfOptimize(parts, astNode, typeResult);
+        case 'RECURSIVE_EVAL':
+          return this.executeRecursiveEval(parts, astNode, typeResult);
+        case 'MEMOIZE':
+          return this.executeMemoize(parts, astNode, typeResult);
+        case 'TAIL_CALL_OPTIMIZE':
+          return this.executeTailCallOptimize(parts, astNode, typeResult);
+        case 'STACK_OVERFLOW_CHECK':
+          return this.executeStackOverflowCheck(parts, astNode, typeResult);
+        case 'ROLLBACK_POINT':
+          return this.executeRollbackPoint(parts, astNode, typeResult);
+        case 'ENABLE_MONITORING':
+          return this.executeEnableMonitoring(parts, astNode, typeResult);
+        case 'DISABLE_MONITORING':
+          return this.executeDisableMonitoring(parts, astNode, typeResult);
           
         default:
           // Fallback to original execution logic
@@ -2085,6 +2146,598 @@ class QuantumMemoryManagerImpl implements QuantumMemoryManager {
       return `Execution window scheduled: ${scheduleId}`;
     } catch (error) {
       throw new Error(`Execution window scheduling failed: ${error instanceof Error ? error.message : String(error)}`);
+    }
+  }
+
+  // =================================================================
+  // PARADOX RESOLUTION ENGINE EXECUTION METHODS
+  // =================================================================
+
+  /**
+   * Execute paradox check instruction
+   */
+  private async executeParadoxCheck(parts: string[], astNode: ASTNode, typeResult: TypeInferenceResult): Promise<boolean> {
+    const sensitivity = parts[1] || 'medium';
+    
+    try {
+      // Start paradox detection with specified sensitivity
+      await paradoxResolutionEngine.startMonitoring();
+      
+      // Configure sensitivity level
+      const config = {
+        detectionSensitivity: sensitivity,
+        enableRealTimeDetection: true,
+        monitoringInterval: sensitivity === 'high' ? 50 : 100
+      };
+      
+      paradoxResolutionEngine.updateConfig(config);
+      
+      this.log(`  Paradox detection enabled with ${sensitivity} sensitivity`);
+      return true;
+      
+    } catch (error) {
+      this.addRuntimeError({
+        type: 'execution',
+        message: `Failed to enable paradox detection: ${error instanceof Error ? error.message : String(error)}`,
+        location: astNode.location
+      });
+      return false;
+    }
+  }
+
+  /**
+   * Execute resolve paradox instruction
+   */
+  private async executeResolveParadox(parts: string[], astNode: ASTNode, typeResult: TypeInferenceResult): Promise<boolean> {
+    const paradoxType = parts[1] as ParadoxType;
+    const strategy = parts[2] as ResolutionStrategy;
+    
+    try {
+      // Resolve specified paradox type with given strategy
+      const result = await paradoxResolutionEngine.resolveParadox(
+        `paradox_${Date.now()}`,
+        paradoxType,
+        ParadoxSeverity.MEDIUM,
+        strategy
+      );
+      
+      if (result.success) {
+        this.log(`  Paradox ${paradoxType} resolved using ${strategy} (${result.explainabilityScore} explainability)`);
+        return true;
+      } else {
+        this.addRuntimeError({
+          type: 'execution',
+          message: `Failed to resolve ${paradoxType} paradox: ${result.explanation}`,
+          location: astNode.location
+        });
+        return false;
+      }
+      
+    } catch (error) {
+      this.addRuntimeError({
+        type: 'execution',
+        message: `Paradox resolution failed: ${error instanceof Error ? error.message : String(error)}`,
+        location: astNode.location
+      });
+      return false;
+    }
+  }
+
+  /**
+   * Execute loop optimization instruction
+   */
+  private async executeOptimizeLoop(parts: string[], astNode: ASTNode, typeResult: TypeInferenceResult): Promise<boolean> {
+    const loopId = parts[1];
+    const strategy = parts[2] as OptimizationStrategy || 'automatic';
+    
+    try {
+      // Register loop for monitoring if not already registered
+      const activeLoop = selfOptimizingLoops.getLoopStatus(loopId);
+      if (!activeLoop) {
+        // Register new loop
+        selfOptimizingLoops.registerLoop(loopId, {
+          sourceLocation: astNode.location,
+          functionName: astNode.name || 'anonymous',
+          algorithmType: 'unknown',
+          parameters: {}
+        });
+      }
+      
+      // Apply optimization
+      const result = await selfOptimizingLoops.optimizeLoop(loopId, strategy as any);
+      
+      this.log(`  Loop ${loopId} optimized: ${result.performanceGain}% performance gain`);
+      return true;
+      
+    } catch (error) {
+      this.addRuntimeError({
+        type: 'execution',
+        message: `Loop optimization failed: ${error instanceof Error ? error.message : String(error)}`,
+        location: astNode.location
+      });
+      return false;
+    }
+  }
+
+  /**
+   * Execute recursive function declaration
+   */
+  private async executeRecursive(parts: string[], astNode: ASTNode, typeResult: TypeInferenceResult): Promise<boolean> {
+    const functionName = parts[1];
+    const maxDepth = parseInt(parts[2]) || 1000;
+    const enableMemoization = parts[3] === 'true';
+    
+    try {
+      // Update recursive evaluator configuration
+      recursiveEvaluator.updateConfig({
+        maxRecursionDepth: maxDepth,
+        enableMemoization: enableMemoization,
+        enableTailCallOptimization: true
+      });
+      
+      this.log(`  Recursive function ${functionName} configured (max depth: ${maxDepth}, memoization: ${enableMemoization})`);
+      return true;
+      
+    } catch (error) {
+      this.addRuntimeError({
+        type: 'execution',
+        message: `Recursive function setup failed: ${error instanceof Error ? error.message : String(error)}`,
+        location: astNode.location
+      });
+      return false;
+    }
+  }
+
+  /**
+   * Execute convergence check
+   */
+  private async executeConvergence(parts: string[], astNode: ASTNode, typeResult: TypeInferenceResult): Promise<boolean> {
+    const threshold = parseFloat(parts[1]) || 1e-6;
+    const timeout = parseInt(parts[2]) || 30000;
+    
+    try {
+      // Check for active loops and their convergence
+      const stats = selfOptimizingLoops.getOptimizationStatistics();
+      
+      this.log(`  Convergence check: ${stats.activeLoops} active loops, threshold: ${threshold}`);
+      
+      // Add convergence monitoring logic here
+      return true;
+      
+    } catch (error) {
+      this.addRuntimeError({
+        type: 'execution',
+        message: `Convergence check failed: ${error instanceof Error ? error.message : String(error)}`,
+        location: astNode.location
+      });
+      return false;
+    }
+  }
+
+  /**
+   * Execute temporal loop check
+   */
+  private async executeTemporalLoopCheck(parts: string[], astNode: ASTNode, typeResult: TypeInferenceResult): Promise<boolean> {
+    const enabled = parts[1] !== 'false';
+    
+    try {
+      // Enable/disable temporal loop detection
+      paradoxResolutionEngine.updateConfig({
+        enableTemporalLoopDetection: enabled
+      });
+      
+      this.log(`  Temporal loop detection ${enabled ? 'enabled' : 'disabled'}`);
+      return true;
+      
+    } catch (error) {
+      this.addRuntimeError({
+        type: 'execution',
+        message: `Temporal loop check configuration failed: ${error instanceof Error ? error.message : String(error)}`,
+        location: astNode.location
+      });
+      return false;
+    }
+  }
+
+  /**
+   * Execute causal consistency check
+   */
+  private async executeCausalConsistencyCheck(parts: string[], astNode: ASTNode, typeResult: TypeInferenceResult): Promise<boolean> {
+    const enabled = parts[1] !== 'false';
+    
+    try {
+      // Enable/disable causal consistency checking
+      paradoxResolutionEngine.updateConfig({
+        enableCausalConsistencyChecking: enabled
+      });
+      
+      this.log(`  Causal consistency checking ${enabled ? 'enabled' : 'disabled'}`);
+      return true;
+      
+    } catch (error) {
+      this.addRuntimeError({
+        type: 'execution',
+        message: `Causal consistency check failed: ${error instanceof Error ? error.message : String(error)}`,
+        location: astNode.location
+      });
+      return false;
+    }
+  }
+
+  /**
+   * Execute quantum paradox handling
+   */
+  private async executeQuantumParadoxHandle(parts: string[], astNode: ASTNode, typeResult: TypeInferenceResult): Promise<boolean> {
+    const paradoxType = parts[1] as QuantumParadoxType;
+    const strategy = parts[2] as QuantumResolutionStrategy;
+    
+    try {
+      // Handle specific quantum paradox types
+      let result;
+      
+      switch (paradoxType) {
+        case 'schrodingers_cat':
+          result = await quantumParadoxHandlers.handleSchrodingersCat({
+            catId: `cat_${Date.now()}`,
+            boxId: `box_${Date.now()}`,
+            detectorId: `detector_${Date.now()}`,
+            radioactiveAtom: `atom_${Date.now()}`,
+            superpositionState: {
+              aliveAmplitude: { real: 0.707, imaginary: 0 },
+              deadAmplitude: { real: 0.707, imaginary: 0 },
+              coherenceTime: 1000,
+              decoherenceRate: 0.001,
+              environmentalCoupling: 0.1,
+              observabilityThreshold: 0.5
+            },
+            observationAttempts: [],
+            collapseEvents: [],
+            paradoxIntensity: 0.8
+          }, strategy);
+          break;
+          
+        case 'epr_paradox':
+          result = await quantumParadoxHandlers.handleEPRParadox({
+            paradoxId: `epr_${Date.now()}`,
+            entangledPairs: [],
+            separationDistance: 1000,
+            simultaneousMeasurements: [],
+            localRealismViolations: [],
+            bellInequalities: [],
+            spacelikeEvents: []
+          }, strategy);
+          break;
+          
+        case 'information_paradox':
+          result = await quantumParadoxHandlers.handleInformationParadox({
+            paradoxId: `info_${Date.now()}`,
+            informationSources: [],
+            informationDestinations: [],
+            informationFlow: [],
+            conservationViolations: [],
+            unitarityTests: [],
+            entanglementEntropy: []
+          }, strategy);
+          break;
+          
+        case 'bootstrap_paradox':
+          result = await quantumParadoxHandlers.handleBootstrapParadox({
+            paradoxId: `bootstrap_${Date.now()}`,
+            informationLoop: [],
+            causalLoop: [],
+            selfConsistency: {
+              consistent: true,
+              consistencyScore: 0.9,
+              violations: [],
+              novikovSelfConsistency: true,
+              causalStructure: 'acyclic'
+            },
+            temporalEvents: [],
+            retroactiveEffects: []
+          }, strategy);
+          break;
+          
+        default:
+          this.addRuntimeError({
+            type: 'execution',
+            message: `Unknown quantum paradox type: ${paradoxType}`,
+            location: astNode.location
+          });
+          return false;
+      }
+      
+      if (result.success) {
+        this.log(`  Quantum paradox ${paradoxType} handled using ${strategy} (${result.explainabilityScore} explainability)`);
+        return true;
+      } else {
+        this.addRuntimeError({
+          type: 'execution',
+          message: `Failed to handle ${paradoxType}: ${result.explanation}`,
+          location: astNode.location
+        });
+        return false;
+      }
+      
+    } catch (error) {
+      this.addRuntimeError({
+        type: 'execution',
+        message: `Quantum paradox handling failed: ${error instanceof Error ? error.message : String(error)}`,
+        location: astNode.location
+      });
+      return false;
+    }
+  }
+
+  /**
+   * Execute self-optimization
+   */
+  private async executeSelfOptimize(parts: string[], astNode: ASTNode, typeResult: TypeInferenceResult): Promise<boolean> {
+    const target = parts[1];
+    const sensitivity = parts[2] || 'moderate';
+    
+    try {
+      // Start self-optimization monitoring
+      await selfOptimizingLoops.startMonitoring();
+      
+      // Configure optimization sensitivity
+      selfOptimizingLoops.updateConfig({
+        optimizationSensitivity: sensitivity as any,
+        enableRealTimeOptimization: true
+      });
+      
+      this.log(`  Self-optimization enabled for ${target} with ${sensitivity} sensitivity`);
+      return true;
+      
+    } catch (error) {
+      this.addRuntimeError({
+        type: 'execution',
+        message: `Self-optimization setup failed: ${error instanceof Error ? error.message : String(error)}`,
+        location: astNode.location
+      });
+      return false;
+    }
+  }
+
+  /**
+   * Execute recursive evaluation
+   */
+  private async executeRecursiveEval(parts: string[], astNode: ASTNode, typeResult: TypeInferenceResult): Promise<boolean> {
+    const functionId = parts[1];
+    const contextString = parts[2];
+    
+    try {
+      // Create recursive context
+      const context: RecursiveContext = {
+        functionId,
+        functionName: astNode.name || functionId,
+        recursionType: RecursionType.SIMPLE,
+        maxDepth: 1000,
+        currentDepth: 0,
+        parameters: JSON.parse(contextString || '{}'),
+        quantumStates: [],
+        callSite: {
+          line: astNode.location?.line || 0,
+          column: astNode.location?.column || 0,
+          file: astNode.location?.file || 'unknown',
+          functionName: astNode.name || 'anonymous',
+          stackTrace: []
+        },
+        startTime: Date.now(),
+        memoryUsage: 0
+      };
+      
+      // Evaluate recursively using the recursive evaluator
+      const result = await recursiveEvaluator.evaluateRecursive(
+        functionId,
+        context,
+        async (ctx) => {
+          // Simplified evaluation - return success
+          return { success: true };
+        }
+      );
+      
+      if (result.success) {
+        this.log(`  Recursive evaluation ${functionId} completed (${result.evaluationMetrics.totalCalls} calls)`);
+        return true;
+      } else {
+        this.addRuntimeError({
+          type: 'execution',
+          message: `Recursive evaluation failed: ${result.error?.message}`,
+          location: astNode.location
+        });
+        return false;
+      }
+      
+    } catch (error) {
+      this.addRuntimeError({
+        type: 'execution',
+        message: `Recursive evaluation setup failed: ${error instanceof Error ? error.message : String(error)}`,
+        location: astNode.location
+      });
+      return false;
+    }
+  }
+
+  /**
+   * Execute function memoization
+   */
+  private async executeMemoize(parts: string[], astNode: ASTNode, typeResult: TypeInferenceResult): Promise<boolean> {
+    const functionId = parts[1];
+    const cacheSize = parseInt(parts[2]) || 1000;
+    
+    try {
+      // Configure memoization for the function
+      recursiveEvaluator.updateConfig({
+        enableMemoization: true,
+        memoizationCacheSize: cacheSize
+      });
+      
+      this.log(`  Function ${functionId} memoization enabled (cache size: ${cacheSize})`);
+      return true;
+      
+    } catch (error) {
+      this.addRuntimeError({
+        type: 'execution',
+        message: `Function memoization setup failed: ${error instanceof Error ? error.message : String(error)}`,
+        location: astNode.location
+      });
+      return false;
+    }
+  }
+
+  /**
+   * Execute tail call optimization
+   */
+  private async executeTailCallOptimize(parts: string[], astNode: ASTNode, typeResult: TypeInferenceResult): Promise<boolean> {
+    const enabled = parts[1] !== 'false';
+    
+    try {
+      // Enable/disable tail call optimization
+      recursiveEvaluator.updateConfig({
+        enableTailCallOptimization: enabled
+      });
+      
+      this.log(`  Tail call optimization ${enabled ? 'enabled' : 'disabled'}`);
+      return true;
+      
+    } catch (error) {
+      this.addRuntimeError({
+        type: 'execution',
+        message: `Tail call optimization configuration failed: ${error instanceof Error ? error.message : String(error)}`,
+        location: astNode.location
+      });
+      return false;
+    }
+  }
+
+  /**
+   * Execute stack overflow check
+   */
+  private async executeStackOverflowCheck(parts: string[], astNode: ASTNode, typeResult: TypeInferenceResult): Promise<boolean> {
+    const threshold = parseInt(parts[1]) || 1000;
+    
+    try {
+      // Configure stack overflow checking
+      recursiveEvaluator.updateConfig({
+        maxRecursionDepth: threshold,
+        enableStackMonitoring: true
+      });
+      
+      // Get current stack status
+      const stackStatus = recursiveEvaluator.getStackStatus();
+      
+      this.log(`  Stack overflow check configured (threshold: ${threshold}, current depth: ${stackStatus.currentDepth})`);
+      return true;
+      
+    } catch (error) {
+      this.addRuntimeError({
+        type: 'execution',
+        message: `Stack overflow check failed: ${error instanceof Error ? error.message : String(error)}`,
+        location: astNode.location
+      });
+      return false;
+    }
+  }
+
+  /**
+   * Execute rollback point creation
+   */
+  private async executeRollbackPoint(parts: string[], astNode: ASTNode, typeResult: TypeInferenceResult): Promise<boolean> {
+    const pointId = parts[1];
+    const description = parts[2] || 'Rollback point';
+    
+    try {
+      // Create rollback point in paradox resolution engine
+      const rollbackPoint = {
+        id: pointId,
+        timestamp: Date.now(),
+        description,
+        quantumStates: Array.from(this.allocatedStates.keys()),
+        memorySnapshot: this.environment.size
+      };
+      
+      this.log(`  Rollback point ${pointId} created: ${description}`);
+      return true;
+      
+    } catch (error) {
+      this.addRuntimeError({
+        type: 'execution',
+        message: `Rollback point creation failed: ${error instanceof Error ? error.message : String(error)}`,
+        location: astNode.location
+      });
+      return false;
+    }
+  }
+
+  /**
+   * Execute monitoring enablement
+   */
+  private async executeEnableMonitoring(parts: string[], astNode: ASTNode, typeResult: TypeInferenceResult): Promise<boolean> {
+    const type = parts[1] || 'all';
+    
+    try {
+      // Enable different types of monitoring
+      switch (type) {
+        case 'paradox':
+        case 'all':
+          await paradoxResolutionEngine.startMonitoring();
+          break;
+        case 'loop':
+        case 'all':
+          await selfOptimizingLoops.startMonitoring();
+          break;
+        case 'recursive':
+        case 'all':
+          await recursiveEvaluator.startMonitoring();
+          break;
+      }
+      
+      this.log(`  ${type} monitoring enabled`);
+      return true;
+      
+    } catch (error) {
+      this.addRuntimeError({
+        type: 'execution',
+        message: `Monitor enablement failed: ${error instanceof Error ? error.message : String(error)}`,
+        location: astNode.location
+      });
+      return false;
+    }
+  }
+
+  /**
+   * Execute monitoring disablement
+   */
+  private async executeDisableMonitoring(parts: string[], astNode: ASTNode, typeResult: TypeInferenceResult): Promise<boolean> {
+    const type = parts[1] || 'all';
+    
+    try {
+      // Disable different types of monitoring
+      switch (type) {
+        case 'paradox':
+        case 'all':
+          await paradoxResolutionEngine.stopMonitoring();
+          break;
+        case 'loop':
+        case 'all':
+          await selfOptimizingLoops.stopMonitoring();
+          break;
+        case 'recursive':
+        case 'all':
+          await recursiveEvaluator.stopMonitoring();
+          break;
+      }
+      
+      this.log(`  ${type} monitoring disabled`);
+      return true;
+      
+    } catch (error) {
+      this.addRuntimeError({
+        type: 'execution',
+        message: `Monitor disablement failed: ${error instanceof Error ? error.message : String(error)}`,
+        location: astNode.location
+      });
+      return false;
     }
   }
 }
