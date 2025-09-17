@@ -34,8 +34,21 @@ import {
 import {
   QuantumReferenceId,
   QuantumState,
-  EntangledSystem
+  EntangledSystem,
+  CoherenceStatus,
+  MeasurementStatus
 } from '../../shared/types/quantum-types';
+
+import {
+  QuantumHandle,
+  MemoryCriticality,
+  QuantumLifecyclePhase
+} from '../../shared/types/quantum-memory-types';
+
+// Import QMM system for integration
+import { quantumMemoryManager } from './quantum-memory-manager';
+import { entanglementManager } from './entanglement-manager';
+import { decoherenceScheduler } from './decoherence-scheduler';
 
 // Verification event types
 export interface VerificationEvent {
@@ -49,7 +62,7 @@ export interface VerificationEvent {
 
 export interface VerificationOperation {
   readonly id: string;
-  readonly type: 'ai_contract' | 'model_deployment' | 'decision_point' | 'quantum_operation' | 'verification_check';
+  readonly type: 'ai_contract' | 'model_deployment' | 'decision_point' | 'quantum_operation' | 'quantum_memory' | 'verification_check';
   readonly description: string;
   readonly criticality: OperationCriticality;
   readonly explainabilityRequirement: ExplainabilityScore;
@@ -59,6 +72,12 @@ export interface VerificationOperation {
     readonly codeFragment?: string;
     readonly parameters?: Record<string, any>;
     readonly quantumState?: QuantumReferenceId;
+    readonly quantumMemoryOperation?: {
+      readonly operation: 'allocation' | 'entanglement' | 'measurement' | 'decoherence' | 'destruction';
+      readonly stateIds: QuantumReferenceId[];
+      readonly memoryCriticality: MemoryCriticality;
+      readonly lifecyclePhase: QuantumLifecyclePhase;
+    };
   };
 }
 
@@ -463,6 +482,293 @@ export class AIVerificationService extends EventEmitter {
   public getAuditTrail(limit?: number): AuditEntry[] {
     const entries = [...this.auditTrail].reverse();
     return limit ? entries.slice(0, limit) : entries;
+  }
+
+  /**
+   * Quantum Memory Management Verification Methods
+   */
+
+  /**
+   * Verify quantum memory allocation operations
+   */
+  public async verifyQuantumMemoryAllocation(
+    stateIds: QuantumReferenceId[],
+    memoryCriticality: MemoryCriticality,
+    allocationType: 'qubit' | 'qudit' | 'composite'
+  ): Promise<VerificationResult> {
+    const operationId = `qmm_alloc_${Date.now()}`;
+    
+    const operation: VerificationOperation = {
+      id: operationId,
+      type: 'quantum_memory',
+      description: `Quantum memory allocation: ${allocationType} (${stateIds.length} states, ${memoryCriticality} criticality)`,
+      criticality: this.mapMemoryCriticalityToOperationCriticality(memoryCriticality),
+      explainabilityRequirement: 0.9 as ExplainabilityScore,
+      oversightLevel: memoryCriticality === MemoryCriticality.CRITICAL ? 
+        HumanOversightLevel.REQUIRED : HumanOversightLevel.OPTIONAL,
+      context: {
+        quantumMemoryOperation: {
+          operation: 'allocation',
+          stateIds,
+          memoryCriticality,
+          lifecyclePhase: QuantumLifecyclePhase.CREATED
+        }
+      }
+    };
+
+    // Check memory pressure and system capacity
+    const memoryStatus = quantumMemoryManager.getMemoryStatus();
+    const violations: VerificationViolation[] = [];
+
+    if (memoryStatus.totalAllocated / memoryStatus.maxCapacity > 0.85) {
+      violations.push({
+        type: 'safety_constraint',
+        severity: 'warning',
+        message: 'Quantum memory usage is approaching capacity limits',
+        suggestion: 'Consider garbage collection or state migration before allocation'
+      });
+    }
+
+    if (memoryCriticality === MemoryCriticality.CRITICAL && violations.length > 0) {
+      violations.push({
+        type: 'human_oversight_missing',
+        severity: 'error',
+        message: 'Critical quantum memory allocation requires oversight approval',
+        suggestion: 'Request human oversight before proceeding with critical allocation'
+      });
+    }
+
+    const result: VerificationResult = {
+      success: violations.length === 0,
+      explainabilityScore: 0.95 as ExplainabilityScore,
+      complianceStatus: violations.length === 0 ? ComplianceStatus.COMPLIANT : ComplianceStatus.NON_COMPLIANT,
+      violations,
+      fallbackTriggered: false,
+      humanOversightRequired: memoryCriticality === MemoryCriticality.CRITICAL,
+      auditTrail: [{
+        timestamp: Date.now(),
+        action: `quantum_memory_allocation_verified`,
+        details: { operationId, stateIds, memoryCriticality, allocationType },
+        verificationScore: 0.95 as ExplainabilityScore
+      }]
+    };
+
+    this.logVerificationEvent(operation, result);
+    return result;
+  }
+
+  /**
+   * Verify quantum entanglement operations
+   */
+  public async verifyQuantumEntanglement(
+    stateIds: QuantumReferenceId[],
+    entanglementType: 'bell_state' | 'ghz_state' | 'custom'
+  ): Promise<VerificationResult> {
+    const operationId = `qmm_entangle_${Date.now()}`;
+    
+    const operation: VerificationOperation = {
+      id: operationId,
+      type: 'quantum_memory',
+      description: `Quantum entanglement creation: ${entanglementType} (${stateIds.length} participants)`,
+      criticality: stateIds.length > 3 ? OperationCriticality.HIGH : OperationCriticality.MEDIUM,
+      explainabilityRequirement: 0.85 as ExplainabilityScore,
+      oversightLevel: stateIds.length > 5 ? HumanOversightLevel.REQUIRED : HumanOversightLevel.OPTIONAL,
+      context: {
+        quantumMemoryOperation: {
+          operation: 'entanglement',
+          stateIds,
+          memoryCriticality: MemoryCriticality.HIGH,
+          lifecyclePhase: QuantumLifecyclePhase.COHERENT
+        }
+      }
+    };
+
+    const violations: VerificationViolation[] = [];
+
+    // Verify all states are valid and coherent
+    for (const stateId of stateIds) {
+      const memoryNode = quantumMemoryManager.memoryGraph.nodes.get(stateId);
+      if (!memoryNode) {
+        violations.push({
+          type: 'safety_constraint',
+          severity: 'error',
+          message: `Quantum state ${stateId} not found in memory graph`,
+          suggestion: 'Verify state exists before attempting entanglement'
+        });
+        continue;
+      }
+
+      if (memoryNode.state.coherence !== CoherenceStatus.COHERENT) {
+        violations.push({
+          type: 'safety_constraint',
+          severity: 'error',
+          message: `Quantum state ${stateId} is not coherent for entanglement`,
+          suggestion: 'Only coherent states can participate in entanglement'
+        });
+      }
+
+      if (memoryNode.state.measurementStatus === MeasurementStatus.MEASURED) {
+        violations.push({
+          type: 'safety_constraint',
+          severity: 'error',
+          message: `Quantum state ${stateId} has been measured and cannot be entangled`,
+          suggestion: 'Measured states cannot participate in new entanglements'
+        });
+      }
+    }
+
+    const result: VerificationResult = {
+      success: violations.length === 0,
+      explainabilityScore: 0.9 as ExplainabilityScore,
+      complianceStatus: violations.length === 0 ? ComplianceStatus.COMPLIANT : ComplianceStatus.NON_COMPLIANT,
+      violations,
+      fallbackTriggered: false,
+      humanOversightRequired: stateIds.length > 5,
+      auditTrail: [{
+        timestamp: Date.now(),
+        action: `quantum_entanglement_verified`,
+        details: { operationId, stateIds, entanglementType },
+        verificationScore: 0.9 as ExplainabilityScore
+      }]
+    };
+
+    this.logVerificationEvent(operation, result);
+    return result;
+  }
+
+  /**
+   * Verify quantum measurement operations
+   */
+  public async verifyQuantumMeasurement(
+    stateId: QuantumReferenceId,
+    measurementBasis: string
+  ): Promise<VerificationResult> {
+    const operationId = `qmm_measure_${Date.now()}`;
+    
+    const memoryNode = quantumMemoryManager.memoryGraph.nodes.get(stateId);
+    const entanglementGroup = entanglementManager.findGroup(stateId);
+    
+    const operation: VerificationOperation = {
+      id: operationId,
+      type: 'quantum_memory',
+      description: `Quantum measurement: ${stateId} in ${measurementBasis} basis`,
+      criticality: entanglementGroup ? OperationCriticality.HIGH : OperationCriticality.MEDIUM,
+      explainabilityRequirement: 0.95 as ExplainabilityScore,
+      oversightLevel: entanglementGroup && entanglementGroup.memberIds.size > 2 ? 
+        HumanOversightLevel.REQUIRED : HumanOversightLevel.OPTIONAL,
+      context: {
+        quantumMemoryOperation: {
+          operation: 'measurement',
+          stateIds: [stateId],
+          memoryCriticality: memoryNode?.criticality || MemoryCriticality.NORMAL,
+          lifecyclePhase: QuantumLifecyclePhase.COHERENT
+        }
+      }
+    };
+
+    const violations: VerificationViolation[] = [];
+
+    if (!memoryNode) {
+      violations.push({
+        type: 'safety_constraint',
+        severity: 'error',
+        message: `Quantum state ${stateId} not found for measurement`,
+        suggestion: 'Verify state exists and is accessible'
+      });
+    } else {
+      if (memoryNode.state.measurementStatus === MeasurementStatus.MEASURED) {
+        violations.push({
+          type: 'safety_constraint',
+          severity: 'error',
+          message: `Quantum state ${stateId} has already been measured`,
+          suggestion: 'States can only be measured once due to quantum mechanics'
+        });
+      }
+
+      if (memoryNode.state.coherence !== CoherenceStatus.COHERENT) {
+        violations.push({
+          type: 'safety_constraint',
+          severity: 'warning',
+          message: `Measuring decoherent state ${stateId} may yield unreliable results`,
+          suggestion: 'Consider state preparation before measurement'
+        });
+      }
+    }
+
+    // Check entanglement implications
+    if (entanglementGroup && entanglementGroup.memberIds.size > 1) {
+      violations.push({
+        type: 'explainability_threshold',
+        severity: 'warning',
+        message: `Measurement will collapse entanglement group ${entanglementGroup.id} affecting ${entanglementGroup.memberIds.size} states`,
+        suggestion: 'Document entanglement collapse effects for explainability'
+      });
+    }
+
+    const result: VerificationResult = {
+      success: violations.filter(v => v.severity === 'error').length === 0,
+      explainabilityScore: 0.95 as ExplainabilityScore,
+      complianceStatus: violations.length === 0 ? ComplianceStatus.COMPLIANT : ComplianceStatus.NON_COMPLIANT,
+      violations,
+      fallbackTriggered: false,
+      humanOversightRequired: entanglementGroup && entanglementGroup.memberIds.size > 2,
+      auditTrail: [{
+        timestamp: Date.now(),
+        action: `quantum_measurement_verified`,
+        details: { 
+          operationId, 
+          stateId, 
+          measurementBasis,
+          entanglementAffected: entanglementGroup?.memberIds.size || 0
+        },
+        verificationScore: 0.95 as ExplainabilityScore
+      }]
+    };
+
+    this.logVerificationEvent(operation, result);
+    return result;
+  }
+
+  /**
+   * Map memory criticality to operation criticality
+   */
+  private mapMemoryCriticalityToOperationCriticality(memoryCriticality: MemoryCriticality): OperationCriticality {
+    switch (memoryCriticality) {
+      case MemoryCriticality.CRITICAL:
+      case MemoryCriticality.PINNED:
+        return OperationCriticality.CRITICAL;
+      case MemoryCriticality.HIGH:
+        return OperationCriticality.HIGH;
+      case MemoryCriticality.NORMAL:
+        return OperationCriticality.MEDIUM;
+      case MemoryCriticality.LOW:
+        return OperationCriticality.LOW;
+      default:
+        return OperationCriticality.MEDIUM;
+    }
+  }
+
+  /**
+   * Log verification event for quantum memory operations
+   */
+  private logVerificationEvent(operation: VerificationOperation, result: VerificationResult): void {
+    const event: VerificationEvent = {
+      timestamp: Date.now(),
+      eventType: result.violations.length > 0 ? 'safety_violation' : 'explainability_check',
+      operation,
+      result
+    };
+
+    this.emit('verification_completed', event);
+    
+    // Update monitoring data
+    this.monitoringData.verificationsPerformed++;
+    if (result.violations.length > 0) {
+      this.monitoringData.violationsDetected++;
+    }
+    if (result.humanOversightRequired) {
+      this.monitoringData.humanInterventionsRequired++;
+    }
   }
   
   /**

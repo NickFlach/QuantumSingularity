@@ -249,9 +249,16 @@ export interface MeasurementResult<T extends QuantumState> {
 }
 
 /**
- * Quantum Memory Management
+ * Quantum Memory Management (Updated for QMM System)
+ * Note: Quantum memory types now available from shared/types/quantum-memory-types
+ * Import directly from quantum-memory-types to avoid circular dependencies
  */
-export interface QuantumMemoryManager {
+
+/**
+ * Legacy QuantumMemoryManager interface for backward compatibility
+ * @deprecated Use QuantumMemorySystem from quantum-memory-types instead
+ */
+export interface LegacyQuantumMemoryManager {
   allocate<D extends QuantumDimension>(dimension: D): Promise<Qudit<D>>;
   deallocate(id: QuantumReferenceId): Promise<void>;
   
@@ -377,14 +384,51 @@ export type ComposeOperations<
 >;
 
 /**
- * Quantum Memory Manager Interface
+ * Utility Functions for Quantum Memory Management
  */
-export interface QuantumMemoryManager {
-  allocateQuantumState(dimension: QuantumDimension): QuantumReferenceId;
-  deallocateQuantumState(id: QuantumReferenceId): void;
-  trackEntanglement(state1: QuantumReferenceId, state2: QuantumReferenceId): void;
-  validateMemoryUsage(): boolean;
-  getMemoryUsage(): number;
+
+// QuantumHandle utility functions
+export function isValidHandle<T extends QuantumState>(handle: QuantumHandle<T> | undefined): handle is QuantumHandle<T> {
+  return handle !== undefined && handle.isValid && handle.isOwner;
+}
+
+export function canBorrowHandle<T extends QuantumState>(handle: QuantumHandle<T>): boolean {
+  return handle.isValid && !handle.isBorrowed;
+}
+
+// Quantum state lifecycle utilities
+export function isScheduledForGC(phase: QuantumLifecyclePhase): boolean {
+  return phase === QuantumLifecyclePhase.DECOHERENT || 
+         phase === QuantumLifecyclePhase.DESTROYED;
+}
+
+export function canPerformOperation(state: QuantumState): boolean {
+  return state.coherence === CoherenceStatus.COHERENT && 
+         state.measurementStatus === MeasurementStatus.UNMEASURED;
+}
+
+export function requiresOversight(criticality: MemoryCriticality): boolean {
+  return criticality === MemoryCriticality.CRITICAL || 
+         criticality === MemoryCriticality.PINNED;
+}
+
+// Entanglement utilities
+export function areEntangled(state1: QuantumState, state2: QuantumState): boolean {
+  return state1.entangledWith.has(state2.id) && state2.entangledWith.has(state1.id);
+}
+
+export function getEntanglementPartners(state: QuantumState): ReadonlySet<QuantumReferenceId> {
+  return state.entangledWith;
+}
+
+// Classical migration utilities
+export function canMigrateToClassical(state: QuantumState): boolean {
+  return state.measurementStatus === MeasurementStatus.MEASURED ||
+         state.coherence === CoherenceStatus.DECOHERENT;
+}
+
+export function generateQuantumReferenceId(): QuantumReferenceId {
+  return `qstate_${Date.now()}_${Math.random().toString(36).substr(2, 9)}` as QuantumReferenceId;
 }
 
 // Export type utilities
