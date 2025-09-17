@@ -536,7 +536,7 @@ export function simulatePQC(
   // For encryption/decryption operations
   if (operation === 'encrypt' || operation === 'decrypt') {
     const message = params?.message || 'Default test message';
-    const outputLength = operation === 'encrypt' ? algorithmInfo.ciphertextSize / 8 : message.length;
+    const outputLength = operation === 'encrypt' ? ('ciphertextSize' in algorithmInfo ? algorithmInfo.ciphertextSize / 8 : 128) : message.length;
     const output = operation === 'encrypt' 
       ? Array.from({ length: outputLength }, () => Math.floor(Math.random() * 256).toString(16).padStart(2, '0')).join('')
       : message;
@@ -554,15 +554,16 @@ export function simulatePQC(
   // For signing/verification operations
   if (operation === 'sign' || operation === 'verify') {
     const message = params?.message || 'Default test message';
+    const signatureSize = 'signatureSize' in algorithmInfo ? algorithmInfo.signatureSize : 64;
     const signature = operation === 'sign'
-      ? Array.from({ length: algorithmInfo.signatureSize / 8 }, () => Math.floor(Math.random() * 256).toString(16).padStart(2, '0')).join('')
+      ? Array.from({ length: signatureSize / 8 }, () => Math.floor(Math.random() * 256).toString(16).padStart(2, '0')).join('')
       : params?.signature || '';
     
     return {
       algorithm: algorithmInfo.name,
       operation,
       message,
-      signatureSize: algorithmInfo.signatureSize,
+      signatureSize,
       signature: signature.substring(0, 20) + '...',
       valid: operation === 'verify' ? Math.random() > 0.05 : true,
       computationTimeMs: computationTime * 1000,
@@ -734,7 +735,7 @@ export function simulateQuantumGeometricEmbedding(
       embeddings.push({
         stateId: stateIds[i],
         coordinates: coordinateSets[i],
-        result: error.message
+        result: error instanceof Error ? error.message : 'Unknown error occurred'
       });
     }
   }

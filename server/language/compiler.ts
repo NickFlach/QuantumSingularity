@@ -2,8 +2,15 @@
  * SINGULARIS PRIME Compiler
  * 
  * This module provides a comprehensive compiler for the SINGULARIS PRIME language.
- * It includes tokenization, parsing, and bytecode generation for SINGULARIS PRIME
- * source code to executable bytecode instructions.
+ * It includes tokenization, parsing, bytecode generation, and advanced type checking
+ * for SINGULARIS PRIME source code to executable bytecode instructions.
+ * 
+ * Enhanced with:
+ * - Quantum type checking with no-cloning enforcement
+ * - AI explainability validation
+ * - Human oversight requirement checking
+ * - Memory safety for quantum operations
+ * - Entanglement relationship tracking
  */
 
 import { 
@@ -15,6 +22,19 @@ import {
   AIVerification,
   QuantumDecision
 } from './core-objects';
+
+import {
+  SingularisTypeChecker,
+  TypeInferenceResult,
+  InferredType,
+  TypeError,
+  TypeWarning,
+  ASTNode,
+  SourceLocation
+} from './type-checker';
+
+import { QuantumDimension, QuantumOperationType } from '../../shared/schema';
+import { HumanOversightLevel, OperationCriticality } from '../../shared/types/ai-types';
 
 // Instruction types
 export type InstructionType = 
@@ -34,8 +54,42 @@ export type ParsedInstruction = [InstructionType, ...string[]];
 // Token type
 export type Token = string;
 
+// Compilation result with type checking
+export interface CompilationResult {
+  readonly success: boolean;
+  readonly bytecode: string[];
+  readonly ast: ASTNode[];
+  readonly typeResults: TypeInferenceResult[];
+  readonly errors: CompilationError[];
+  readonly warnings: CompilationWarning[];
+}
+
+// Compilation error
+export interface CompilationError {
+  readonly type: 'syntax' | 'type' | 'quantum' | 'ai_safety';
+  readonly message: string;
+  readonly location: SourceLocation;
+  readonly severity: 'error' | 'warning';
+  readonly suggestion?: string;
+}
+
+// Compilation warning
+export interface CompilationWarning {
+  readonly type: 'performance' | 'best_practice' | 'deprecation';
+  readonly message: string;
+  readonly location: SourceLocation;
+  readonly suggestion: string;
+}
+
 export class SingularisPrimeCompiler {
   private bytecode: string[] = [];
+  private typeChecker: SingularisTypeChecker;
+  private compilationErrors: CompilationError[] = [];
+  private compilationWarnings: CompilationWarning[] = [];
+  
+  constructor() {
+    this.typeChecker = new SingularisTypeChecker();
+  }
   
   /**
    * Tokenizes source code into individual tokens.
@@ -236,6 +290,244 @@ export class SingularisPrimeCompiler {
     const tokens = this.tokenize(sourceCode);
     const parsed = this.parse(tokens);
     return this.generateBytecode(parsed);
+  }
+  
+  /**
+   * Enhanced compilation with type checking and comprehensive error reporting.
+   */
+  compileWithTypeChecking(sourceCode: string): CompilationResult {
+    this.compilationErrors = [];
+    this.compilationWarnings = [];
+    this.typeChecker.reset();
+    
+    try {
+      // Tokenize and parse
+      const tokens = this.tokenize(sourceCode);
+      const parsed = this.parse(tokens);
+      
+      // Convert to AST for type checking
+      const ast = this.convertToAST(parsed, sourceCode);
+      
+      // Perform type checking
+      const typeResults = this.performTypeChecking(ast);
+      
+      // Generate bytecode if no type errors
+      const hasTypeErrors = typeResults.some(result => !result.success);
+      let bytecode: string[] = [];
+      
+      if (!hasTypeErrors) {
+        bytecode = this.generateBytecode(parsed);
+      } else {
+        this.addCompilationError({
+          type: 'type',
+          message: 'Type checking failed - cannot generate bytecode',
+          location: { line: 1, column: 1 },
+          severity: 'error'
+        });
+      }
+      
+      // Aggregate type errors and warnings
+      this.aggregateTypeResults(typeResults);
+      
+      return {
+        success: this.compilationErrors.length === 0,
+        bytecode,
+        ast,
+        typeResults,
+        errors: this.compilationErrors,
+        warnings: this.compilationWarnings
+      };
+      
+    } catch (error) {
+      this.addCompilationError({
+        type: 'syntax',
+        message: error instanceof Error ? error.message : 'Unknown compilation error',
+        location: { line: 1, column: 1 },
+        severity: 'error'
+      });
+      
+      return {
+        success: false,
+        bytecode: [],
+        ast: [],
+        typeResults: [],
+        errors: this.compilationErrors,
+        warnings: this.compilationWarnings
+      };
+    }
+  }
+  
+  /**
+   * Convert parsed instructions to AST nodes for type checking
+   */
+  private convertToAST(parsed: ParsedInstruction[], sourceCode: string): ASTNode[] {
+    const ast: ASTNode[] = [];
+    const lines = sourceCode.split('\n');
+    
+    for (let i = 0; i < parsed.length; i++) {
+      const [type, ...args] = parsed[i];
+      const lineNumber = i + 1; // Simplified line tracking
+      
+      const node: ASTNode = {
+        type: this.mapInstructionToASTType(type),
+        location: { line: lineNumber, column: 1 },
+        value: args.length === 1 ? args[0] : args,
+        metadata: this.extractMetadataFromInstruction(type, args, lines[i - 1] || '')
+      };
+      
+      ast.push(node);
+    }
+    
+    return ast;
+  }
+  
+  /**
+   * Map instruction types to AST node types
+   */
+  private mapInstructionToASTType(instruction: InstructionType): string {
+    const mapping: Record<InstructionType, string> = {
+      'QKD_INIT': 'QuantumStateDeclaration',
+      'CONTRACT_START': 'AIContractDeclaration',
+      'MODEL_DEPLOY': 'AIEntityDeclaration',
+      'LEDGER_SYNC': 'VariableReference',
+      'PARADOX_RESOLVE': 'QuantumOperationCall',
+      'AI_NEGOTIATE': 'AIDecisionCall',
+      'AI_VERIFY': 'AIDecisionCall',
+      'QUANTUM_DECISION': 'QuantumOperationCall',
+      'ENFORCE': 'VariableReference'
+    };
+    
+    return mapping[instruction] || 'VariableReference';
+  }
+  
+  /**
+   * Extract metadata for type checking from instructions
+   */
+  private extractMetadataFromInstruction(type: InstructionType, args: string[], sourceLine: string): Record<string, any> {
+    const metadata: Record<string, any> = {};
+    
+    switch (type) {
+      case 'QKD_INIT':
+        metadata.dimension = QuantumDimension.QUBIT;
+        metadata.entangled = args.length > 2;
+        metadata.entangledWith = args.slice(1);
+        break;
+        
+      case 'CONTRACT_START':
+        metadata.explainabilityScore = 0.85; // Default threshold
+        metadata.oversightLevel = HumanOversightLevel.NOTIFICATION;
+        metadata.criticality = OperationCriticality.MEDIUM;
+        break;
+        
+      case 'MODEL_DEPLOY':
+        metadata.explainabilityScore = 0.90;
+        metadata.safetyRating = { overall: 0.85, categories: {} };
+        metadata.capabilities = ['reasoning', 'prediction'];
+        if (args[2] && args[2].includes('mars')) {
+          metadata.criticality = OperationCriticality.CRITICAL;
+          metadata.oversightLevel = HumanOversightLevel.APPROVAL;
+        }
+        break;
+        
+      case 'ENFORCE':
+        if (args[0] === 'explainabilityThreshold') {
+          metadata.explainabilityScore = parseFloat(args[1]) || 0.85;
+        }
+        break;
+        
+      case 'AI_NEGOTIATE':
+      case 'AI_VERIFY':
+        metadata.explainabilityScore = 0.87;
+        metadata.confidence = 0.8;
+        metadata.requiresOversight = true;
+        break;
+        
+      case 'QUANTUM_DECISION':
+        metadata.operationType = QuantumOperationType.EVOLUTION;
+        metadata.confidence = 0.9;
+        break;
+    }
+    
+    return metadata;
+  }
+  
+  /**
+   * Perform type checking on AST nodes
+   */
+  private performTypeChecking(ast: ASTNode[]): TypeInferenceResult[] {
+    const results: TypeInferenceResult[] = [];
+    
+    for (const node of ast) {
+      const result = this.typeChecker.checkNode(node);
+      results.push(result);
+      
+      // Update type checker context with successful inferences
+      if (result.success && node.value && typeof node.value === 'string') {
+        this.typeChecker.getContext().variables.set(node.value, result.type);
+      }
+    }
+    
+    return results;
+  }
+  
+  /**
+   * Aggregate type checking results into compilation errors and warnings
+   */
+  private aggregateTypeResults(typeResults: TypeInferenceResult[]): void {
+    for (const result of typeResults) {
+      // Add type errors
+      for (const error of result.errors) {
+        this.addCompilationError({
+          type: this.mapTypeErrorToCompilationType(error.type),
+          message: error.message,
+          location: error.location,
+          severity: error.severity,
+          suggestion: error.suggestion
+        });
+      }
+      
+      // Add type warnings
+      for (const warning of result.warnings) {
+        this.addCompilationWarning({
+          type: this.mapTypeWarningToCompilationType(warning.type),
+          message: warning.message,
+          location: warning.location,
+          suggestion: warning.suggestion
+        });
+      }
+    }
+  }
+  
+  /**
+   * Map type error types to compilation error types
+   */
+  private mapTypeErrorToCompilationType(typeError: string): CompilationError['type'] {
+    if (typeError.includes('quantum')) return 'quantum';
+    if (typeError.includes('explainability') || typeError.includes('oversight')) return 'ai_safety';
+    return 'type';
+  }
+  
+  /**
+   * Map type warning types to compilation warning types  
+   */
+  private mapTypeWarningToCompilationType(typeWarning: string): CompilationWarning['type'] {
+    if (typeWarning === 'performance') return 'performance';
+    if (typeWarning === 'deprecation') return 'deprecation';
+    return 'best_practice';
+  }
+  
+  /**
+   * Add compilation error
+   */
+  private addCompilationError(error: CompilationError): void {
+    this.compilationErrors.push(error);
+  }
+  
+  /**
+   * Add compilation warning
+   */
+  private addCompilationWarning(warning: CompilationWarning): void {
+    this.compilationWarnings.push(warning);
   }
   
   /**
