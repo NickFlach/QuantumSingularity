@@ -698,6 +698,57 @@ export class SingularisTypeChecker {
     this.context.aiEntities.clear();
     this.context.aiContracts.clear();
   }
+
+  /**
+   * Analyze a complete document for type checking
+   */
+  public analyzeDocument(content: string, uri?: string): TypeInferenceResult[] {
+    this.reset();
+    
+    // Parse content into AST nodes (simplified for now)
+    const lines = content.split('\n');
+    const results: TypeInferenceResult[] = [];
+    
+    for (let i = 0; i < lines.length; i++) {
+      const line = lines[i].trim();
+      if (line.length === 0 || line.startsWith('//')) {
+        continue;
+      }
+      
+      // Create a basic AST node for each significant line
+      const node: ASTNode = {
+        type: this.inferNodeType(line),
+        location: { line: i + 1, column: 1, file: uri },
+        value: line,
+        metadata: {}
+      };
+      
+      // Perform type checking on the node
+      const result = this.checkNode(node);
+      results.push(result);
+    }
+    
+    return results;
+  }
+
+  /**
+   * Infer the node type from source line (simplified)
+   */
+  private inferNodeType(line: string): string {
+    if (line.includes('quantumKey') || line.includes('qubit') || line.includes('qudit')) {
+      return 'QuantumStateDeclaration';
+    } else if (line.includes('aiContract') || line.includes('aiNegotiate')) {
+      return 'AIContractDeclaration';
+    } else if (line.includes('aiEntity') || line.includes('aiModel')) {
+      return 'AIEntityDeclaration';
+    } else if (line.includes('measure') || line.includes('entangle')) {
+      return 'QuantumOperationCall';
+    } else if (line.includes('aiDecision') || line.includes('aiVerify')) {
+      return 'AIDecisionCall';
+    } else {
+      return 'VariableReference';
+    }
+  }
 }
 
 /**
