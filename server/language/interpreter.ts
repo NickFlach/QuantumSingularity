@@ -64,6 +64,25 @@ import { quantumMemoryManager } from '../runtime/quantum-memory-manager';
 import { entanglementManager } from '../runtime/entanglement-manager';
 import { decoherenceScheduler } from '../runtime/decoherence-scheduler';
 
+// Import distributed quantum services
+import { distributedQuantumMemoryGraph } from '../runtime/distributed-quantum-memory-graph';
+import { latencyEstimator } from '../distributed/latency-estimator';
+import { timeSynchronizer } from '../distributed/time-sync';
+import { executionWindowScheduler } from '../distributed/coherence-budget-manager';
+import { distributedNodeCoordinator } from '../distributed/node-coordinator';
+
+// Import distributed types
+import {
+  NodeId,
+  ChannelId,
+  SessionId,
+  DistributedOperation,
+  DistributedOperationType,
+  OperationPriority,
+  NetworkMetadata,
+  CoherenceBudget
+} from '../../shared/types/distributed-quantum-types';
+
 import { QuantumDimension } from '../../shared/schema';
 
 import {
@@ -139,12 +158,34 @@ export class SingularisInterpreter {
   private verificationResults: Map<string, VerificationResult> = new Map();
   private currentSourceCode: string = '';
   private operationCounter: number = 0;
+
+  // Distributed Quantum Execution State
+  private currentTargetNode: NodeId | null = null;
+  private currentChannel: ChannelId | null = null;
+  private currentSessionId: SessionId = 'default_session' as SessionId;
+  private distributedServices: {
+    dqmg: typeof distributedQuantumMemoryGraph;
+    latencyEstimator: typeof latencyEstimator;
+    timeSynchronizer: typeof timeSynchronizer;
+    scheduler: typeof executionWindowScheduler;
+    coordinator: typeof distributedNodeCoordinator;
+  };
+  private coordinationGroups: Map<string, string> = new Map(); // groupId -> coordinationGroupId
   
   constructor(ast: any[]) {
     this.ast = ast;
     this.environment = new Map();
     this.compiler = new SingularisPrimeCompiler();
     this.typeChecker = new SingularisTypeChecker();
+    
+    // Initialize distributed services
+    this.distributedServices = {
+      dqmg: distributedQuantumMemoryGraph,
+      latencyEstimator: latencyEstimator,
+      timeSynchronizer: timeSynchronizer,
+      scheduler: executionWindowScheduler,
+      coordinator: distributedNodeCoordinator
+    };
     
     // Initialize environment with built-in functions
     this.environment.set('entangle', this.createQuantumEntanglement.bind(this));
@@ -154,6 +195,15 @@ export class SingularisInterpreter {
     this.environment.set('explainabilityThreshold', this.explainabilityThreshold.bind(this));
     this.environment.set('consensusProtocol', this.consensusProtocol.bind(this));
     this.environment.set('monitorAuditTrail', this.monitorAuditTrail.bind(this));
+
+    // Initialize distributed quantum functions
+    this.environment.set('withNode', this.setTargetNode.bind(this));
+    this.environment.set('withChannel', this.setChannel.bind(this));
+    this.environment.set('entangleRemote', this.createRemoteEntanglement.bind(this));
+    this.environment.set('teleport', this.teleportState.bind(this));
+    this.environment.set('entanglementSwap', this.performEntanglementSwap.bind(this));
+    this.environment.set('barrier', this.createBarrier.bind(this));
+    this.environment.set('scheduleWindow', this.scheduleExecutionWindow.bind(this));
     
     // Properly bind critical methods to avoid runtime binding issues
     this.startVerificationServices = this.startVerificationServices.bind(this);
@@ -608,6 +658,23 @@ export class SingularisInterpreter {
           return this.executeModelDeploy(parts, astNode, typeResult);
         case 'VERIFY_AI':
           return this.executeAIVerify(parts, astNode, typeResult);
+        
+        // Distributed Quantum Operations
+        case 'SET_TARGET_NODE':
+          return this.executeSetTargetNode(parts, astNode, typeResult);
+        case 'SET_CHANNEL':
+          return this.executeSetChannel(parts, astNode, typeResult);
+        case 'ENTANGLE_REMOTE':
+          return this.executeEntangleRemote(parts, astNode, typeResult);
+        case 'TELEPORT_STATE':
+          return this.executeTeleportState(parts, astNode, typeResult);
+        case 'ENTANGLEMENT_SWAP':
+          return this.executeEntanglementSwap(parts, astNode, typeResult);
+        case 'BARRIER_SYNC':
+          return this.executeBarrierSync(parts, astNode, typeResult);
+        case 'SCHEDULE_EXECUTION':
+          return this.executeScheduleWindow(parts, astNode, typeResult);
+          
         default:
           // Fallback to original execution logic
           this.executeOriginalInstruction(instruction);
@@ -1633,6 +1700,391 @@ class QuantumMemoryManagerImpl implements QuantumMemoryManager {
     } catch (error) {
       this.log(`[OVERSIGHT ERROR] Failed to process oversight request: ${error instanceof Error ? error.message : String(error)}`);
       return false;
+    }
+  }
+
+  // =============================================================================
+  // DISTRIBUTED QUANTUM OPERATION HANDLERS (MISSING IMPLEMENTATIONS)
+  // =============================================================================
+
+  /**
+   * Bytecode execution handlers for distributed operations
+   */
+  private executeSetTargetNode(parts: string[], astNode: ASTNode, typeResult: TypeInferenceResult): boolean {
+    const nodeId = parts[1] as NodeId;
+    
+    try {
+      this.currentTargetNode = nodeId;
+      this.log(`[DISTRIBUTED] Set target node: ${nodeId}`);
+      return true;
+    } catch (error) {
+      this.addRuntimeError({
+        type: 'execution',
+        message: `Failed to set target node: ${error instanceof Error ? error.message : String(error)}`,
+        location: astNode.location
+      });
+      return false;
+    }
+  }
+
+  private executeSetChannel(parts: string[], astNode: ASTNode, typeResult: TypeInferenceResult): boolean {
+    const channelId = parts[1] as ChannelId;
+    
+    try {
+      this.currentChannel = channelId;
+      this.log(`[DISTRIBUTED] Set channel: ${channelId}`);
+      return true;
+    } catch (error) {
+      this.addRuntimeError({
+        type: 'execution',
+        message: `Failed to set channel: ${error instanceof Error ? error.message : String(error)}`,
+        location: astNode.location
+      });
+      return false;
+    }
+  }
+
+  private executeEntangleRemote(parts: string[], astNode: ASTNode, typeResult: TypeInferenceResult): boolean {
+    const localState = parts[1] as QuantumReferenceId;
+    const remoteNode = parts[2] as NodeId;
+    const remoteState = parts[3] as QuantumReferenceId;
+    
+    try {
+      // Validate local state exists
+      const localHandle = this.activeQuantumHandles.get(localState);
+      if (!isValidHandle(localHandle)) {
+        this.addRuntimeError({
+          type: 'quantum_violation',
+          message: `Local quantum state ${localState} not found`,
+          location: astNode.location
+        });
+        return false;
+      }
+
+      // Create remote entanglement through DQMG
+      const success = this.distributedServices.dqmg.createRemoteEntanglement(
+        localState,
+        remoteNode,
+        remoteState,
+        this.currentSessionId
+      );
+
+      if (success) {
+        this.log(`[DISTRIBUTED] Entangled local state ${localState} with remote state ${remoteState} on node ${remoteNode}`);
+        return true;
+      } else {
+        this.addRuntimeError({
+          type: 'execution',
+          message: `Failed to create remote entanglement`,
+          location: astNode.location
+        });
+        return false;
+      }
+    } catch (error) {
+      this.addRuntimeError({
+        type: 'execution',
+        message: `Remote entanglement failed: ${error instanceof Error ? error.message : String(error)}`,
+        location: astNode.location
+      });
+      return false;
+    }
+  }
+
+  private executeTeleportState(parts: string[], astNode: ASTNode, typeResult: TypeInferenceResult): boolean {
+    const stateId = parts[1] as QuantumReferenceId;
+    const targetNode = parts[2] as NodeId;
+    const channel = parts[3] as ChannelId;
+    
+    try {
+      // Validate state exists
+      const handle = this.activeQuantumHandles.get(stateId);
+      if (!isValidHandle(handle)) {
+        this.addRuntimeError({
+          type: 'quantum_violation',
+          message: `Quantum state ${stateId} not found for teleportation`,
+          location: astNode.location
+        });
+        return false;
+      }
+
+      // Perform teleportation through DQMG
+      const success = this.distributedServices.dqmg.teleportState(
+        stateId,
+        targetNode,
+        channel,
+        this.currentSessionId
+      );
+
+      if (success) {
+        // Remove local handle as state has been teleported
+        this.activeQuantumHandles.delete(stateId);
+        this.log(`[DISTRIBUTED] Teleported state ${stateId} to node ${targetNode} via channel ${channel}`);
+        return true;
+      } else {
+        this.addRuntimeError({
+          type: 'execution',
+          message: `Failed to teleport quantum state`,
+          location: astNode.location
+        });
+        return false;
+      }
+    } catch (error) {
+      this.addRuntimeError({
+        type: 'execution',
+        message: `Teleportation failed: ${error instanceof Error ? error.message : String(error)}`,
+        location: astNode.location
+      });
+      return false;
+    }
+  }
+
+  private executeEntanglementSwap(parts: string[], astNode: ASTNode, typeResult: TypeInferenceResult): boolean {
+    const state1 = parts[1] as QuantumReferenceId;
+    const state2 = parts[2] as QuantumReferenceId;
+    const node1 = parts[3] as NodeId;
+    const node2 = parts[4] as NodeId;
+    
+    try {
+      // Validate both states exist
+      const handle1 = this.activeQuantumHandles.get(state1);
+      const handle2 = this.activeQuantumHandles.get(state2);
+      
+      if (!isValidHandle(handle1) || !isValidHandle(handle2)) {
+        this.addRuntimeError({
+          type: 'quantum_violation',
+          message: `One or both quantum states not found for entanglement swap`,
+          location: astNode.location
+        });
+        return false;
+      }
+
+      // Perform entanglement swap through DQMG
+      const success = this.distributedServices.dqmg.performEntanglementSwap(
+        state1,
+        state2,
+        node1,
+        node2,
+        this.currentSessionId
+      );
+
+      if (success) {
+        this.log(`[DISTRIBUTED] Performed entanglement swap between ${state1} (${node1}) and ${state2} (${node2})`);
+        return true;
+      } else {
+        this.addRuntimeError({
+          type: 'execution',
+          message: `Failed to perform entanglement swap`,
+          location: astNode.location
+        });
+        return false;
+      }
+    } catch (error) {
+      this.addRuntimeError({
+        type: 'execution',
+        message: `Entanglement swap failed: ${error instanceof Error ? error.message : String(error)}`,
+        location: astNode.location
+      });
+      return false;
+    }
+  }
+
+  private executeBarrierSync(parts: string[], astNode: ASTNode, typeResult: TypeInferenceResult): boolean {
+    const groupId = parts[1];
+    const timeout = parseInt(parts[2], 10);
+    
+    try {
+      // Create barrier through coordinator
+      const barrierId = this.distributedServices.coordinator.createBarrier(
+        groupId,
+        new Set([this.distributedServices.coordinator.getLocalNodeId()]), // For now, single node
+        Date.now() + timeout * 1000 // Convert seconds to timestamp
+      );
+
+      this.log(`[DISTRIBUTED] Created barrier ${barrierId} for group ${groupId} with ${timeout}s timeout`);
+      return true;
+    } catch (error) {
+      this.addRuntimeError({
+        type: 'execution',
+        message: `Barrier creation failed: ${error instanceof Error ? error.message : String(error)}`,
+        location: astNode.location
+      });
+      return false;
+    }
+  }
+
+  private executeScheduleWindow(parts: string[], astNode: ASTNode, typeResult: TypeInferenceResult): boolean {
+    const operationId = parts[1];
+    const startTime = parseInt(parts[2], 10);
+    const duration = parseInt(parts[3], 10);
+    
+    try {
+      // Schedule execution window through scheduler
+      const scheduleId = this.distributedServices.scheduler.scheduleOperation(
+        operationId,
+        OperationPriority.NORMAL,
+        { type: 'quantum_operation' as DistributedOperationType, nodes: new Set([this.distributedServices.coordinator.getLocalNodeId()]) },
+        {
+          softDeadline: startTime + duration,
+          hardDeadline: startTime + duration * 2,
+          maxLatency: 1000
+        }
+      );
+
+      this.log(`[DISTRIBUTED] Scheduled operation ${operationId} from ${startTime} for ${duration}ms (schedule ID: ${scheduleId})`);
+      return true;
+    } catch (error) {
+      this.addRuntimeError({
+        type: 'execution',
+        message: `Execution window scheduling failed: ${error instanceof Error ? error.message : String(error)}`,
+        location: astNode.location
+      });
+      return false;
+    }
+  }
+
+  /**
+   * Environment function handlers for distributed operations
+   */
+  private setTargetNode(nodeId: NodeId): string {
+    try {
+      this.currentTargetNode = nodeId;
+      this.log(`[DISTRIBUTED] Set target node: ${nodeId}`);
+      return `Target node set to ${nodeId}`;
+    } catch (error) {
+      throw new Error(`Failed to set target node: ${error instanceof Error ? error.message : String(error)}`);
+    }
+  }
+
+  private setChannel(channelId: ChannelId): string {
+    try {
+      this.currentChannel = channelId;
+      this.log(`[DISTRIBUTED] Set channel: ${channelId}`);
+      return `Channel set to ${channelId}`;
+    } catch (error) {
+      throw new Error(`Failed to set channel: ${error instanceof Error ? error.message : String(error)}`);
+    }
+  }
+
+  private createRemoteEntanglement(localState: QuantumReferenceId, remoteNode: NodeId, remoteState: QuantumReferenceId): string {
+    try {
+      // Validate local state exists
+      const localHandle = this.activeQuantumHandles.get(localState);
+      if (!isValidHandle(localHandle)) {
+        throw new Error(`Local quantum state ${localState} not found`);
+      }
+
+      // Create remote entanglement through DQMG
+      const success = this.distributedServices.dqmg.createRemoteEntanglement(
+        localState,
+        remoteNode,
+        remoteState,
+        this.currentSessionId
+      );
+
+      if (success) {
+        this.log(`[DISTRIBUTED] Entangled local state ${localState} with remote state ${remoteState} on node ${remoteNode}`);
+        return `Remote entanglement created between ${localState} and ${remoteState}@${remoteNode}`;
+      } else {
+        throw new Error(`Failed to create remote entanglement`);
+      }
+    } catch (error) {
+      throw new Error(`Remote entanglement failed: ${error instanceof Error ? error.message : String(error)}`);
+    }
+  }
+
+  private teleportState(stateId: QuantumReferenceId, targetNode: NodeId, channel: ChannelId): string {
+    try {
+      // Validate state exists
+      const handle = this.activeQuantumHandles.get(stateId);
+      if (!isValidHandle(handle)) {
+        throw new Error(`Quantum state ${stateId} not found for teleportation`);
+      }
+
+      // Perform teleportation through DQMG
+      const success = this.distributedServices.dqmg.teleportState(
+        stateId,
+        targetNode,
+        channel,
+        this.currentSessionId
+      );
+
+      if (success) {
+        // Remove local handle as state has been teleported
+        this.activeQuantumHandles.delete(stateId);
+        this.log(`[DISTRIBUTED] Teleported state ${stateId} to node ${targetNode} via channel ${channel}`);
+        return `State ${stateId} teleported to ${targetNode} via ${channel}`;
+      } else {
+        throw new Error(`Failed to teleport quantum state`);
+      }
+    } catch (error) {
+      throw new Error(`Teleportation failed: ${error instanceof Error ? error.message : String(error)}`);
+    }
+  }
+
+  private performEntanglementSwap(state1: QuantumReferenceId, state2: QuantumReferenceId, node1: NodeId, node2: NodeId): string {
+    try {
+      // Validate both states exist
+      const handle1 = this.activeQuantumHandles.get(state1);
+      const handle2 = this.activeQuantumHandles.get(state2);
+      
+      if (!isValidHandle(handle1) || !isValidHandle(handle2)) {
+        throw new Error(`One or both quantum states not found for entanglement swap`);
+      }
+
+      // Perform entanglement swap through DQMG
+      const success = this.distributedServices.dqmg.performEntanglementSwap(
+        state1,
+        state2,
+        node1,
+        node2,
+        this.currentSessionId
+      );
+
+      if (success) {
+        this.log(`[DISTRIBUTED] Performed entanglement swap between ${state1} (${node1}) and ${state2} (${node2})`);
+        return `Entanglement swap performed between ${state1}@${node1} and ${state2}@${node2}`;
+      } else {
+        throw new Error(`Failed to perform entanglement swap`);
+      }
+    } catch (error) {
+      throw new Error(`Entanglement swap failed: ${error instanceof Error ? error.message : String(error)}`);
+    }
+  }
+
+  private createBarrier(groupId: string, timeout: number): string {
+    try {
+      // Create barrier through coordinator
+      const barrierId = this.distributedServices.coordinator.createBarrier(
+        groupId,
+        new Set([this.distributedServices.coordinator.getLocalNodeId()]), // For now, single node
+        Date.now() + timeout * 1000 // Convert seconds to timestamp
+      );
+
+      this.log(`[DISTRIBUTED] Created barrier ${barrierId} for group ${groupId} with ${timeout}s timeout`);
+      return `Barrier ${barrierId} created for group ${groupId}`;
+    } catch (error) {
+      throw new Error(`Barrier creation failed: ${error instanceof Error ? error.message : String(error)}`);
+    }
+  }
+
+  private scheduleExecutionWindow(operationId: string, startTime: number, duration: number): string {
+    try {
+      // Schedule execution window through scheduler
+      const scheduleId = this.distributedServices.scheduler.scheduleOperation(
+        operationId,
+        OperationPriority.NORMAL,
+        { type: 'quantum_operation' as DistributedOperationType, nodes: new Set([this.distributedServices.coordinator.getLocalNodeId()]) },
+        {
+          softDeadline: startTime + duration,
+          hardDeadline: startTime + duration * 2,
+          maxLatency: 1000
+        }
+      );
+
+      this.log(`[DISTRIBUTED] Scheduled operation ${operationId} from ${startTime} for ${duration}ms (schedule ID: ${scheduleId})`);
+      return `Execution window scheduled: ${scheduleId}`;
+    } catch (error) {
+      throw new Error(`Execution window scheduling failed: ${error instanceof Error ? error.message : String(error)}`);
     }
   }
 }

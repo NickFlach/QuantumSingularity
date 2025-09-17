@@ -46,7 +46,15 @@ export type InstructionType =
   | 'AI_NEGOTIATE'
   | 'AI_VERIFY'
   | 'QUANTUM_DECISION'
-  | 'ENFORCE';
+  | 'ENFORCE'
+  // Distributed Quantum Operations
+  | 'WITH_NODE'
+  | 'WITH_CHANNEL' 
+  | 'ENTANGLE_REMOTE'
+  | 'TELEPORT'
+  | 'SWAP'
+  | 'BARRIER'
+  | 'SCHEDULE_WINDOW';
 
 // Parsed instruction
 export type ParsedInstruction = [InstructionType, ...string[]];
@@ -87,34 +95,146 @@ export class SingularisPrimeCompiler {
   private compilationErrors: CompilationError[] = [];
   private compilationWarnings: CompilationWarning[] = [];
   
+  // Enhanced error management
+  private addCompilationError(error: CompilationError): void {
+    this.compilationErrors.push(error);
+  }
+  
+  private addCompilationWarning(warning: CompilationWarning): void {
+    this.compilationWarnings.push(warning);
+  }
+  
+  /**
+   * Get compilation errors and warnings
+   */
+  public getCompilationResults(): { errors: CompilationError[], warnings: CompilationWarning[] } {
+    return {
+      errors: [...this.compilationErrors],
+      warnings: [...this.compilationWarnings]
+    };
+  }
+  
+  /**
+   * Check if compilation has errors
+   */
+  public hasErrors(): boolean {
+    return this.compilationErrors.length > 0;
+  }
+  
+  /**
+   * Clear compilation state
+   */
+  public reset(): void {
+    this.bytecode = [];
+    this.compilationErrors = [];
+    this.compilationWarnings = [];
+  }
+  
   constructor() {
     this.typeChecker = new SingularisTypeChecker();
   }
   
   /**
-   * Tokenizes source code into individual tokens.
+   * Tokenizes source code into individual tokens with defensive error handling.
    */
   tokenize(code: string): Token[] {
-    // Remove comments
-    const noComments = code.replace(/\/\/.*$/gm, '');
+    try {
+      // Defensive validation
+      if (typeof code !== 'string') {
+        this.addCompilationError({
+          type: 'syntax',
+          message: 'Invalid input: source code must be a string',
+          location: { line: 1, column: 1, file: 'input' },
+          severity: 'error',
+          suggestion: 'Ensure input is valid SINGULARIS PRIME source code'
+        });
+        return [];
+      }
+      
+      if (code.length === 0) {
+        this.addCompilationWarning({
+          type: 'best_practice',
+          message: 'Empty source code provided',
+          location: { line: 1, column: 1, file: 'input' },
+          suggestion: 'Provide valid SINGULARIS PRIME source code'
+        });
+        return [];
+      }
+      
+      if (code.length > 1000000) { // 1MB limit
+        this.addCompilationError({
+          type: 'syntax',
+          message: 'Source code exceeds maximum size limit (1MB)',
+          location: { line: 1, column: 1, file: 'input' },
+          severity: 'error',
+          suggestion: 'Break large files into smaller modules'
+        });
+        return [];
+      }
     
-    // Replace some special characters with spaces to ensure proper tokenization
-    const prepared = noComments
-      .replace(/[;,{}=()]/g, ' $& ')
-      .replace(/\s+/g, ' ')
-      .trim();
-    
-    // Split into tokens
-    const tokens = prepared.split(/\s+/);
-    return tokens;
+      // Remove comments
+      const noComments = code.replace(/\/\/.*$/gm, '');
+      
+      // Replace some special characters with spaces to ensure proper tokenization
+      const prepared = noComments
+        .replace(/[;,{}=()]/g, ' $& ')
+        .replace(/\s+/g, ' ')
+        .trim();
+      
+      // Split into tokens with validation
+      const tokens = prepared.split(/\s+/).filter(token => token.length > 0);
+      
+      // Validate token count
+      if (tokens.length > 100000) {
+        this.addCompilationWarning({
+          type: 'performance',
+          message: `Large number of tokens (${tokens.length}). This may impact compilation performance`,
+          location: { line: 1, column: 1, file: 'input' },
+          suggestion: 'Consider optimizing code structure'
+        });
+      }
+      
+      return tokens;
+    } catch (error) {
+      this.addCompilationError({
+        type: 'syntax',
+        message: `Tokenization failed: ${error instanceof Error ? error.message : String(error)}`,
+        location: { line: 1, column: 1, file: 'input' },
+        severity: 'error',
+        suggestion: 'Check source code for syntax errors'
+      });
+      return [];
+    }
   }
   
   /**
-   * Parses tokens into a structured intermediate representation.
+   * Parses tokens into a structured intermediate representation with comprehensive error handling.
    */
   parse(tokens: Token[]): ParsedInstruction[] {
     const parsed: ParsedInstruction[] = [];
     let i = 0;
+    
+    // Defensive validation
+    if (!Array.isArray(tokens)) {
+      this.addCompilationError({
+        type: 'syntax',
+        message: 'Invalid tokens array provided to parser',
+        location: { line: 1, column: 1, file: 'parser' },
+        severity: 'error',
+        suggestion: 'Ensure tokenization completed successfully'
+      });
+      return [];
+    }
+    
+    if (tokens.length === 0) {
+      this.addCompilationWarning({
+        type: 'best_practice',
+        message: 'No tokens provided to parser',
+        location: { line: 1, column: 1, file: 'parser' },
+        suggestion: 'Provide valid tokenized source code'
+      });
+      return [];
+    }
     
     while (i < tokens.length) {
       const token = tokens[i];
@@ -221,11 +341,123 @@ export class SingularisPrimeCompiler {
             i += 1;
           }
           break;
+
+        // Distributed Quantum Operations
+        case 'withNode':
+          if (i + 1 < tokens.length) {
+            const nodeId = tokens[i + 1].replace(/[;]/g, '');
+            parsed.push(['WITH_NODE', nodeId]);
+            i += 2;
+          } else {
+            i += 1;
+          }
+          break;
+
+        case 'withChannel':
+          if (i + 1 < tokens.length) {
+            const channelId = tokens[i + 1].replace(/[;]/g, '');
+            parsed.push(['WITH_CHANNEL', channelId]);
+            i += 2;
+          } else {
+            i += 1;
+          }
+          break;
+
+        case 'entangleRemote':
+          if (i + 4 < tokens.length) {
+            const localState = tokens[i + 1];
+            const remoteNode = tokens[i + 3];
+            const remoteState = tokens[i + 4].replace(/[;]/g, '');
+            parsed.push(['ENTANGLE_REMOTE', localState, remoteNode, remoteState]);
+            i += 5;
+          } else {
+            i += 1;
+          }
+          break;
+
+        case 'teleport':
+          if (i + 4 < tokens.length) {
+            const stateId = tokens[i + 1];
+            const targetNode = tokens[i + 3];
+            const channel = tokens[i + 4].replace(/[;]/g, '');
+            parsed.push(['TELEPORT', stateId, targetNode, channel]);
+            i += 5;
+          } else {
+            i += 1;
+          }
+          break;
+
+        case 'entanglementSwap':
+          if (i + 6 < tokens.length) {
+            const state1 = tokens[i + 1];
+            const state2 = tokens[i + 3];
+            const node1 = tokens[i + 5];
+            const node2 = tokens[i + 6].replace(/[;]/g, '');
+            parsed.push(['SWAP', state1, state2, node1, node2]);
+            i += 7;
+          } else {
+            i += 1;
+          }
+          break;
+
+        case 'barrier':
+          if (i + 2 < tokens.length) {
+            const groupId = tokens[i + 1];
+            const timeout = tokens[i + 2].replace(/[;]/g, '');
+            parsed.push(['BARRIER', groupId, timeout]);
+            i += 3;
+          } else {
+            i += 1;
+          }
+          break;
+
+        case 'scheduleWindow':
+          if (i + 3 < tokens.length) {
+            const operationId = tokens[i + 1];
+            const startTime = tokens[i + 2];
+            const duration = tokens[i + 3].replace(/[;]/g, '');
+            parsed.push(['SCHEDULE_WINDOW', operationId, startTime, duration]);
+            i += 4;
+          } else {
+            i += 1;
+          }
+          break;
           
         default:
+          // Enhanced error handling for unknown tokens
+          if (token && token.length > 0) {
+            this.addCompilationWarning({
+              type: 'best_practice',
+              message: `Unknown token '${token}' encountered during parsing`,
+              location: { line: Math.floor(i / 10) + 1, column: (i % 10) + 1, file: 'parser' },
+              suggestion: 'Check syntax or add support for this token type'
+            });
+          }
           i += 1;
           break;
       }
+      
+      // Safety check for infinite loop prevention
+      if (i > tokens.length + 100) {
+        this.addCompilationError({
+          type: 'syntax',
+          message: 'Parser exceeded maximum iteration limit - possible infinite loop',
+          location: { line: Math.floor(i / 10) + 1, column: (i % 10) + 1, file: 'parser' },
+          severity: 'error',
+          suggestion: 'Check source code for malformed syntax that could cause parsing loops'
+        });
+        break;
+      }
+    }
+    
+    // Validate parsed result
+    if (parsed.length === 0 && tokens.length > 0) {
+      this.addCompilationWarning({
+        type: 'best_practice',
+        message: 'No valid instructions parsed from provided tokens',
+        location: { line: 1, column: 1, file: 'parser' },
+        suggestion: 'Check that source code contains valid SINGULARIS PRIME instructions'
+      });
     }
     
     return parsed;
@@ -276,6 +508,35 @@ export class SingularisPrimeCompiler {
         case 'QUANTUM_DECISION':
           bytecode.push(`DECIDE_QUANTUM ${args[0]} ${args[1]} ${args[2]}`);
           break;
+
+        // Distributed Quantum Operations  
+        case 'WITH_NODE':
+          bytecode.push(`SET_TARGET_NODE ${args[0]}`);
+          break;
+          
+        case 'WITH_CHANNEL':
+          bytecode.push(`SET_CHANNEL ${args[0]}`);
+          break;
+          
+        case 'ENTANGLE_REMOTE':
+          bytecode.push(`ENTANGLE_REMOTE ${args[0]} ${args[1]} ${args[2]}`);
+          break;
+          
+        case 'TELEPORT':
+          bytecode.push(`TELEPORT_STATE ${args[0]} ${args[1]} ${args[2]}`);
+          break;
+          
+        case 'SWAP':
+          bytecode.push(`ENTANGLEMENT_SWAP ${args[0]} ${args[1]} ${args[2]} ${args[3]}`);
+          break;
+          
+        case 'BARRIER':
+          bytecode.push(`BARRIER_SYNC ${args[0]} ${args[1]}`);
+          break;
+          
+        case 'SCHEDULE_WINDOW':
+          bytecode.push(`SCHEDULE_EXECUTION ${args[0]} ${args[1]} ${args[2]}`);
+          break;
       }
     }
     
@@ -284,12 +545,60 @@ export class SingularisPrimeCompiler {
   }
   
   /**
-   * Compiles source code into bytecode.
+   * Compiles source code into bytecode with comprehensive error handling and validation.
    */
   compile(sourceCode: string): string[] {
-    const tokens = this.tokenize(sourceCode);
-    const parsed = this.parse(tokens);
-    return this.generateBytecode(parsed);
+    try {
+      // Reset compilation state
+      this.compilationErrors = [];
+      this.compilationWarnings = [];
+      this.bytecode = [];
+      
+      // Early validation
+      if (typeof sourceCode !== 'string') {
+        this.addCompilationError({
+          type: 'syntax',
+          message: 'Invalid input type: expected string source code',
+          location: { line: 1, column: 1, file: 'compile' },
+          severity: 'error',
+          suggestion: 'Provide valid SINGULARIS PRIME source code as a string'
+        });
+        return [];
+      }
+      
+      const tokens = this.tokenize(sourceCode);
+      if (tokens.length === 0) {
+        return []; // Errors already logged in tokenize
+      }
+      
+      const parsed = this.parse(tokens);
+      if (parsed.length === 0) {
+        return []; // Errors already logged in parse
+      }
+      
+      const bytecode = this.generateBytecode(parsed);
+      
+      // Final validation
+      if (bytecode.length === 0 && parsed.length > 0) {
+        this.addCompilationWarning({
+          type: 'performance',
+          message: 'No bytecode generated from parsed instructions',
+          location: { line: 1, column: 1, file: 'compile' },
+          suggestion: 'Check that parsed instructions are valid and supported'
+        });
+      }
+      
+      return bytecode;
+    } catch (error) {
+      this.addCompilationError({
+        type: 'syntax',
+        message: `Compilation failed: ${error instanceof Error ? error.message : String(error)}`,
+        location: { line: 1, column: 1, file: 'compile' },
+        severity: 'error',
+        suggestion: 'Check source code for syntax errors and try again'
+      });
+      return [];
+    }
   }
   
   /**

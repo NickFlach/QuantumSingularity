@@ -497,3 +497,707 @@ export const insertMagnetismSimulationSchema = createInsertSchema(magnetismSimul
 
 export type InsertMagnetismSimulation = z.infer<typeof insertMagnetismSimulationSchema>;
 export type MagnetismSimulation = typeof magnetismSimulations.$inferSelect;
+
+// =============================================================================
+// DISTRIBUTED QUANTUM NETWORKS (DQN) SCHEMAS
+// =============================================================================
+
+// Distributed Quantum Node Status
+export enum DistributedNodeStatus {
+  ONLINE = "online",
+  OFFLINE = "offline", 
+  DEGRADED = "degraded",
+  SYNCHRONIZING = "synchronizing",
+  FAULT = "fault"
+}
+
+// EPR Channel Status
+export enum EPRChannelStatus {
+  ACTIVE = "active",
+  IDLE = "idle",
+  DEGRADED = "degraded", 
+  FAILED = "failed",
+  MAINTENANCE = "maintenance"
+}
+
+// Distributed Session Status
+export enum DistributedSessionStatus {
+  INITIALIZING = "initializing",
+  ACTIVE = "active",
+  SUSPENDED = "suspended",
+  TERMINATING = "terminating", 
+  TERMINATED = "terminated",
+  ERROR = "error"
+}
+
+// Distributed Operation Status
+export enum DistributedOperationStatus {
+  PENDING = "pending",
+  RUNNING = "running",
+  COMPLETED = "completed",
+  FAILED = "failed",
+  TIMEOUT = "timeout",
+  CANCELLED = "cancelled",
+  ROLLED_BACK = "rolled_back"
+}
+
+// Distributed Operation Types
+export enum DistributedOperationType {
+  TELEPORTATION = "teleportation",
+  ENTANGLEMENT_SWAPPING = "entanglement_swapping",
+  DISTRIBUTED_MEASUREMENT = "distributed_measurement",
+  QUANTUM_ERROR_CORRECTION = "quantum_error_correction",
+  EPR_GENERATION = "epr_generation",
+  STATE_MIGRATION = "state_migration",
+  BARRIER_SYNCHRONIZATION = "barrier_synchronization"
+}
+
+// Distributed Quantum Nodes - Participants in the quantum network
+export const distributedQuantumNodes = pgTable("distributed_quantum_nodes", {
+  id: serial("id").primaryKey(),
+  nodeId: text("node_id").notNull().unique(), // NodeId brand type as string
+  name: text("name").notNull(),
+  networkAddress: text("network_address").notNull(),
+  publicKey: text("public_key").notNull(),
+  trustLevel: text("trust_level").notNull(), // "untrusted", "verified", "trusted", "critical"
+  status: text("status").notNull(), // DistributedNodeStatus enum
+  
+  // Capabilities
+  maxQubits: integer("max_qubits").notNull(),
+  availableQubits: integer("available_qubits").notNull(),
+  coherenceTime: integer("coherence_time").notNull(), // microseconds
+  fidelityThreshold: text("fidelity_threshold").notNull(), // decimal as string
+  canTeleport: boolean("can_teleport").default(true),
+  canPurify: boolean("can_purify").default(true),
+  canSwapEntanglement: boolean("can_swap_entanglement").default(true),
+  maxEntangledStates: integer("max_entangled_states").notNull(),
+  supportedDimensions: jsonb("supported_dimensions").notNull(), // Array of QuantumDimension
+  minFidelity: text("min_fidelity").notNull(), // decimal as string
+  maxLatency: integer("max_latency").notNull(), // milliseconds
+  cryptographicProtocols: jsonb("cryptographic_protocols").notNull(), // Array of strings
+  
+  // Network metrics
+  lastHeartbeat: timestamp("last_heartbeat").notNull(),
+  lastAuthenticated: timestamp("last_authenticated").notNull(),
+  networkLatency: jsonb("network_latency"), // Map<NodeId, LatencyMetrics>
+  connectedNodes: jsonb("connected_nodes"), // Set of NodeId
+  routingTable: jsonb("routing_table"), // Map<NodeId, NodeId> destination -> next hop
+  
+  // Metadata
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
+});
+
+// EPR Channels - Quantum communication channels between nodes
+export const eprChannels = pgTable("epr_channels", {
+  id: serial("id").primaryKey(),
+  channelId: text("channel_id").notNull().unique(), // ChannelId brand type as string
+  nodeAId: text("node_a_id").notNull(),
+  nodeBId: text("node_b_id").notNull(),
+  status: text("status").notNull(), // EPRChannelStatus enum
+  
+  // Quality metrics
+  fidelity: text("fidelity").notNull(), // decimal as string (0-1)
+  entanglementStrength: text("entanglement_strength").notNull(), // decimal as string
+  coherenceTime: integer("coherence_time").notNull(), // microseconds
+  errorRate: text("error_rate").notNull(), // decimal as string
+  purificationLevel: integer("purification_level").default(0),
+  
+  // EPR pair pool metrics
+  totalPairs: integer("total_pairs").notNull(),
+  availablePairs: integer("available_pairs").notNull(),
+  generationRate: text("generation_rate").notNull(), // pairs per second as decimal
+  maxUsage: integer("max_usage").notNull(),
+  usageCount: integer("usage_count").default(0),
+  
+  // Protocol support
+  supportedProtocols: jsonb("supported_protocols").notNull(), // Array of QuantumProtocol
+  
+  // Authentication and encryption
+  authMethod: text("auth_method").notNull(), // "quantum_signature", "classical_cert", "hybrid"
+  publicKeyA: text("public_key_a").notNull(),
+  publicKeyB: text("public_key_b").notNull(),
+  trustScore: text("trust_score").notNull(), // decimal as string
+  encryptionEnabled: boolean("encryption_enabled").default(true),
+  encryptionAlgorithm: text("encryption_algorithm"),
+  keyRotationPeriod: integer("key_rotation_period").notNull(), // seconds
+  lastKeyRotation: timestamp("last_key_rotation").notNull(),
+  
+  // Timestamps
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  lastUsed: timestamp("last_used"),
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
+});
+
+// Distributed Sessions - Multi-node quantum computation sessions  
+export const distributedSessions = pgTable("distributed_sessions", {
+  id: serial("id").primaryKey(),
+  sessionId: text("session_id").notNull().unique(), // SessionId brand type as string
+  projectId: integer("project_id").references(() => singularisProjects.id),
+  coordinatorNodeId: text("coordinator_node_id").notNull(),
+  status: text("status").notNull(), // DistributedSessionStatus enum
+  
+  // Participants
+  participantNodes: jsonb("participant_nodes").notNull(), // Set of NodeId
+  
+  // Capabilities and requirements
+  maxNodes: integer("max_nodes").notNull(),
+  maxQubits: integer("max_qubits").notNull(),
+  supportedProtocols: jsonb("supported_protocols").notNull(), // Set of QuantumProtocol
+  minFidelity: text("min_fidelity").notNull(), // decimal as string
+  maxLatency: integer("max_latency").notNull(), // milliseconds
+  minNodes: integer("min_nodes").notNull(),
+  requiredProtocols: jsonb("required_protocols").notNull(), // Set of QuantumProtocol
+  fidelityThreshold: text("fidelity_threshold").notNull(), // decimal as string
+  latencyThreshold: integer("latency_threshold").notNull(), // milliseconds
+  coherenceTime: integer("coherence_time").notNull(), // microseconds
+  reliabilityTarget: text("reliability_target").notNull(), // decimal as string
+  securityLevel: text("security_level").notNull(), // "public", "restricted", "confidential", "secret", "top_secret"
+  
+  // Resource allocation
+  allocatedResources: jsonb("allocated_resources"), // Map<NodeId, AllocatedResources>
+  reservedChannels: jsonb("reserved_channels"), // Set of ChannelId
+  globalCoherenceBudget: jsonb("global_coherence_budget"), // CoherenceBudget object
+  
+  // Time window
+  startTime: timestamp("start_time").notNull(),
+  endTime: timestamp("end_time").notNull(),
+  duration: integer("duration").notNull(), // milliseconds
+  bufferTime: integer("buffer_time").notNull(), // milliseconds
+  extensions: integer("extensions").default(0),
+  maxExtensions: integer("max_extensions").notNull(),
+  
+  // Security and authentication
+  authMethod: text("auth_method").notNull(), // "quantum_id", "classical_pki", "hybrid"
+  sessionKey: text("session_key").notNull(),
+  keyRotationPeriod: integer("key_rotation_period").notNull(), // seconds
+  lastAuthentication: timestamp("last_authentication").notNull(),
+  encryptionLevel: text("encryption_level").notNull(), // "none", "classical", "quantum", "hybrid"
+  
+  // Quality of service
+  latencyTarget: integer("latency_target").notNull(), // milliseconds
+  throughputTarget: text("throughput_target").notNull(), // operations/sec as decimal
+  availabilityTarget: text("availability_target").notNull(), // decimal 0-1
+  reliabilityTargetQos: text("reliability_target_qos").notNull(), // decimal 0-1
+  fidelityTarget: text("fidelity_target").notNull(), // decimal 0-1
+  consistencyLevel: text("consistency_level").notNull(), // "eventual", "strong", "linearizable"
+  
+  // Monitoring and fault tolerance
+  metricsCollection: boolean("metrics_collection").default(true),
+  realTimeAlerts: boolean("real_time_alerts").default(true),
+  performanceLogging: boolean("performance_logging").default(true),
+  securityAuditing: boolean("security_auditing").default(true),
+  quantumStateLogging: boolean("quantum_state_logging").default(false),
+  networkTracing: boolean("network_tracing").default(false),
+  nodeFaultTolerance: integer("node_fault_tolerance").notNull(),
+  channelFaultTolerance: integer("channel_fault_tolerance").notNull(),
+  automaticRecovery: boolean("automatic_recovery").default(true),
+  checkpointFrequency: integer("checkpoint_frequency").notNull(), // seconds
+  rollbackCapability: boolean("rollback_capability").default(true),
+  gracefulDegradation: boolean("graceful_degradation").default(true),
+  
+  // Timestamps
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  lastActivity: timestamp("last_activity").notNull().defaultNow(),
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
+});
+
+// Distributed Operations - Operations spanning multiple nodes
+export const distributedOperations = pgTable("distributed_operations", {
+  id: serial("id").primaryKey(),
+  operationId: text("operation_id").notNull().unique(),
+  sessionId: text("session_id").notNull(),
+  type: text("type").notNull(), // DistributedOperationType enum
+  status: text("status").notNull(), // DistributedOperationStatus enum
+  priority: text("priority").notNull(), // "low", "normal", "high", "critical", "emergency"
+  
+  // Involved resources
+  involvedNodes: jsonb("involved_nodes").notNull(), // Set of NodeId
+  requiredChannels: jsonb("required_channels").notNull(), // Set of ChannelId
+  sourceStates: jsonb("source_states").notNull(), // Array of QuantumReferenceId
+  targetNodes: jsonb("target_nodes").notNull(), // Array of NodeId
+  channels: jsonb("channels").notNull(), // Array of ChannelId
+  
+  // Operation parameters
+  fidelityThreshold: text("fidelity_threshold").notNull(), // decimal as string
+  timeoutMs: integer("timeout_ms").notNull(),
+  additionalParams: jsonb("additional_params"), // Record<string, any>
+  
+  // Coherence and deadlines
+  coherenceBudget: jsonb("coherence_budget").notNull(), // CoherenceBudget object
+  deadline: timestamp("deadline").notNull(),
+  
+  // Preconditions and postconditions
+  preconditions: jsonb("preconditions").notNull(), // Array of OperationPrecondition
+  postconditions: jsonb("postconditions").notNull(), // Array of OperationPostcondition
+  
+  // Execution tracking
+  phase: text("phase"),
+  completionPercent: integer("completion_percent").default(0),
+  currentStep: text("current_step"),
+  estimatedTimeRemaining: integer("estimated_time_remaining"), // milliseconds
+  resourcesUsed: jsonb("resources_used"), // ResourceUsage object
+  errors: jsonb("errors"), // Array of DistributedError
+  
+  // Retry and fallback
+  maxRetries: integer("max_retries").notNull(),
+  retryCount: integer("retry_count").default(0),
+  backoffStrategy: text("backoff_strategy").notNull(), // "linear", "exponential", "adaptive"
+  initialDelayMs: integer("initial_delay_ms").notNull(),
+  maxDelayMs: integer("max_delay_ms").notNull(),
+  retryableErrors: jsonb("retryable_errors").notNull(), // Set of DistributedErrorType
+  fallbackStrategy: text("fallback_strategy").notNull(), // "abort", "classical", "degraded", "alternative_path", "wait_and_retry"
+  rollbackCapability: boolean("rollback_capability").default(false),
+  
+  // Results
+  result: jsonb("result"), // Operation-specific result object
+  
+  // Timestamps
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  startTime: timestamp("start_time"),
+  endTime: timestamp("end_time"),
+  lastUpdate: timestamp("last_update").notNull().defaultNow(),
+});
+
+// Quantum Network Topology - Store network topology information
+export const quantumNetworkTopology = pgTable("quantum_network_topology", {
+  id: serial("id").primaryKey(),
+  topologyId: text("topology_id").notNull().unique(),
+  name: text("name").notNull(),
+  description: text("description"),
+  
+  // Topology structure
+  type: text("type").notNull(), // "star", "linear", "ring", "mesh", "tree", "custom"
+  centralNode: text("central_node"), // for star topology
+  adjacencyMatrix: jsonb("adjacency_matrix").notNull(), // Array<Array<boolean>>
+  shortestPaths: jsonb("shortest_paths"), // Map<[NodeId, NodeId], Array<NodeId>>
+  diameter: integer("diameter").notNull(), // maximum shortest path length
+  
+  // Network properties
+  nodeCount: integer("node_count").notNull(),
+  edgeCount: integer("edge_count").notNull(),
+  averageLatency: text("average_latency").notNull(), // decimal as string (milliseconds)
+  maxLatency: text("max_latency").notNull(), // decimal as string (milliseconds)
+  reliability: text("reliability").notNull(), // decimal as string (0-1)
+  
+  // Fault tolerance
+  nodeFaultTolerance: integer("node_fault_tolerance").notNull(),
+  edgeFaultTolerance: integer("edge_fault_tolerance").notNull(),
+  alternativePaths: jsonb("alternative_paths"), // Map for redundant routing
+  
+  // Active configuration
+  isActive: boolean("is_active").default(false),
+  configurationHash: text("configuration_hash").notNull(),
+  
+  // Timestamps
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
+});
+
+// Distributed Entanglement Groups - Multi-node entangled quantum systems
+export const distributedEntanglementGroups = pgTable("distributed_entanglement_groups", {
+  id: serial("id").primaryKey(),
+  groupId: text("group_id").notNull().unique(), // EntanglementGroupId brand type as string
+  sessionId: text("session_id"),
+  operationId: text("operation_id"),
+  
+  // Group properties
+  entanglementType: text("entanglement_type").notNull(), // "bell_state", "ghz_state", "cluster_state", "custom"
+  strength: text("strength").notNull(), // decimal as string (0-1)
+  coherenceTime: integer("coherence_time").notNull(), // microseconds
+  
+  // Network distribution
+  participatingNodes: jsonb("participating_nodes").notNull(), // Map<NodeId, Array<QuantumReferenceId>>
+  topologyType: text("topology_type").notNull(), // "star", "linear", "ring", "mesh", "tree", "custom"
+  networkSpan: integer("network_span").notNull(), // maximum distance between nodes
+  maxLatency: integer("max_latency").notNull(), // milliseconds
+  minFidelity: text("min_fidelity").notNull(), // decimal as string
+  coherenceBound: integer("coherence_bound").notNull(), // microseconds
+  
+  // Consistency and synchronization
+  consistencyLevel: text("consistency_level").notNull(), // "weak", "strong", "sequential", "linearizable"
+  lastConsistencyCheck: timestamp("last_consistency_check").notNull(),
+  inconsistencyCount: integer("inconsistency_count").default(0),
+  repairAttempts: integer("repair_attempts").default(0),
+  maximumInconsistencyTime: integer("maximum_inconsistency_time").notNull(), // milliseconds
+  
+  // Clock synchronization
+  clockSyncProtocol: text("clock_sync_protocol").notNull(), // "ntp", "ptp", "quantum_clock"
+  clockAccuracy: integer("clock_accuracy").notNull(), // nanoseconds
+  lastClockSync: timestamp("last_clock_sync").notNull(),
+  clockDriftRate: text("clock_drift_rate").notNull(), // decimal as string
+  maxClockOffset: integer("max_clock_offset").notNull(), // nanoseconds
+  
+  // State synchronization
+  stateSyncFrequency: text("state_sync_frequency").notNull(), // Hz as decimal
+  lastStateSync: timestamp("last_state_sync").notNull(),
+  deltaCompression: boolean("delta_compression").default(true),
+  checksumVerification: boolean("checksum_verification").default(true),
+  conflictResolution: text("conflict_resolution").notNull(), // "last_write_wins", "vector_clock", "quantum_voting"
+  
+  // Operation ordering
+  orderingProtocol: text("ordering_protocol").notNull(), // "lamport", "vector_clock", "quantum_causal"
+  globalClock: integer("global_clock").notNull(),
+  causalityViolations: integer("causality_violations").default(0),
+  pendingOperations: jsonb("pending_operations"), // Array of DistributedOperation
+  
+  // Fault tolerance
+  redundancy: integer("redundancy").notNull(),
+  repairCapability: text("repair_capability").notNull(), // "none", "basic", "correcting", "tolerant"
+  isolationStrategy: text("isolation_strategy").notNull(), // "abort", "degrade", "isolate", "repair"
+  
+  // Status
+  isActive: boolean("is_active").default(true),
+  lastActivity: timestamp("last_activity").notNull().defaultNow(),
+  
+  // Timestamps
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
+});
+
+// EPR Pairs - Individual EPR pairs within channels
+export const eprPairs = pgTable("epr_pairs", {
+  id: serial("id").primaryKey(),
+  pairId: text("pair_id").notNull().unique(), // QuantumReferenceId as string
+  channelId: text("channel_id").notNull(),
+  
+  // Entangled states
+  stateAId: text("state_a_id").notNull(), // QuantumReferenceId on node A
+  stateBId: text("state_b_id").notNull(), // QuantumReferenceId on node B
+  entanglementType: text("entanglement_type").notNull(), // "bell_state", "maximally_entangled"
+  
+  // Quality metrics
+  fidelity: text("fidelity").notNull(), // decimal as string
+  coherenceTime: integer("coherence_time").notNull(), // microseconds
+  
+  // Usage tracking
+  isUsed: boolean("is_used").default(false),
+  usedAt: timestamp("used_at"),
+  usedBy: text("used_by"), // operation ID
+  
+  // Purification history
+  purificationHistory: jsonb("purification_history"), // Array of PurificationStep
+  purificationLevel: integer("purification_level").default(0),
+  
+  // Timestamps
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  expiresAt: timestamp("expires_at").notNull(),
+});
+
+// Distributed Quantum State Registry - Track quantum states across nodes
+export const distributedQuantumStates = pgTable("distributed_quantum_states", {
+  id: serial("id").primaryKey(),
+  stateId: text("state_id").notNull().unique(), // QuantumReferenceId as string
+  nodeId: text("node_id").notNull(),
+  sessionId: text("session_id"),
+  entanglementGroupId: text("entanglement_group_id"),
+  
+  // State properties
+  dimension: integer("dimension").notNull(), // QuantumDimension
+  purity: text("purity").notNull(), // "pure", "mixed", "entangled"
+  coherence: text("coherence").notNull(), // "coherent", "decoherent", "decohering"
+  measurementStatus: text("measurement_status").notNull(), // "unmeasured", "measured", "partial"
+  
+  // Network properties
+  isLocal: boolean("is_local").notNull(),
+  networkMetadata: jsonb("network_metadata"), // NetworkMetadata object
+  coherenceBudget: jsonb("coherence_budget"), // CoherenceBudget object
+  networkPath: jsonb("network_path"), // Array of NodeId
+  reliability: text("reliability").notNull(), // decimal as string
+  estimatedLifetime: integer("estimated_lifetime").notNull(), // microseconds
+  
+  // Entanglement relationships
+  entangledWith: jsonb("entangled_with"), // Set of QuantumReferenceId
+  remoteEntanglements: jsonb("remote_entanglements"), // Map<QuantumReferenceId, NodeId>
+  
+  // Tracking
+  lastInteraction: timestamp("last_interaction").notNull().defaultNow(),
+  syncFrequency: integer("sync_frequency").notNull(), // milliseconds
+  lastSync: timestamp("last_sync").notNull().defaultNow(),
+  
+  // Migration history
+  migrationHistory: jsonb("migration_history"), // Array of migration records
+  originalNode: text("original_node").notNull(),
+  
+  // Timestamps
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
+  decoherenceDeadline: timestamp("decoherence_deadline").notNull(),
+});
+
+// =============================================================================
+// DISTRIBUTED QUANTUM NETWORKS (DQN) INSERT SCHEMAS
+// =============================================================================
+
+export const insertDistributedQuantumNodeSchema = createInsertSchema(distributedQuantumNodes).pick({
+  nodeId: true,
+  name: true,
+  networkAddress: true,
+  publicKey: true,
+  trustLevel: true,
+  status: true,
+  maxQubits: true,
+  availableQubits: true,
+  coherenceTime: true,
+  fidelityThreshold: true,
+  canTeleport: true,
+  canPurify: true,
+  canSwapEntanglement: true,
+  maxEntangledStates: true,
+  supportedDimensions: true,
+  minFidelity: true,
+  maxLatency: true,
+  cryptographicProtocols: true,
+  lastHeartbeat: true,
+  lastAuthenticated: true,
+  networkLatency: true,
+  connectedNodes: true,
+  routingTable: true,
+});
+
+export const insertEPRChannelSchema = createInsertSchema(eprChannels).pick({
+  channelId: true,
+  nodeAId: true,
+  nodeBId: true,
+  status: true,
+  fidelity: true,
+  entanglementStrength: true,
+  coherenceTime: true,
+  errorRate: true,
+  purificationLevel: true,
+  totalPairs: true,
+  availablePairs: true,
+  generationRate: true,
+  maxUsage: true,
+  usageCount: true,
+  supportedProtocols: true,
+  authMethod: true,
+  publicKeyA: true,
+  publicKeyB: true,
+  trustScore: true,
+  encryptionEnabled: true,
+  encryptionAlgorithm: true,
+  keyRotationPeriod: true,
+  lastKeyRotation: true,
+  lastUsed: true,
+});
+
+export const insertDistributedSessionSchema = createInsertSchema(distributedSessions).pick({
+  sessionId: true,
+  projectId: true,
+  coordinatorNodeId: true,
+  status: true,
+  participantNodes: true,
+  maxNodes: true,
+  maxQubits: true,
+  supportedProtocols: true,
+  minFidelity: true,
+  maxLatency: true,
+  minNodes: true,
+  requiredProtocols: true,
+  fidelityThreshold: true,
+  latencyThreshold: true,
+  coherenceTime: true,
+  reliabilityTarget: true,
+  securityLevel: true,
+  allocatedResources: true,
+  reservedChannels: true,
+  globalCoherenceBudget: true,
+  startTime: true,
+  endTime: true,
+  duration: true,
+  bufferTime: true,
+  extensions: true,
+  maxExtensions: true,
+  authMethod: true,
+  sessionKey: true,
+  keyRotationPeriod: true,
+  lastAuthentication: true,
+  encryptionLevel: true,
+  latencyTarget: true,
+  throughputTarget: true,
+  availabilityTarget: true,
+  reliabilityTargetQos: true,
+  fidelityTarget: true,
+  consistencyLevel: true,
+  metricsCollection: true,
+  realTimeAlerts: true,
+  performanceLogging: true,
+  securityAuditing: true,
+  quantumStateLogging: true,
+  networkTracing: true,
+  nodeFaultTolerance: true,
+  channelFaultTolerance: true,
+  automaticRecovery: true,
+  checkpointFrequency: true,
+  rollbackCapability: true,
+  gracefulDegradation: true,
+  lastActivity: true,
+});
+
+export const insertDistributedOperationSchema = createInsertSchema(distributedOperations).pick({
+  operationId: true,
+  sessionId: true,
+  type: true,
+  status: true,
+  priority: true,
+  involvedNodes: true,
+  requiredChannels: true,
+  sourceStates: true,
+  targetNodes: true,
+  channels: true,
+  fidelityThreshold: true,
+  timeoutMs: true,
+  additionalParams: true,
+  coherenceBudget: true,
+  deadline: true,
+  preconditions: true,
+  postconditions: true,
+  phase: true,
+  completionPercent: true,
+  currentStep: true,
+  estimatedTimeRemaining: true,
+  resourcesUsed: true,
+  errors: true,
+  maxRetries: true,
+  retryCount: true,
+  backoffStrategy: true,
+  initialDelayMs: true,
+  maxDelayMs: true,
+  retryableErrors: true,
+  fallbackStrategy: true,
+  rollbackCapability: true,
+  result: true,
+  startTime: true,
+  endTime: true,
+  lastUpdate: true,
+});
+
+export const insertQuantumNetworkTopologySchema = createInsertSchema(quantumNetworkTopology).pick({
+  topologyId: true,
+  name: true,
+  description: true,
+  type: true,
+  centralNode: true,
+  adjacencyMatrix: true,
+  shortestPaths: true,
+  diameter: true,
+  nodeCount: true,
+  edgeCount: true,
+  averageLatency: true,
+  maxLatency: true,
+  reliability: true,
+  nodeFaultTolerance: true,
+  edgeFaultTolerance: true,
+  alternativePaths: true,
+  isActive: true,
+  configurationHash: true,
+});
+
+export const insertDistributedEntanglementGroupSchema = createInsertSchema(distributedEntanglementGroups).pick({
+  groupId: true,
+  sessionId: true,
+  operationId: true,
+  entanglementType: true,
+  strength: true,
+  coherenceTime: true,
+  participatingNodes: true,
+  topologyType: true,
+  networkSpan: true,
+  maxLatency: true,
+  minFidelity: true,
+  coherenceBound: true,
+  consistencyLevel: true,
+  lastConsistencyCheck: true,
+  inconsistencyCount: true,
+  repairAttempts: true,
+  maximumInconsistencyTime: true,
+  clockSyncProtocol: true,
+  clockAccuracy: true,
+  lastClockSync: true,
+  clockDriftRate: true,
+  maxClockOffset: true,
+  stateSyncFrequency: true,
+  lastStateSync: true,
+  deltaCompression: true,
+  checksumVerification: true,
+  conflictResolution: true,
+  orderingProtocol: true,
+  globalClock: true,
+  causalityViolations: true,
+  pendingOperations: true,
+  redundancy: true,
+  repairCapability: true,
+  isolationStrategy: true,
+  isActive: true,
+  lastActivity: true,
+});
+
+export const insertEPRPairSchema = createInsertSchema(eprPairs).pick({
+  pairId: true,
+  channelId: true,
+  stateAId: true,
+  stateBId: true,
+  entanglementType: true,
+  fidelity: true,
+  coherenceTime: true,
+  isUsed: true,
+  usedAt: true,
+  usedBy: true,
+  purificationHistory: true,
+  purificationLevel: true,
+  expiresAt: true,
+});
+
+export const insertDistributedQuantumStateSchema = createInsertSchema(distributedQuantumStates).pick({
+  stateId: true,
+  nodeId: true,
+  sessionId: true,
+  entanglementGroupId: true,
+  dimension: true,
+  purity: true,
+  coherence: true,
+  measurementStatus: true,
+  isLocal: true,
+  networkMetadata: true,
+  coherenceBudget: true,
+  networkPath: true,
+  reliability: true,
+  estimatedLifetime: true,
+  entangledWith: true,
+  remoteEntanglements: true,
+  lastInteraction: true,
+  syncFrequency: true,
+  lastSync: true,
+  migrationHistory: true,
+  originalNode: true,
+  decoherenceDeadline: true,
+});
+
+// =============================================================================
+// DISTRIBUTED QUANTUM NETWORKS (DQN) TYPES
+// =============================================================================
+
+export type InsertDistributedQuantumNode = z.infer<typeof insertDistributedQuantumNodeSchema>;
+export type DistributedQuantumNode = typeof distributedQuantumNodes.$inferSelect;
+
+export type InsertEPRChannel = z.infer<typeof insertEPRChannelSchema>;
+export type EPRChannel = typeof eprChannels.$inferSelect;
+
+export type InsertDistributedSession = z.infer<typeof insertDistributedSessionSchema>;
+export type DistributedSession = typeof distributedSessions.$inferSelect;
+
+export type InsertDistributedOperation = z.infer<typeof insertDistributedOperationSchema>;
+export type DistributedOperation = typeof distributedOperations.$inferSelect;
+
+export type InsertQuantumNetworkTopology = z.infer<typeof insertQuantumNetworkTopologySchema>;
+export type QuantumNetworkTopology = typeof quantumNetworkTopology.$inferSelect;
+
+export type InsertDistributedEntanglementGroup = z.infer<typeof insertDistributedEntanglementGroupSchema>;
+export type DistributedEntanglementGroup = typeof distributedEntanglementGroups.$inferSelect;
+
+export type InsertEPRPair = z.infer<typeof insertEPRPairSchema>;
+export type EPRPair = typeof eprPairs.$inferSelect;
+
+export type InsertDistributedQuantumState = z.infer<typeof insertDistributedQuantumStateSchema>;
+export type DistributedQuantumState = typeof distributedQuantumStates.$inferSelect;

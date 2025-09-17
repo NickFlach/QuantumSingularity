@@ -45,6 +45,18 @@ import {
   QuantumLifecyclePhase
 } from '../../shared/types/quantum-memory-types';
 
+// Import distributed quantum types for monitoring
+import {
+  NodeId,
+  ChannelId,
+  SessionId,
+  DistributedOperation,
+  DistributedOperationType,
+  OperationPriority,
+  NetworkMetadata,
+  CoherenceBudget
+} from '../../shared/types/distributed-quantum-types';
+
 // Import QMM system for integration
 import { quantumMemoryManager } from './quantum-memory-manager';
 import { entanglementManager } from './entanglement-manager';
@@ -62,7 +74,7 @@ export interface VerificationEvent {
 
 export interface VerificationOperation {
   readonly id: string;
-  readonly type: 'ai_contract' | 'model_deployment' | 'decision_point' | 'quantum_operation' | 'quantum_memory' | 'verification_check';
+  readonly type: 'ai_contract' | 'model_deployment' | 'decision_point' | 'quantum_operation' | 'quantum_memory' | 'verification_check' | 'distributed_quantum';
   readonly description: string;
   readonly criticality: OperationCriticality;
   readonly explainabilityRequirement: ExplainabilityScore;
@@ -77,6 +89,14 @@ export interface VerificationOperation {
       readonly stateIds: QuantumReferenceId[];
       readonly memoryCriticality: MemoryCriticality;
       readonly lifecyclePhase: QuantumLifecyclePhase;
+    };
+    readonly distributedOperation?: {
+      readonly operation: DistributedOperationType;
+      readonly sessionId: SessionId;
+      readonly involvedNodes: Set<NodeId>;
+      readonly requiredChannels: Set<ChannelId>;
+      readonly networkMetadata: NetworkMetadata;
+      readonly coherenceBudget: CoherenceBudget;
     };
   };
 }
@@ -482,6 +502,379 @@ export class AIVerificationService extends EventEmitter {
   public getAuditTrail(limit?: number): AuditEntry[] {
     const entries = [...this.auditTrail].reverse();
     return limit ? entries.slice(0, limit) : entries;
+  }
+
+  // =============================================================================
+  // DISTRIBUTED QUANTUM OPERATIONS VERIFICATION
+  // =============================================================================
+
+  /**
+   * Verify distributed quantum operation before execution
+   */
+  public async verifyDistributedOperation(
+    operation: DistributedOperation,
+    involvedStates: QuantumReferenceId[],
+    sourceLocation?: { line: number; column: number }
+  ): Promise<VerificationResult> {
+    const operationId = `dqn_${operation.type}_${Date.now()}`;
+    
+    const violations: VerificationViolation[] = [];
+
+    // Critical validation: Check for required networkMetadata
+    if (!operation.networkMetadata) {
+      violations.push({
+        type: 'safety_constraint',
+        severity: 'critical',
+        message: 'Missing required networkMetadata for distributed operation',
+        suggestion: 'Ensure operation includes complete network metadata before verification',
+        location: sourceLocation
+      });
+      
+      return {
+        success: false,
+        explainabilityScore: 0.0 as ExplainabilityScore,
+        complianceStatus: ComplianceStatus.NON_COMPLIANT,
+        violations,
+        fallbackTriggered: true,
+        humanOversightRequired: true,
+        auditTrail: [{
+          timestamp: Date.now(),
+          action: 'verify_distributed_operation_failed',
+          details: { operationId, reason: 'missing_network_metadata' },
+          verificationScore: 0.0 as ExplainabilityScore
+        }]
+      };
+    }
+
+    // Critical validation: Check for required coherenceBudget
+    if (!operation.networkMetadata.coherenceBudget) {
+      violations.push({
+        type: 'safety_constraint',
+        severity: 'critical',
+        message: 'Missing required coherenceBudget in networkMetadata',
+        suggestion: 'Ensure coherence budget is allocated before distributed operation',
+        location: sourceLocation
+      });
+      
+      return {
+        success: false,
+        explainabilityScore: 0.0 as ExplainabilityScore,
+        complianceStatus: ComplianceStatus.NON_COMPLIANT,
+        violations,
+        fallbackTriggered: true,
+        humanOversightRequired: true,
+        auditTrail: [{
+          timestamp: Date.now(),
+          action: 'verify_distributed_operation_failed',
+          details: { operationId, reason: 'missing_coherence_budget' },
+          verificationScore: 0.0 as ExplainabilityScore
+        }]
+      };
+    }
+    
+    const verificationOp: VerificationOperation = {
+      id: operationId,
+      type: 'distributed_quantum',
+      description: `Distributed ${operation.type}: ${operation.id} across ${operation.involvedNodes.size} nodes`,
+      criticality: this.mapDistributedOperationCriticality(operation),
+      explainabilityRequirement: 0.85 as ExplainabilityScore,
+      oversightLevel: operation.involvedNodes.size > 3 ? HumanOversightLevel.REQUIRED : HumanOversightLevel.OPTIONAL,
+      context: {
+        sourceLocation,
+        parameters: { operationId: operation.id, sessionId: operation.sessionId },
+        distributedOperation: {
+          operation: operation.type,
+          sessionId: operation.sessionId,
+          involvedNodes: operation.involvedNodes,
+          requiredChannels: operation.requiredChannels,
+          networkMetadata: operation.networkMetadata,
+          coherenceBudget: operation.networkMetadata.coherenceBudget
+        }
+      }
+    };
+
+    // 1. Check coherence budget sufficiency (now safely validated)
+    const coherenceBudget = operation.networkMetadata.coherenceBudget;
+    if (coherenceBudget.remainingBudget < coherenceBudget.perOperationBudget) {
+      violations.push({
+        type: 'safety_constraint',
+        severity: 'error',
+        message: `Insufficient coherence budget: ${coherenceBudget.remainingBudget}ns remaining, ${coherenceBudget.perOperationBudget}ns required`,
+        suggestion: 'Wait for budget refresh or reduce operation complexity'
+      });
+    }
+
+    // 2. Check network capacity (now safely validated)
+    const estimatedLatency = operation.networkMetadata.estimatedLatency;
+    if (estimatedLatency > 100) { // 100ms threshold
+      violations.push({
+        type: 'safety_constraint',
+        severity: 'warning',
+        message: `High network latency detected: ${estimatedLatency}ms`,
+        suggestion: 'Consider using shorter coherence windows or reducing node count'
+      });
+    }
+
+    // 3. Check node count for oversight requirements
+    if (operation.involvedNodes.size > 5) {
+      violations.push({
+        type: 'human_oversight_missing',
+        severity: 'error',
+        message: `Distributed operation involves ${operation.involvedNodes.size} nodes, requiring human oversight`,
+        suggestion: 'Add human approval for large-scale distributed operations'
+      });
+    }
+
+    // 4. Check operation deadline feasibility
+    const timeUntilDeadline = operation.deadline - Date.now();
+    if (timeUntilDeadline < estimatedLatency * 2) {
+      violations.push({
+        type: 'safety_constraint',
+        severity: 'critical',
+        message: `Operation deadline too tight: ${timeUntilDeadline}ms available, ${estimatedLatency * 2}ms required`,
+        suggestion: 'Extend deadline or reduce operation complexity'
+      });
+    }
+
+    const result: VerificationResult = {
+      success: violations.length === 0,
+      explainabilityScore: 0.88 as ExplainabilityScore,
+      complianceStatus: violations.length === 0 ? ComplianceStatus.COMPLIANT : ComplianceStatus.NON_COMPLIANT,
+      violations,
+      fallbackTriggered: violations.some(v => v.severity === 'critical'),
+      humanOversightRequired: operation.involvedNodes.size > 3,
+      auditTrail: [{
+        timestamp: Date.now(),
+        action: `distributed_operation_verified`,
+        details: { 
+          operationId: operation.id, 
+          operationType: operation.type,
+          nodeCount: operation.involvedNodes.size,
+          coherenceBudget: coherenceBudget.remainingBudget,
+          networkLatency: estimatedLatency
+        },
+        verificationScore: 0.88 as ExplainabilityScore
+      }]
+    };
+
+    this.logVerificationEvent(verificationOp, result);
+    return result;
+  }
+
+  /**
+   * Verify cross-node entanglement operation
+   */
+  public async verifyCrossNodeEntanglement(
+    localStateId: QuantumReferenceId,
+    remoteNodeId: NodeId,
+    remoteStateId: QuantumReferenceId,
+    sessionId: SessionId
+  ): Promise<VerificationResult> {
+    const operationId = `dqn_cross_entangle_${Date.now()}`;
+    
+    const verificationOp: VerificationOperation = {
+      id: operationId,
+      type: 'distributed_quantum',
+      description: `Cross-node entanglement: ${localStateId} <-> ${remoteStateId}@${remoteNodeId}`,
+      criticality: OperationCriticality.HIGH,
+      explainabilityRequirement: 0.9 as ExplainabilityScore,
+      oversightLevel: HumanOversightLevel.OPTIONAL,
+      context: {
+        parameters: { localStateId, remoteNodeId, remoteStateId, sessionId },
+        distributedOperation: {
+          operation: DistributedOperationType.ENTANGLEMENT,
+          sessionId,
+          involvedNodes: new Set([remoteNodeId]),
+          requiredChannels: new Set(['quantum_channel' as ChannelId]),
+          networkMetadata: {} as NetworkMetadata,
+          coherenceBudget: {} as CoherenceBudget
+        }
+      }
+    };
+
+    const violations: VerificationViolation[] = [];
+
+    // Check local state validity
+    const localMemoryNode = quantumMemoryManager.memoryGraph.nodes.get(localStateId);
+    if (!localMemoryNode) {
+      violations.push({
+        type: 'safety_constraint',
+        severity: 'error',
+        message: `Local quantum state ${localStateId} not found`,
+        suggestion: 'Verify local state exists before cross-node entanglement'
+      });
+    } else if (localMemoryNode.state.coherence !== CoherenceStatus.COHERENT) {
+      violations.push({
+        type: 'safety_constraint',
+        severity: 'error',
+        message: `Local quantum state ${localStateId} is not coherent`,
+        suggestion: 'Only coherent states can participate in cross-node entanglement'
+      });
+    }
+
+    const result: VerificationResult = {
+      success: violations.length === 0,
+      explainabilityScore: 0.92 as ExplainabilityScore,
+      complianceStatus: violations.length === 0 ? ComplianceStatus.COMPLIANT : ComplianceStatus.NON_COMPLIANT,
+      violations,
+      fallbackTriggered: false,
+      humanOversightRequired: false,
+      auditTrail: [{
+        timestamp: Date.now(),
+        action: `cross_node_entanglement_verified`,
+        details: { operationId, localStateId, remoteNodeId, remoteStateId },
+        verificationScore: 0.92 as ExplainabilityScore
+      }]
+    };
+
+    this.logVerificationEvent(verificationOp, result);
+    return result;
+  }
+
+  /**
+   * Verify quantum teleportation operation
+   */
+  public async verifyQuantumTeleportation(
+    stateId: QuantumReferenceId,
+    sourceNode: NodeId,
+    targetNode: NodeId,
+    channelId: ChannelId
+  ): Promise<VerificationResult> {
+    const operationId = `dqn_teleport_${Date.now()}`;
+    
+    const verificationOp: VerificationOperation = {
+      id: operationId,
+      type: 'distributed_quantum',
+      description: `Quantum teleportation: ${stateId} from ${sourceNode} to ${targetNode}`,
+      criticality: OperationCriticality.CRITICAL,
+      explainabilityRequirement: 0.95 as ExplainabilityScore,
+      oversightLevel: HumanOversightLevel.REQUIRED,
+      context: {
+        parameters: { stateId, sourceNode, targetNode, channelId },
+        distributedOperation: {
+          operation: DistributedOperationType.TELEPORTATION,
+          sessionId: 'teleport_session' as SessionId,
+          involvedNodes: new Set([sourceNode, targetNode]),
+          requiredChannels: new Set([channelId]),
+          networkMetadata: {} as NetworkMetadata,
+          coherenceBudget: {} as CoherenceBudget
+        }
+      }
+    };
+
+    const violations: VerificationViolation[] = [];
+
+    // Teleportation always requires human oversight due to its irreversible nature
+    violations.push({
+      type: 'human_oversight_missing',
+      severity: 'error',
+      message: 'Quantum teleportation requires human oversight due to irreversible state transfer',
+      suggestion: 'Request human approval before proceeding with teleportation'
+    });
+
+    const result: VerificationResult = {
+      success: false, // Always requires human oversight
+      explainabilityScore: 0.95 as ExplainabilityScore,
+      complianceStatus: ComplianceStatus.UNDER_REVIEW,
+      violations,
+      fallbackTriggered: false,
+      humanOversightRequired: true,
+      auditTrail: [{
+        timestamp: Date.now(),
+        action: `quantum_teleportation_verified`,
+        details: { operationId, stateId, sourceNode, targetNode, channelId },
+        verificationScore: 0.95 as ExplainabilityScore
+      }]
+    };
+
+    this.logVerificationEvent(verificationOp, result);
+    return result;
+  }
+
+  /**
+   * Monitor distributed operation progress
+   */
+  public monitorDistributedOperation(
+    operation: DistributedOperation,
+    progressCallback: (progress: number, status: string) => void
+  ): void {
+    const startTime = Date.now();
+    const deadline = operation.deadline;
+    
+    const monitoringInterval = setInterval(() => {
+      const now = Date.now();
+      const elapsed = now - startTime;
+      const totalTime = deadline - startTime;
+      const progress = Math.min(elapsed / totalTime, 1.0);
+      
+      let status: string;
+      if (progress < 0.5) {
+        status = 'initializing';
+      } else if (progress < 0.8) {
+        status = 'executing';
+      } else if (progress < 1.0) {
+        status = 'finalizing';
+      } else {
+        status = 'completed';
+        clearInterval(monitoringInterval);
+      }
+      
+      progressCallback(progress, status);
+      
+      // Emit monitoring event
+      this.emit('distributed_operation_progress', {
+        operationId: operation.id,
+        progress,
+        status,
+        timestamp: now
+      });
+      
+    }, 100); // Monitor every 100ms
+  }
+
+  // =============================================================================
+  // HELPER METHODS FOR DISTRIBUTED OPERATIONS
+  // =============================================================================
+
+  /**
+   * Map distributed operation type to operation criticality
+   */
+  private mapDistributedOperationCriticality(operation: DistributedOperation): OperationCriticality {
+    switch (operation.type) {
+      case DistributedOperationType.TELEPORTATION:
+        return OperationCriticality.CRITICAL;
+      case DistributedOperationType.ENTANGLEMENT:
+      case DistributedOperationType.ENTANGLEMENT_SWAPPING:
+        return OperationCriticality.HIGH;
+      case DistributedOperationType.BARRIER_SYNCHRONIZATION:
+        return operation.involvedNodes.size > 3 ? OperationCriticality.HIGH : OperationCriticality.MEDIUM;
+      default:
+        return OperationCriticality.MEDIUM;
+    }
+  }
+
+  /**
+   * Log verification event for distributed operations
+   */
+  private logVerificationEvent(operation: VerificationOperation, result: VerificationResult): void {
+    const event: VerificationEvent = {
+      timestamp: Date.now(),
+      eventType: result.violations.length > 0 ? 'safety_violation' : 'explainability_check',
+      operation,
+      result
+    };
+    
+    this.emit('verification_completed', event);
+    
+    // Add to audit trail
+    this.auditTrail.push(...result.auditTrail);
+    
+    // Update monitoring statistics
+    this.monitoringData.verificationsPerformed++;
+    this.monitoringData.violationsDetected += result.violations.length;
+    if (result.humanOversightRequired) {
+      this.monitoringData.humanInterventionsRequired++;
+    }
   }
 
   /**
