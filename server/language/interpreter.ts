@@ -65,6 +65,21 @@ import {
   requiresHumanOversight
 } from '../../shared/types/ai-types';
 
+// Import runtime verification services
+import {
+  aiVerificationService,
+  VerificationOperation,
+  VerificationResult
+} from '../runtime/ai-verification-service';
+import {
+  explainabilityMonitor,
+  ExplainabilityMethod
+} from '../runtime/explainability-monitor';
+import {
+  humanOversightManager,
+  RequestType
+} from '../runtime/human-oversight-manager';
+
 // Runtime execution result
 export interface ExecutionResult {
   readonly success: boolean;
@@ -106,6 +121,12 @@ export class SingularisInterpreter {
   private entanglements: Map<string, EntangledSystem> = new Map();
   private quantumUsageTracker: Map<QuantumReferenceId, number> = new Map();
   
+  // AI Verification Runtime integration
+  private verificationEnabled: boolean = true;
+  private verificationResults: Map<string, VerificationResult> = new Map();
+  private currentSourceCode: string = '';
+  private operationCounter: number = 0;
+  
   constructor(ast: any[]) {
     this.ast = ast;
     this.environment = new Map();
@@ -118,6 +139,8 @@ export class SingularisInterpreter {
     this.environment.set('explainabilityThreshold', this.explainabilityThreshold.bind(this));
     this.environment.set('consensusProtocol', this.consensusProtocol.bind(this));
     this.environment.set('monitorAuditTrail', this.monitorAuditTrail.bind(this));
+    
+    // Note: AI Verification Runtime services will be initialized when verification is enabled
   }
   
   /**
@@ -137,22 +160,29 @@ export class SingularisInterpreter {
   /**
    * Execute SINGULARIS PRIME code directly from source with type safety
    */
-  executeSource(sourceCode: string): string[] {
-    const result = this.executeSourceWithTypeChecking(sourceCode);
+  async executeSource(sourceCode: string): Promise<string[]> {
+    const result = await this.executeSourceWithTypeChecking(sourceCode);
     return result.output;
   }
   
   /**
    * Enhanced execution with comprehensive type checking and safety enforcement
    */
-  executeSourceWithTypeChecking(sourceCode: string): ExecutionResult {
+  async executeSourceWithTypeChecking(sourceCode: string): Promise<ExecutionResult> {
     this.runtimeErrors = [];
     this.runtimeWarnings = [];
     this.consoleOutput = [];
+    this.currentSourceCode = sourceCode;
     
-    this.log("Initializing Quantum Runtime v3.0.0 with Type Safety...");
+    this.log("Initializing Quantum Runtime v4.0.0 with AI Verification...");
     this.log("Loading quantum libraries...");
     this.log("Establishing quantum entanglement channel...");
+    this.log("Starting AI verification services...");
+    
+    // Start verification services if enabled
+    if (this.verificationEnabled) {
+      await this.startVerificationServices();
+    }
     
     try {
       // Enhanced compilation with type checking
@@ -186,7 +216,7 @@ export class SingularisInterpreter {
       });
       
       // Execute with runtime type safety checks
-      const executionSuccess = this.executeWithRuntimeChecks(
+      const executionSuccess = await this.executeWithRuntimeChecks(
         compilationResult.bytecode,
         compilationResult.ast,
         compilationResult.typeResults
@@ -217,11 +247,11 @@ export class SingularisInterpreter {
   /**
    * Execute with runtime type safety checks
    */
-  private executeWithRuntimeChecks(
+  private async executeWithRuntimeChecks(
     bytecode: string[], 
     ast: ASTNode[], 
     typeResults: TypeInferenceResult[]
-  ): boolean {
+  ): Promise<boolean> {
     // Initialize runtime state from type checking results
     this.initializeRuntimeState(typeResults);
     
@@ -242,9 +272,9 @@ export class SingularisInterpreter {
           continue;
         }
         
-        // Execute instruction
+        // Execute instruction with AI verification
         this.log(`> ${instruction}`);
-        const instructionSuccess = this.executeInstructionSafely(instruction, astNode, typeResult);
+        const instructionSuccess = await this.executeInstructionWithVerification(instruction, astNode, typeResult);
         
         if (!instructionSuccess) {
           success = false;
@@ -1070,5 +1100,273 @@ class QuantumMemoryManagerImpl implements QuantumMemoryManager {
 
   private generateQuantumId(): QuantumReferenceId {
     return `quantum_${Date.now()}_${Math.random().toString(36).substr(2, 9)}` as QuantumReferenceId;
+  }
+  
+  /**
+   * Initialize AI verification services
+   */
+  private async initializeVerificationServices(): Promise<void> {
+    try {
+      // Verification services are singleton instances and auto-initialize
+      this.log("AI Verification services initialized");
+    } catch (error) {
+      this.log(`[WARNING] Failed to initialize verification services: ${error instanceof Error ? error.message : String(error)}`);
+      this.verificationEnabled = false;
+    }
+  }
+  
+  /**
+   * Start verification services
+   */
+  private async startVerificationServices(): Promise<void> {
+    try {
+      await aiVerificationService.startVerification();
+      await explainabilityMonitor.startMonitoring();
+      await humanOversightManager.start();
+      
+      this.log("AI Verification Runtime services started");
+    } catch (error) {
+      this.log(`[WARNING] Failed to start verification services: ${error instanceof Error ? error.message : String(error)}`);
+      this.verificationEnabled = false;
+    }
+  }
+  
+  /**
+   * Execute instruction with AI verification checks
+   */
+  private async executeInstructionWithVerification(
+    instruction: string,
+    astNode: ASTNode,
+    typeResult: TypeInferenceResult
+  ): Promise<boolean> {
+    if (!this.verificationEnabled) {
+      // Fall back to regular execution if verification is disabled
+      return this.executeInstructionSafely(instruction, astNode, typeResult);
+    }
+    
+    try {
+      // Generate operation ID
+      const operationId = `op_${++this.operationCounter}_${Date.now()}`;
+      
+      // Determine operation type and criticality
+      const { operationType, criticality, explainabilityRequirement } = this.analyzeOperation(instruction, astNode);
+      
+      // Create verification operation
+      const verificationOperation: VerificationOperation = {
+        id: operationId,
+        type: operationType,
+        description: `Execute: ${instruction}`,
+        criticality,
+        explainabilityRequirement,
+        oversightLevel: this.determineOversightLevel(criticality, astNode),
+        context: {
+          sourceLocation: astNode.location || { line: 0, column: 0 },
+          codeFragment: instruction,
+          parameters: astNode.parameters || {}
+        }
+      };
+      
+      // Perform AI verification check
+      const verificationResult = await aiVerificationService.verifyOperation(verificationOperation);
+      this.verificationResults.set(operationId, verificationResult);
+      
+      // Check if verification passed
+      if (!verificationResult.success) {
+        this.log(`[VERIFICATION FAILED] Operation ${operationId}: ${verificationResult.violations.map(v => v.message).join(', ')}`);
+        
+        // If fallback was triggered, wait for human oversight if required
+        if (verificationResult.fallbackTriggered && verificationResult.humanOversightRequired) {
+          this.log(`[OVERSIGHT REQUIRED] Waiting for human approval for operation ${operationId}`);
+          
+          const oversightResult = await this.waitForHumanOversight(verificationOperation, verificationResult);
+          if (!oversightResult) {
+            this.addRuntimeError({
+              type: 'ai_safety',
+              message: `Operation ${operationId} blocked due to verification failure and human oversight denial`,
+              location: astNode.location,
+              suggestion: 'Review operation safety and explainability requirements'
+            });
+            return false;
+          }
+        } else if (verificationResult.fallbackTriggered) {
+          // Block operation if fallback triggered but no human oversight available
+          this.addRuntimeError({
+            type: 'ai_safety',
+            message: `Operation ${operationId} blocked due to safety violations`,
+            location: astNode.location,
+            suggestion: 'Improve operation explainability or add human oversight'
+          });
+          return false;
+        }
+      }
+      
+      // Measure explainability of the code being executed
+      if (this.currentSourceCode) {
+        await explainabilityMonitor.measureExplainability(
+          operationId,
+          instruction,
+          ExplainabilityMethod.HYBRID_APPROACH,
+          {
+            sourceLocation: astNode.location,
+            functionName: astNode.name,
+            algorithmType: operationType
+          }
+        );
+      }
+      
+      // Execute the instruction
+      const executionSuccess = this.executeInstructionSafely(instruction, astNode, typeResult);
+      
+      // Log verification success
+      if (executionSuccess && verificationResult.success) {
+        this.log(`[VERIFICATION PASSED] Operation ${operationId} executed successfully`);
+      }
+      
+      return executionSuccess;
+      
+    } catch (error) {
+      this.log(`[VERIFICATION ERROR] Failed to verify operation: ${error instanceof Error ? error.message : String(error)}`);
+      
+      // Fall back to regular execution on verification error
+      return this.executeInstructionSafely(instruction, astNode, typeResult);
+    }
+  }
+  
+  /**
+   * Analyze operation to determine type and criticality
+   */
+  private analyzeOperation(instruction: string, astNode: ASTNode): {
+    operationType: 'ai_contract' | 'model_deployment' | 'decision_point' | 'quantum_operation' | 'verification_check',
+    criticality: OperationCriticality,
+    explainabilityRequirement: ExplainabilityScore
+  } {
+    // Analyze instruction to determine operation characteristics
+    if (instruction.includes('AI_CONTRACT') || instruction.includes('contract')) {
+      return {
+        operationType: 'ai_contract',
+        criticality: OperationCriticality.HIGH,
+        explainabilityRequirement: 0.90 as ExplainabilityScore
+      };
+    }
+    
+    if (instruction.includes('DEPLOY_MODEL') || instruction.includes('deploy')) {
+      const isCriticalLocation = instruction.includes('mars') || instruction.includes('safety');
+      return {
+        operationType: 'model_deployment',
+        criticality: isCriticalLocation ? OperationCriticality.CRITICAL : OperationCriticality.HIGH,
+        explainabilityRequirement: isCriticalLocation ? 0.95 as ExplainabilityScore : 0.85 as ExplainabilityScore
+      };
+    }
+    
+    if (instruction.includes('QKD_INIT') || instruction.includes('QUANTUM_') || instruction.includes('entangle')) {
+      return {
+        operationType: 'quantum_operation',
+        criticality: OperationCriticality.MEDIUM,
+        explainabilityRequirement: 0.80 as ExplainabilityScore
+      };
+    }
+    
+    if (instruction.includes('AI_VERIFY') || instruction.includes('verify')) {
+      return {
+        operationType: 'verification_check',
+        criticality: OperationCriticality.HIGH,
+        explainabilityRequirement: 0.87 as ExplainabilityScore
+      };
+    }
+    
+    // Default for decision points and other operations
+    return {
+      operationType: 'decision_point',
+      criticality: OperationCriticality.MEDIUM,
+      explainabilityRequirement: 0.75 as ExplainabilityScore
+    };
+  }
+  
+  /**
+   * Determine required oversight level based on criticality
+   */
+  private determineOversightLevel(criticality: OperationCriticality, astNode: ASTNode): HumanOversightLevel {
+    // Check for explicit oversight annotations in the AST
+    const explicitOversight = astNode.metadata?.oversightLevel;
+    if (explicitOversight) {
+      return explicitOversight;
+    }
+    
+    // Determine based on criticality
+    switch (criticality) {
+      case OperationCriticality.SAFETY:
+        return HumanOversightLevel.CONTROL;
+      case OperationCriticality.CRITICAL:
+        return HumanOversightLevel.APPROVAL;
+      case OperationCriticality.HIGH:
+        return HumanOversightLevel.SUPERVISION;
+      case OperationCriticality.MEDIUM:
+        return HumanOversightLevel.NOTIFICATION;
+      case OperationCriticality.LOW:
+      default:
+        return HumanOversightLevel.NONE;
+    }
+  }
+  
+  /**
+   * Wait for human oversight approval
+   */
+  private async waitForHumanOversight(
+    operation: VerificationOperation,
+    verificationResult: VerificationResult
+  ): Promise<boolean> {
+    try {
+      // Create oversight request
+      const requestId = await humanOversightManager.requestOversight(
+        operation.id,
+        RequestType.APPROVAL,
+        operation.criticality,
+        {
+          description: operation.description,
+          explainabilityScore: operation.explainabilityRequirement,
+          riskAssessment: {
+            level: verificationResult.violations.length > 0 ? 'high' : 'medium',
+            factors: verificationResult.violations.map(v => ({
+              category: 'safety' as const,
+              description: v.message,
+              severity: v.severity === 'critical' ? 1.0 : v.severity === 'error' ? 0.8 : 0.5,
+              likelihood: 0.7
+            })),
+            mitigations: verificationResult.violations.map(v => v.suggestion).filter(Boolean) as string[],
+            potentialImpact: ['Operation may violate safety constraints'],
+            likelihood: 0.7
+          },
+          codeFragment: operation.context.codeFragment,
+          sourceLocation: operation.context.sourceLocation,
+          complianceIssues: verificationResult.violations.map(v => v.message)
+        },
+        operation.oversightLevel
+      );
+      
+      this.log(`[OVERSIGHT REQUEST] Created oversight request ${requestId} for operation ${operation.id}`);
+      
+      // For now, simulate approval after a short delay (in a real system, this would wait for actual human input)
+      setTimeout(() => {
+        // This is just a simulation - in reality, a human would respond through the UI
+        humanOversightManager.respondToOversight(requestId, {
+          timestamp: Date.now(),
+          userId: 'system_auto_approver',
+          decision: 'approve', // or 'reject' based on actual human decision
+          reasoning: 'Automatic approval for demonstration purposes',
+        });
+      }, 1000);
+      
+      // In a real implementation, this would properly wait for the human response
+      // For now, we'll approve after a short delay
+      return new Promise((resolve) => {
+        setTimeout(() => {
+          resolve(true); // Simulate approval
+        }, 1500);
+      });
+      
+    } catch (error) {
+      this.log(`[OVERSIGHT ERROR] Failed to process oversight request: ${error instanceof Error ? error.message : String(error)}`);
+      return false;
+    }
   }
 }

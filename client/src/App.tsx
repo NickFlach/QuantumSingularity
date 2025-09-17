@@ -20,6 +20,7 @@ import { ExamplesPage } from "@/pages/ExamplesPage";
 import { QuantumVisualizerDemo } from "@/pages/QuantumVisualizerDemo";
 import StellarRoseControl from "@/pages/StellarRoseControl";
 import GlyphEditor from "@/pages/GlyphEditor";
+import { MonitoringPage } from "@/pages/MonitoringPage";
 import Header from "@/components/Header";
 import { AuthProvider } from "./lib/AuthContext";
 import { ProtectedRoute } from "./lib/ProtectedRoute";
@@ -41,6 +42,7 @@ function Router() {
       <PublicRoute path="/quantum-visualizer" component={QuantumVisualizerDemo} />
       <Route path="/control" component={StellarRoseControl} />
       <ProtectedRoute path="/glyph-editor" component={GlyphEditor} />
+      <ProtectedRoute path="/ai-verification" component={MonitoringPage} />
       <ProtectedRoute path="/projects" component={ProjectsPage} />
       <ProtectedRoute path="/projects/:id" component={ProjectDetail} />
       <ProtectedRoute path="/profile" component={ProfilePage} />
