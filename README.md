@@ -317,7 +317,7 @@ Follow us for the latest quantum breakthroughs!
 ### **Getting Help**
 - **GitHub Issues** → Bug reports and feature requests
 - **Discord Support** → Real-time help from the community
-- **Email Support** → <support@singularis-prime.dev>
+- **Email Support** → <info@spacechild.love>
 
 ---
 
